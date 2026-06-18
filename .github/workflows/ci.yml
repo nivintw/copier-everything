@@ -1,0 +1,55 @@
+# SPDX-FileCopyrightText: © 2026 Tyler Nivin
+# SPDX-License-Identifier: MIT
+
+# CI for the scaffold template ITSELF: render every shape in tests/answers/ and run the
+# full quality gate on each generated project (tests/render-matrix.sh). This is what
+# proves a template change doesn't break any supported project shape.
+
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render-matrix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up uv (+ managed Python)
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install Python CLI tools (copier, reuse)
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          uv tool install copier
+          uv tool install reuse
+          echo "$HOME/.local/bin" >>"$GITHUB_PATH"
+
+      - name: Install bats
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq bats
+
+      - name: Install hawkeye + taplo (pinned, matching the template's CI)
+        run: |
+          curl -fsSL https://github.com/korandoru/hawkeye/releases/download/v6.5.1/hawkeye-x86_64-unknown-linux-gnu.tar.xz \
+            | tar -xJ --strip-components=1 -C "$HOME/.local/bin" hawkeye-x86_64-unknown-linux-gnu/hawkeye
+          chmod +x "$HOME/.local/bin/hawkeye"
+          curl -fsSL https://github.com/tamasfe/taplo/releases/download/0.10.0/taplo-linux-x86_64.gz \
+            | gunzip -c >"$HOME/.local/bin/taplo"
+          chmod +x "$HOME/.local/bin/taplo"
+
+      - name: Render every shape + run the full gate
+        run: tests/render-matrix.sh

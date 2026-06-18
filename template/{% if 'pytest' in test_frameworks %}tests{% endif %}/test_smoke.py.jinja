@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
+# SPDX-License-Identifier: {{ license }}
+
+"""Smoke test — replace with real tests."""
+{% if python_source %}
+from {{ python_package }} import __version__
+
+
+def test_version() -> None:
+    """The package exposes a version string."""
+    assert isinstance(__version__, str)
+{%- else %}
+from conftest import REPO
+
+
+def test_repo_has_readme() -> None:
+    """The project ships a README (placeholder check — replace with real tests)."""
+    assert (REPO / "README.md").is_file()
+{%- endif %}

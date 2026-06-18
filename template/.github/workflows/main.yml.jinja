@@ -6,7 +6,8 @@
 #
 # RELEASE FLOW (commitizen decides everything; the API just stamps its decision):
 #   1. `cz bump --files-only` computes the next version from the conventional-commit
-#      history and writes pyproject.toml + uv.lock + CHANGELOG.md, WITHOUT committing.
+#      history and writes the version-of-record (pyproject.toml/.cz.toml, per the
+#      configured version_provider) + lockfile + CHANGELOG.md, WITHOUT committing.
 #   2. The workflow creates a GitHub-SIGNED commit of those files via the GraphQL
 #      createCommitOnBranch mutation, authenticated as a release GitHub App → the
 #      commit is Verified and attributed to the app[bot].

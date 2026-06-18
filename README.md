@@ -57,24 +57,35 @@ The cross-cutting quality infrastructure, lifted from
 | **uv + ruff** | `pyproject.toml` hosts the shared tooling config and a managed dev environment, package or not. |
 | **`.editorconfig`, `_typos.toml`, `.rumdl.toml`** | Editor + linter config that agrees with the hooks. |
 
-## 🧩 Includable modules
+## 🧩 Shape & modules
 
-| Toggle | Scaffolds |
+The Python/testing shape is set by three decoupled levers, so you can scaffold an
+installable package, a pyproject-only-for-pytest repo, a pytest + bats repo (the
+`dotfiles` model), or a no-Python repo with no `pyproject.toml` at all:
+
+| Question | Scaffolds |
 | --- | --- |
-| `include_python` | `src/` layout, `pytest`, `ty`, ruff config, `.envrc` venv activation |
+| `test_frameworks` (`pytest`/`bats`) | the `tests/` suites; empty ⇒ no `tests/`. `pytest` implies Python |
+| `python_source` | `src/<package>` Python source + src assumptions in `pyproject.toml` |
+| `is_package` | `[build-system]` + distribution metadata (installable/publishable) |
 | `include_terraform` | `terraform/` with `versions.tf`, `variables.tf`, `outputs.tf`, `main.tf` |
 | `include_docker` | `Dockerfile`, `.dockerignore`, `compose.yaml` |
 | `include_helm` | A starter Helm chart under `helm/<slug>/` |
+
+The spine (prek hooks, REUSE licensing, `.cz.toml` commitizen release, CI) is
+language-agnostic and ships with every shape. See [`REVIEW.md`](REVIEW.md) for the model.
 
 ---
 
 ## 🗂️ Template layout
 
-- **`copier.yml`** — questions + module toggles.
+- **`copier.yml`** — questions, module toggles, post-copy `_tasks`.
 - **`template/`** — the rendered project tree (`_subdirectory`). Conditional dirs use
-  `{% raw %}{% if include_x %}...{% endif %}{% endraw %}` in their names; templated
+  `{% raw %}{% if <condition> %}...{% endif %}{% endraw %}` in their names; templated
   files end in `.jinja`.
-- **`REVIEW.md`** — first-pass notes: what was ported, what's a stub, open decisions.
+- **`tests/`** — the scaffold's own test suite: `render-matrix.sh` renders every
+  `answers/*.yml` shape and runs the full gate. Wired into CI.
+- **`REVIEW.md`** — the design model, decisions/assumptions, and open follow-ups.
 
 ## 📄 License
 

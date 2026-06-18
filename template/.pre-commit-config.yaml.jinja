@@ -13,8 +13,9 @@ repos:
   # ------------------------------ 🔧 Meta / Self-checks ----------------------------- #
   - repo: meta
     hooks:
-      - id: check-hooks-apply
-        name: "🔧 pre-commit · Ensure all hooks apply to at least one file"
+      # NOTE: check-hooks-apply is intentionally omitted. A freshly-scaffolded repo can
+      # legitimately have hygiene hooks (check-json, etc.) that match zero files until
+      # the project grows, and that meta-hook would fail the gate on those.
       - id: check-useless-excludes
         name: "🔧 pre-commit · Check for useless excludes"
 
@@ -94,7 +95,7 @@ repos:
         # CHECK-ONLY: drop the hook default --write-changes; keep --force-exclude.
         args: ["--force-exclude"]
         pass_filenames: false
-{% if include_python %}
+{% if has_python %}
   # -------------------------------- 🐍 Python --------------------------------------- #
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.17
@@ -120,13 +121,14 @@ repos:
         name: "📝 markdown · Lint/format with rumdl"
         args: [--fix]
 
+{% if has_python %}
   # ----------------------------- ⚙️ Environment ------------------------------------- #
   - repo: https://github.com/astral-sh/uv-pre-commit
     rev: 0.11.21
     hooks:
       - id: uv-lock
         name: "⚙️ uv · Keep uv.lock in sync with pyproject.toml"
-
+{% endif %}
   # ------------------------------ ✨ Commit Messages -------------------------------- #
   - repo: https://github.com/ljnsn/cz-conventional-gitmoji
     rev: v0.7.0
@@ -150,7 +152,7 @@ repos:
         entry: prek validate-config
         language: system
         files: '^\.pre-commit-config\.yaml$'
-{% if include_python %}
+{% if has_python %}
       - id: ty
         name: "🐍 python · Type-check with ty"
         entry: uv run ty check .

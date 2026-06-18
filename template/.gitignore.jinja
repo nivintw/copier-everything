@@ -19,7 +19,7 @@
 !.vscode/extensions.json
 .idea/
 *~
-{% if include_python %}
+{% if has_python %}
 ### Python / uv ###
 __pycache__/
 *.py[cod]
@@ -27,7 +27,7 @@ __pycache__/
 .venv/
 .pytest_cache/
 .ruff_cache/
-.mypy_cache/
+.ty_cache/
 .coverage
 dist/
 build/
@@ -51,4 +51,4 @@ override.tf.json
 *.tgz
 charts/*.tgz
 Chart.lock
-{% endif %}
+{% endif -%}

@@ -1,8 +1,8 @@
 # SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
 # SPDX-License-Identifier: {{ license }}
 
-{% if include_python -%}
-FROM python:3.13-slim AS base
+{% if python_source -%}
+FROM python:{{ python_version }}-slim AS base
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 WORKDIR /app
