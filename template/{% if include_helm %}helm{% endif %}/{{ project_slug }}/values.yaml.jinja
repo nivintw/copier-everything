@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
+# SPDX-License-Identifier: {{ license }}
+
+replicaCount: 1
+
+image:
+  repository: {{ project_slug }}
+  tag: ""        # defaults to .Chart.AppVersion
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80

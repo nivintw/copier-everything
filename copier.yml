@@ -1,0 +1,92 @@
+# Copier configuration for the `scaffold` project template.
+# Generate a new project with:  copier copy gh:nivintw/scaffold path/to/new-project
+# Docs: https://copier.readthedocs.io
+
+_subdirectory: template
+_answers_file: .copier-answers.yml
+_min_copier_version: "9.0.0"
+
+# Strip the `.jinja` suffix on render (default, stated for clarity).
+_templates_suffix: .jinja
+
+_message_after_copy: |
+  Project "{{ project_name }}" created.
+
+  Next steps:
+    cd {{ _copier_conf.dst_path }}
+    git init && git add -A && git commit -m "🎉 init: scaffold {{ project_slug }}"
+    uv sync               # set up the dev toolchain
+    uvx prek install      # wire up the pre-commit hooks
+
+# ----------------------------------------------------------------------------- #
+#  Project identity
+# ----------------------------------------------------------------------------- #
+project_name:
+  type: str
+  help: Human-readable project name (e.g. "My Service")
+  placeholder: My Project
+
+project_slug:
+  type: str
+  help: Machine name — used for dirs, package, and repo
+  default: "{{ project_name | lower | replace(' ', '-') | replace('_', '-') }}"
+
+project_description:
+  type: str
+  help: One-line description of the project
+  default: ""
+
+author_name:
+  type: str
+  help: Copyright holder / author name (SPDX headers)
+  default: Tyler Nivin
+
+author_email:
+  type: str
+  help: Author email
+  default: tyler@nivin.tech
+
+year:
+  type: int
+  help: Inception year (SPDX headers)
+  default: 2026
+
+license:
+  type: str
+  help: License (SPDX identifier)
+  choices:
+    - MIT
+    - Apache-2.0
+  default: MIT
+
+# ----------------------------------------------------------------------------- #
+#  Includable modules — toggle the scaffolding you want
+# ----------------------------------------------------------------------------- #
+include_python:
+  type: bool
+  help: Python scaffolding (uv · ruff · ty · pytest, src layout)
+  default: true
+
+include_terraform:
+  type: bool
+  help: Terraform scaffolding (versions · variables · outputs)
+  default: false
+
+include_docker:
+  type: bool
+  help: Docker scaffolding (Dockerfile + compose)
+  default: false
+
+include_helm:
+  type: bool
+  help: Helm chart scaffolding
+  default: false
+
+# ----------------------------------------------------------------------------- #
+#  Module-specific follow-ups
+# ----------------------------------------------------------------------------- #
+python_package:
+  type: str
+  help: Python import package name
+  default: "{{ project_slug | replace('-', '_') }}"
+  when: "{{ include_python }}"

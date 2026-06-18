@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: © 2026 Tyler Nivin
+# SPDX-License-Identifier: MIT
+
+# This is the TEMPLATE repo's own ignore file. The generated project ships its
+# own .gitignore (see template/.gitignore.jinja).
+
+### Python / uv (this template's dev tooling) ###
+__pycache__/
+*.py[cod]
+.venv/
+.direnv/
+.pytest_cache/
+.ruff_cache/
+
+### Copier test renders ###
+/.copier-test/
+
+### macOS ###
+.DS_Store

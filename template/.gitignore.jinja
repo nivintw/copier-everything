@@ -1,0 +1,54 @@
+# SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
+# SPDX-License-Identifier: {{ license }}
+
+### Direnv ###
+.direnv/
+
+### Dotenv / secrets ###
+.env
+
+### macOS ###
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+### Editors ###
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*~
+{% if include_python %}
+### Python / uv ###
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+dist/
+build/
+*.egg-info/
+{% endif %}{% if include_terraform %}
+### Terraform ###
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfvars
+!example.tfvars
+.terraform.lock.hcl
+override.tf
+override.tf.json
+{% endif %}{% if include_docker %}
+### Docker ###
+*.env.local
+{% endif %}{% if include_helm %}
+### Helm ###
+*.tgz
+charts/*.tgz
+Chart.lock
+{% endif %}

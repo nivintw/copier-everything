@@ -1,0 +1,56 @@
+<!--
+SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
+SPDX-License-Identifier: {{ license }}
+-->
+
+# {{ project_name }}
+
+{% if project_description %}{{ project_description }}{% else %}_TODO: one-line description._{% endif %}
+
+## Getting started
+
+```bash
+{% if include_python -%}
+uv sync                 # create the venv + install dev tooling
+{% else -%}
+uv sync                 # install the shared dev tooling (commitizen, ruff)
+{% endif -%}
+uvx prek install        # wire up the pre-commit hooks
+{% if include_python %}uv run pytest           # run the tests
+{% endif %}```
+
+## Quality gate
+
+This project carries the shared quality spine: prek hooks (git hygiene, gitleaks,
+typos, rumdl, SPDX/REUSE headers{% if include_python %}, ruff, ty{% endif %}) that run
+identically locally and in CI. Conventional Commits (gitmoji) are enforced at
+commit-msg time; releases on `main` are cut automatically by commitizen.
+
+```bash
+uvx prek run --all-files   # run every hook on demand
+```
+{% if include_terraform %}
+## Terraform
+
+```bash
+cd terraform
+terraform init
+terraform plan
+```
+{% endif %}{% if include_docker %}
+## Docker
+
+```bash
+docker compose up --build
+```
+{% endif %}{% if include_helm %}
+## Helm
+
+```bash
+helm lint helm/{{ project_slug }}
+helm template helm/{{ project_slug }}
+```
+{% endif %}
+## License
+
+[{{ license }}](LICENSE) — and [REUSE](https://reuse.software)-compliant.

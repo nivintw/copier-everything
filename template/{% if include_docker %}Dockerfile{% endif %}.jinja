@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
+# SPDX-License-Identifier: {{ license }}
+
+{% if include_python -%}
+FROM python:3.13-slim AS base
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+WORKDIR /app
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project
+COPY . .
+RUN uv sync --frozen --no-dev
+
+ENV PATH="/app/.venv/bin:$PATH"
+CMD ["python", "-m", "{{ python_package }}"]
+{%- else -%}
+FROM alpine:3.20
+WORKDIR /app
+COPY . .
+CMD ["sh"]
+{%- endif %}
