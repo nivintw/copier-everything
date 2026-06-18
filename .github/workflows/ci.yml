@@ -44,12 +44,15 @@ jobs:
 
       - name: Install hawkeye + taplo (pinned, matching the template's CI)
         run: |
+          set -euo pipefail
           curl -fsSL https://github.com/korandoru/hawkeye/releases/download/v6.5.1/hawkeye-x86_64-unknown-linux-gnu.tar.xz \
             | tar -xJ --strip-components=1 -C "$HOME/.local/bin" hawkeye-x86_64-unknown-linux-gnu/hawkeye
-          chmod +x "$HOME/.local/bin/hawkeye"
           curl -fsSL https://github.com/tamasfe/taplo/releases/download/0.10.0/taplo-linux-x86_64.gz \
             | gunzip -c >"$HOME/.local/bin/taplo"
-          chmod +x "$HOME/.local/bin/taplo"
+          chmod +x "$HOME/.local/bin/hawkeye" "$HOME/.local/bin/taplo"
+          # Fail loudly if a pinned release URL 404s and the pipe yielded an empty binary.
+          test -s "$HOME/.local/bin/hawkeye" && "$HOME/.local/bin/hawkeye" --help >/dev/null
+          test -s "$HOME/.local/bin/taplo" && "$HOME/.local/bin/taplo" --version >/dev/null
 
       - name: Render every shape + run the full gate
         run: tests/render-matrix.sh

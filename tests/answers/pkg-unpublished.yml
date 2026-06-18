@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: © 2026 Tyler Nivin
+# SPDX-License-Identifier: MIT
+# Shape: Python source that's installed/importable but NOT a distributable package
+# (uv --package style: build-system present, package=true, no dist metadata). This is
+# the python_source=true / is_package=false case — the key autonomous assumption.
+project_name: Pkg Unpublished
+project_description: installed but not published
+test_frameworks: [pytest]
+contains_python: true
+python_source: true
+is_package: false

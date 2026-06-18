@@ -14,7 +14,7 @@ description = "{{ project_description }}"
 authors = [{ name = "{{ author_name }}", email = "{{ author_email }}" }]
 license = "{{ license }}"
 license-files = ["LICENSE", "LICENSES/*"]
-{%- if is_package %}
+{%- if is_package and python_source %}
 readme = "README.md"
 classifiers = [
   "Programming Language :: Python :: 3",
@@ -54,7 +54,7 @@ testpaths = ["tests"]
 
 {% endif -%}
 [tool.ruff]
-target-version = "py{{ python_version | replace('.', '') }}"
+target-version = "py{{ python_version.split('.')[0] }}{{ python_version.split('.')[1] }}"
 line-length = 100
 
 [tool.ruff.format]

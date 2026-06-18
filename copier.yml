@@ -87,11 +87,14 @@ author_name:
   type: str
   help: Copyright holder / author name (SPDX headers)
   default: Tyler Nivin
+  # Non-empty: it's the git identity for the auto-init commit (an empty ident aborts it).
+  validator: "{% if not author_name %}author_name cannot be empty.{% endif %}"
 
 author_email:
   type: str
   help: Author email
   default: tyler@nivin.tech
+  validator: "{% if not author_email %}author_email cannot be empty.{% endif %}"
 
 year:
   type: int
@@ -160,6 +163,13 @@ python_version:
   help: Minimum Python version (e.g. 3.13)
   default: "3.13"
   when: "{{ has_python }}"
+  # MAJOR.MINOR only — it feeds ruff's target-version (py313) and requires-python; a patch
+  # component (3.13.2) or a comparator (>=3.13) would render an invalid value.
+  validator: >-
+    {% if python_version.split('.') | length != 2
+       or not (python_version.split('.')[0].isdigit() and python_version.split('.')[1].isdigit()) %}
+    python_version must be MAJOR.MINOR, e.g. 3.13.
+    {% endif %}
 
 # ----------------------------------------------------------------------------- #
 #  Includable modules — toggle the orthogonal scaffolding you want

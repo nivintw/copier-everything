@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: © 2026 Tyler Nivin
+# SPDX-License-Identifier: MIT
+# Shape: the bare language-agnostic spine — no Python, no tests at all (empty
+# test_frameworks). e.g. a docs or config-only repo. No pyproject.toml, no tests/ dir.
+project_name: Spine Only
+project_description: bare spine, no tests
+test_frameworks: []
+contains_python: false

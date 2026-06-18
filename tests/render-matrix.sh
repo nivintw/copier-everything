@@ -50,7 +50,16 @@ for answers in "$ANSWERS_DIR"/*.yml; do
   if ! copier copy --defaults --data-file "$answers" --skip-tasks "$SRC" "$out" >"$WORK/render.log" 2>&1; then
     echo "    ❌ render FAILED"; tail -15 "$WORK/render.log"; total_fail=$((total_fail + 1)); continue
   fi
-  (cd "$out" && git init -q && git add -A)
+  if ! (cd "$out" && git init -q && git add -A) >"$WORK/git.log" 2>&1; then
+    echo "    ❌ git init/add FAILED"; sed 's/^/        /' "$WORK/git.log" | tail -10
+    total_fail=$((total_fail + 1)); continue
+  fi
+  # Guard against a vacuous pass: the gate (prek/reuse/hawkeye) runs on tracked files, so
+  # an empty index would let every check "pass" having inspected nothing.
+  if [ -z "$(cd "$out" && git diff --cached --name-only)" ]; then
+    echo "    ❌ nothing staged — render/staging produced no files"
+    total_fail=$((total_fail + 1)); continue
+  fi
 
   # Always: licensing + TOML formatting (system tools; prek skips them so they run here).
   run "reuse lint"        "$out" reuse lint
@@ -77,9 +86,11 @@ for answers in "$ANSWERS_DIR"/*.yml; do
 done
 
 echo "═══════════════════════════════"
+# Exit status is a plain pass/fail: a raw failure count could be a multiple of 256 and
+# wrap to 0, turning a mass failure green.
 if [ "$total_fail" -eq 0 ]; then
   echo "ALL SHAPES GREEN ✅"
-else
-  echo "FAILURES: $total_fail check(s) failed ❌"
+  exit 0
 fi
-exit "$total_fail"
+echo "FAILURES: $total_fail check(s) failed ❌"
+exit 1
