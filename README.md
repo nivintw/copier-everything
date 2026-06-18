@@ -52,9 +52,9 @@ The cross-cutting quality infrastructure, lifted from
 | --- | --- |
 | **prek hooks** (`.pre-commit-config.yaml`) | Git hygiene, secret scanning (gitleaks), spelling (typos), markdown (rumdl), license headers — run identically locally and in CI. |
 | **REUSE licensing** (`licenserc.toml`, `REUSE.toml`, `LICENSES/`) | Every file carries an SPDX header; `hawkeye` maintains them, `reuse` verifies. |
-| **CI** (`.github/workflows/`) | A reusable `ci.yml` gate called by `pr.yml` (every PR) and `main.yml` (push to main → automated, signed commitizen release). |
-| **commitizen + gitmoji** | Conventional commits enforced at commit-msg time; version + `CHANGELOG.md` computed from history. |
-| **uv + ruff** | `pyproject.toml` hosts the shared tooling config and a managed dev environment, package or not. |
+| **CI** (`.github/workflows/`) | Each generated repo gets a reusable `ci.yml` gate called by `pr.yml` (every PR) and `main.yml` (push to main → automated, signed commitizen release). The template itself is tested by its own root `.github/workflows/ci.yml` (see `tests/`). |
+| **commitizen + gitmoji** (`.cz.toml`) | Conventional commits enforced at commit-msg time; version + `CHANGELOG.md` computed from history. Language-agnostic — lives in `.cz.toml`, present even with no Python. |
+| **uv + ruff** (Python shapes) | When the project has Python, `pyproject.toml` hosts the ruff/ty/pytest config and a uv-managed dev environment. A no-Python repo ships no `pyproject.toml`. |
 | **`.editorconfig`, `_typos.toml`, `.rumdl.toml`** | Editor + linter config that agrees with the hooks. |
 
 ## 🧩 Shape & modules

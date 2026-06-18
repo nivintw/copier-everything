@@ -42,6 +42,9 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq bats
 
+      - name: Install helm (for the full-modules shape's helm lint)
+        uses: azure/setup-helm@v4
+
       - name: Install hawkeye + taplo (pinned, matching the template's CI)
         run: |
           set -euo pipefail

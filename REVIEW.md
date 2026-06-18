@@ -71,12 +71,19 @@ give gitmoji-conventional commits + auto-`CHANGELOG.md` + an annotated `v$versio
   lacked the blank line after the header that hawkeye expects.
 - **`end-of-file-fixer` rewrote `.copier-answers.yml` + `.gitignore`** on first run (double
   trailing newline); fixed with Jinja whitespace control.
+- **Module shapes didn't pass their own gate** (found in review): `.dockerignore`/`.helmignore`
+  had no SPDX header; Helm's Go-templated YAML tripped `check-yaml` and the templates left a
+  double-newline EOF. Headers added (+ `.helmignore` mapped in `licenserc.toml`), `check-yaml`
+  now excludes `helm/*/templates/` (validated by `helm lint`), and the `{%- endraw %}` trim
+  fixes the EOF. `.dockerignore` also still listed `.mypy_cache` → now `.ty_cache`.
 
 ## Self-test
 
 `tests/render-matrix.sh` renders every `tests/answers/*.yml` shape and runs the full gate
-(reuse, hawkeye, taplo, prek, and — derived from the render — uv/ruff/ty/pytest/bats). Run
-it locally or let `.github/workflows/ci.yml` run it on every PR.
+(reuse, hawkeye, taplo, prek, and — derived from the render — uv/ruff/ty/pytest/bats/helm
+lint). The matrix covers the 4 canonical Python/testing shapes, the unpublished-package and
+bare-spine edges, the Apache-license path, and a full terraform+docker+helm build. Run it
+locally or let `.github/workflows/ci.yml` run it on every PR.
 
 ## Open follow-ups (not blocking)
 
@@ -85,4 +92,5 @@ it locally or let `.github/workflows/ci.yml` run it on every PR.
   bypass before it works. Apply the production rulesets to this repo once that App exists.
 - **`python_version`** is a question (default `3.13`); bump to `3.14` to match dotfiles if wanted.
 - **Rust module** is *enabled by* this architecture but unbuilt. So are `docs`(mkdocs)/devcontainer.
-- Terraform/Docker/Helm modules remain the first-pass stubs.
+- Terraform/Docker/Helm are still minimal **stubs** (a single example resource, a generic
+  image, a bare Deployment/Service) — now gate-clean and CI-covered, but flesh out per project.

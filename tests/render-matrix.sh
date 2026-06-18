@@ -83,6 +83,13 @@ for answers in "$ANSWERS_DIR"/*.yml; do
   if compgen -G "$out/tests/*.bats" >/dev/null; then
     run "bats tests/" "$out" bats tests/
   fi
+
+  # helm lint, only if the render produced a chart and helm is available.
+  if command -v helm >/dev/null 2>&1; then
+    for chart in "$out"/helm/*/; do
+      [ -f "$chart/Chart.yaml" ] && run "helm lint $(basename "$chart")" "$out" helm lint "$chart"
+    done
+  fi
 done
 
 echo "═══════════════════════════════"

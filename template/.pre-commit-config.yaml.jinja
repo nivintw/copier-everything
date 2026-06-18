@@ -47,6 +47,10 @@ repos:
         name: "🧹 cleanup · Ensure single newline at EOF"
       - id: check-yaml
         name: "🗂️ config · Validate YAML"
+{%- if include_helm %}
+        # Helm templates are Go-templated, not valid YAML — `helm lint` validates them.
+        exclude: '^helm/[^/]+/templates/'
+{%- endif %}
       - id: check-json
         name: "🗂️ config · Validate JSON"
         files: '\.json$'
