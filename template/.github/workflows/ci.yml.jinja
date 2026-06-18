@@ -56,9 +56,15 @@ jobs:
             | gunzip -c >"$RUNNER_TEMP/taplo"
           chmod +x "$RUNNER_TEMP/taplo"
           "$RUNNER_TEMP/taplo" fmt --check --diff
-{% if include_python %}
+{% if 'pytest' in test_frameworks %}
       - name: Tests (pytest)
         run: uv run pytest
+{% endif %}{% if 'bats' in test_frameworks %}
+      - name: Shell tests (bats)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq bats
+          bats tests/
 {% endif %}{% if include_terraform %}
       - name: Terraform fmt + validate
         uses: hashicorp/setup-terraform@v3

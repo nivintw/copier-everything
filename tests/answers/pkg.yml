@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: © 2026 Tyler Nivin
+# SPDX-License-Identifier: MIT
+# Shape: installable package (src/ layout) + pytest.
+project_name: Pkg Demo
+project_description: An installable package
+test_frameworks: [pytest]
+contains_python: true
+python_source: true
+is_package: true

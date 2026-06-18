@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: © 2026 Tyler Nivin
+# SPDX-License-Identifier: MIT
+# Shape: Apache-2.0 package + pytest + bats — exercises the non-default license path.
+project_name: Apache Pkg
+project_description: Apache-licensed package
+license: Apache-2.0
+test_frameworks: [pytest, bats]
+contains_python: true
+python_source: true
+is_package: true

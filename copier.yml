@@ -1,5 +1,6 @@
 # Copier configuration for the `scaffold` project template.
-# Generate a new project with:  copier copy gh:nivintw/scaffold path/to/new-project
+# Generate a new project with:  copier copy --trust gh:nivintw/scaffold path/to/new-project
+# (--trust lets the post-copy tasks run git init / uv sync / prek install for you.)
 # Docs: https://copier.readthedocs.io
 
 _subdirectory: template
@@ -9,14 +10,55 @@ _min_copier_version: "9.0.0"
 # Strip the `.jinja` suffix on render (default, stated for clarity).
 _templates_suffix: .jinja
 
-_message_after_copy: |
-  Project "{{ project_name }}" created.
+# Drop the license texts the project didn't choose from the OUTPUT, so `reuse lint`
+# doesn't flag an unused license. Both files stay in the template source (LICENSE.jinja
+# `{% raw %}{% include %}{% endraw %}`s the Apache text), they just aren't copied. The
+# first entries restore Copier's defaults (setting _exclude replaces them).
+_exclude:
+  - "copier.yml"
+  - "copier.yaml"
+  - "~*"
+  - "*.py[co]"
+  - "__pycache__"
+  - ".git"
+  - ".DS_Store"
+  - ".svn"
+  - "{% if license != 'MIT' %}LICENSES/MIT.txt{% endif %}"
+  - "{% if license != 'Apache-2.0' %}LICENSES/Apache-2.0.txt{% endif %}"
 
-  Next steps:
+# Post-copy setup. Only runs with `copier copy --trust`; the message below lists the
+# same steps for anyone who skips trust. Each task is gated to the initial copy.
+_tasks:
+  - command: ["git", "init", "-q"]
+    when: "{{ _copier_operation == 'copy' }}"
+  - command: ["uv", "sync"]
+    when: "{{ _copier_operation == 'copy' and has_python }}"
+  - command: ["git", "add", "-A"]
+    when: "{{ _copier_operation == 'copy' }}"
+  # The initial commit runs BEFORE prek install on purpose: the no-commit-to-branch hook
+  # would otherwise block the first commit to main. Identity comes from the answers so it
+  # works even without a global git config.
+  - command:
+      ["git", "-c", "user.name={{ author_name }}", "-c", "user.email={{ author_email }}",
+       "commit", "-q", "-m", "🎉 init: scaffold {{ project_slug }}"]
+    when: "{{ _copier_operation == 'copy' }}"
+  - command: ["uvx", "prek", "install"]
+    when: "{{ _copier_operation == 'copy' }}"
+
+_message_after_copy: |
+  🦴 "{{ project_name }}" scaffolded.
+
+  {% if _copier_operation == 'copy' -%}
+  If you ran without --trust, finish setup manually (commit BEFORE installing hooks —
+  main is protected by no-commit-to-branch):
     cd {{ _copier_conf.dst_path }}
-    git init && git add -A && git commit -m "🎉 init: scaffold {{ project_slug }}"
-    uv sync               # set up the dev toolchain
+    git init
+  {%- if has_python %}
+    uv sync               # venv + dev toolchain
+  {%- endif %}
+    git add -A && git commit -m "🎉 init: scaffold {{ project_slug }}"
     uvx prek install      # wire up the pre-commit hooks
+  {% endif -%}
 
 # ----------------------------------------------------------------------------- #
 #  Project identity
@@ -30,6 +72,11 @@ project_slug:
   type: str
   help: Machine name — used for dirs, package, and repo
   default: "{{ project_name | lower | replace(' ', '-') | replace('_', '-') }}"
+  validator: >-
+    {% if not project_slug %}project_slug cannot be empty.
+    {% elif project_slug != (project_slug | lower) or ' ' in project_slug or '_' in project_slug %}
+    project_slug must be lowercase, with dashes instead of spaces or underscores.
+    {% endif %}
 
 project_description:
   type: str
@@ -40,11 +87,14 @@ author_name:
   type: str
   help: Copyright holder / author name (SPDX headers)
   default: Tyler Nivin
+  # Non-empty: it's the git identity for the auto-init commit (an empty ident aborts it).
+  validator: "{% if not author_name %}author_name cannot be empty.{% endif %}"
 
 author_email:
   type: str
   help: Author email
   default: tyler@nivin.tech
+  validator: "{% if not author_email %}author_email cannot be empty.{% endif %}"
 
 year:
   type: int
@@ -60,13 +110,70 @@ license:
   default: MIT
 
 # ----------------------------------------------------------------------------- #
-#  Includable modules — toggle the scaffolding you want
+#  Testing & Python shape — three decoupled levers
+#    test_frameworks  →  what test suites to scaffold (none / pytest / bats / both)
+#    python_source    →  is there a src/<pkg> of Python source code
+#    is_package       →  build it as an installable/distributable package
 # ----------------------------------------------------------------------------- #
-include_python:
-  type: bool
-  help: Python scaffolding (uv · ruff · ty · pytest, src layout)
-  default: true
+test_frameworks:
+  type: str
+  help: "Test suites to scaffold (space toggles; none selected = no tests/ dir)"
+  multiselect: true
+  choices:
+    pytest — Python tests: pytest
+    bats — shell/Bash tests: bats
+  default:
+    - pytest
 
+contains_python:
+  type: bool
+  help: Does this project contain Python? (forced yes when pytest is selected)
+  default: "{{ 'pytest' in test_frameworks }}"
+
+# Hidden, computed guard: true if Python is present for ANY reason. Everything Python
+# in the template gates on this (so a stray contains_python=no can't drop pytest's deps).
+has_python:
+  type: bool
+  when: false
+  default: "{{ contains_python or ('pytest' in test_frameworks) }}"
+
+python_source:
+  type: bool
+  help: "Python source code? (src/<package> layout) — No = tooling/tests only, like dotfiles"
+  # Default tracks has_python: a skipped question still resolves its default, so this must
+  # be false when there's no Python (else the src/ dir, gated on python_source, would render).
+  default: "{{ has_python }}"
+  when: "{{ has_python }}"
+
+is_package:
+  type: bool
+  help: Build as an installable/distributable package? (adds build-system + dist metadata)
+  # Likewise tracks python_source so non-source repos don't inherit package metadata.
+  default: "{{ python_source }}"
+  when: "{{ python_source }}"
+
+python_package:
+  type: str
+  help: Python import package name
+  default: "{{ project_slug | replace('-', '_') }}"
+  when: "{{ python_source }}"
+
+python_version:
+  type: str
+  help: Minimum Python version (e.g. 3.13)
+  default: "3.13"
+  when: "{{ has_python }}"
+  # MAJOR.MINOR only — it feeds ruff's target-version (py313) and requires-python; a patch
+  # component (3.13.2) or a comparator (>=3.13) would render an invalid value.
+  validator: >-
+    {% if python_version.split('.') | length != 2
+       or not (python_version.split('.')[0].isdigit() and python_version.split('.')[1].isdigit()) %}
+    python_version must be MAJOR.MINOR, e.g. 3.13.
+    {% endif %}
+
+# ----------------------------------------------------------------------------- #
+#  Includable modules — toggle the orthogonal scaffolding you want
+# ----------------------------------------------------------------------------- #
 include_terraform:
   type: bool
   help: Terraform scaffolding (versions · variables · outputs)
@@ -81,12 +188,3 @@ include_helm:
   type: bool
   help: Helm chart scaffolding
   default: false
-
-# ----------------------------------------------------------------------------- #
-#  Module-specific follow-ups
-# ----------------------------------------------------------------------------- #
-python_package:
-  type: str
-  help: Python import package name
-  default: "{{ project_slug | replace('-', '_') }}"
-  when: "{{ include_python }}"

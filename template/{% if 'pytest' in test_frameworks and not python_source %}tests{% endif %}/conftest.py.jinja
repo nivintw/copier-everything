@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
+# SPDX-License-Identifier: {{ license }}
+
+"""Shared helpers for the flat (non-package) test suite.
+
+Tests import these directly — ``from conftest import REPO`` — since ``tests/`` is a
+plain directory, not an importable package.
+"""
+
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parent.parent
+"""Repository root, for tests that assert on tracked files."""

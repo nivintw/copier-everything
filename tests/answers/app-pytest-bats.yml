@@ -1,0 +1,7 @@
+# SPDX-FileCopyrightText: © 2026 Tyler Nivin
+# SPDX-License-Identifier: MIT
+# Shape: pytest + bats, non-package (the dotfiles model).
+project_name: App Pytest Bats
+project_description: pytest and bats, like dotfiles
+test_frameworks: [pytest, bats]
+python_source: false

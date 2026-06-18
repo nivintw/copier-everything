@@ -10,21 +10,20 @@ SPDX-License-Identifier: {{ license }}
 ## Getting started
 
 ```bash
-{% if include_python -%}
+{% if has_python -%}
 uv sync                 # create the venv + install dev tooling
-{% else -%}
-uv sync                 # install the shared dev tooling (commitizen, ruff)
 {% endif -%}
 uvx prek install        # wire up the pre-commit hooks
-{% if include_python %}uv run pytest           # run the tests
+{% if 'pytest' in test_frameworks %}uv run pytest           # run the Python tests
+{% endif %}{% if 'bats' in test_frameworks %}bats tests/             # run the shell tests
 {% endif %}```
 
 ## Quality gate
 
 This project carries the shared quality spine: prek hooks (git hygiene, gitleaks,
-typos, rumdl, SPDX/REUSE headers{% if include_python %}, ruff, ty{% endif %}) that run
+typos, rumdl, SPDX/REUSE headers{% if has_python %}, ruff, ty{% endif %}) that run
 identically locally and in CI. Conventional Commits (gitmoji) are enforced at
-commit-msg time; releases on `main` are cut automatically by commitizen.
+commit-msg time (`.cz.toml`); releases on `main` are cut automatically by commitizen.
 
 ```bash
 uvx prek run --all-files   # run every hook on demand

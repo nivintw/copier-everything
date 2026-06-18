@@ -21,7 +21,9 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 {%- elif license == 'Apache-2.0' -%}
-{% include 'LICENSES/Apache-2.0.txt' %}
+{#- Jinja resolves includes from the template ROOT (the clone), not _subdirectory, so the
+    path is prefixed with `template/` — keep in sync with copier.yml's `_subdirectory`. -#}
+{% include 'template/LICENSES/Apache-2.0.txt' %}
 
 Copyright (c) {{ year }} {{ author_name }}
 
