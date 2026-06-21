@@ -16,12 +16,20 @@ SPDX-License-Identifier: {{ '{{' }} props["spdxLicenseIdentifier"] {{ '}}' }}
 
 # Negations cancel hawkeye's built-in default excludes (which skip **/*.md and
 # **/.gitignore) so those get headered too.
+{%- if markdown_has_frontmatter %}
+# This project has frontmatter-first markdown (YAML on line 1 — Claude Code skills,
+# Jekyll/Hugo), so markdown stays in hawkeye's default excludes (a line-1 SPDX comment
+# would break the frontmatter) and is licensed via REUSE.toml instead. Note hawkeye
+# can't re-exclude a file once an include (`!`) matches it, so there's no `!**/*.md`.
+{%- endif %}
 excludes = [
   "LICENSE",
   "LICENSES/**",
   "uv.lock",
   "**/*.json",
+{%- if not markdown_has_frontmatter %}
   "!**/*.md",
+{%- endif %}
   "!**/.gitignore",
   "**/.python-version",
   "**/.vscode/*",
@@ -37,7 +45,7 @@ extensions = ["md"]
 
 # '#'-comment files hawkeye doesn't map by default.
 [mapping.SCRIPT_STYLE]
-extensions = ["txt"{% if include_terraform %}, "tf"{% endif %}]
+extensions = ["txt", "fish", "bats"{% if include_terraform %}, "tf"{% endif %}]
 filenames = [".gitignore", ".envrc", ".dockerignore"{% if include_helm %}, ".helmignore"{% endif %}]
 
 [properties]

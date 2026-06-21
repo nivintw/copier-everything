@@ -113,6 +113,14 @@ license:
     - Apache-2.0
   default: MIT
 
+markdown_has_frontmatter:
+  type: bool
+  help: >-
+    Markdown with YAML frontmatter on line 1 (Claude Code skills/agents/commands,
+    Jekyll/Hugo)? If yes, markdown is licensed via REUSE.toml instead of an inline SPDX
+    header, which would otherwise be inserted above the frontmatter and break it.
+  default: false
+
 # ----------------------------------------------------------------------------- #
 #  Testing & Python shape — three decoupled levers
 #    test_frameworks  →  what test suites to scaffold (none / pytest / bats / both)

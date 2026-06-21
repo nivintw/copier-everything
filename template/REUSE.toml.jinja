@@ -5,7 +5,11 @@ version = 1
 
 # Files that can't carry an SPDX header (no comment syntax / generated). Everything
 # else gets a real header from hawkeye (see licenserc.toml).
+{%- if markdown_has_frontmatter %}
+# Markdown is included here (not headered inline by hawkeye) because this project has
+# frontmatter-first markdown where a line-1 SPDX comment would break the YAML.
+{%- endif %}
 [[annotations]]
-path = ["**/*.json", "**/.vscode/*"{% if has_python %}, "**/.python-version", "uv.lock"{% endif %}]
+path = ["**/*.json", "**/.vscode/*"{% if has_python %}, "**/.python-version", "uv.lock"{% endif %}{% if markdown_has_frontmatter %}, "**/*.md"{% endif %}]
 SPDX-FileCopyrightText = "© {{ year }} {{ author_name }}"
 SPDX-License-Identifier = "{{ license }}"
