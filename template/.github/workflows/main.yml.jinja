@@ -13,7 +13,8 @@
 #      commit is Verified and attributed to the app[bot].
 #   3. An annotated tag v<version> is created; 4. a GitHub Release is cut.
 #
-# REQUIRED REPO SETUP (before the first release runs) — see REVIEW.md in the template:
+# REPO SETUP TO ENABLE RELEASES (the release job SKIPS cleanly until these exist, so
+# merging to main is always safe — see the `preflight` job below) — see REVIEW.md:
 #   - A release GitHub App with Contents: Read+write, installed on this repo, and in
 #     the bypass list of any ruleset that protects main.
 #   - Two repository secrets from that app: CI_APP_ID and CI_APP_PRIVATE_KEY.
@@ -39,8 +40,29 @@ jobs:
   ci:
     uses: ./.github/workflows/ci.yml
 
+  # Guard: the release job needs the release App secrets. Secrets can't be read in a
+  # job-level `if:`, so a step (which CAN see secrets) reports whether they're present,
+  # and the release job gates on that output. Until CI_APP_ID is set, release SKIPS
+  # cleanly (green run, no failure); add the secrets and auto-release activates itself.
+  preflight:
+    runs-on: ubuntu-latest
+    outputs:
+      release_enabled: ${{ steps.check.outputs.enabled }}
+    steps:
+      - id: check
+        env:
+          CI_APP_ID: ${{ secrets.CI_APP_ID }}
+        run: |
+          if [ -n "$CI_APP_ID" ]; then
+            echo "enabled=true" >>"$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >>"$GITHUB_OUTPUT"
+            echo "::notice::Release skipped — CI_APP_ID not set. Add the release App secrets (CI_APP_ID, CI_APP_PRIVATE_KEY) to enable auto-release."
+          fi
+
   release:
-    needs: ci
+    needs: [ci, preflight]
+    if: needs.preflight.outputs.release_enabled == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Mint a token for the release App (the ruleset bypass actor)
