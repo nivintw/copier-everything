@@ -37,10 +37,14 @@ _tasks:
     when: "{{ _copier_operation == 'copy' }}"
   # The initial commit runs BEFORE prek install on purpose: the no-commit-to-branch hook
   # would otherwise block the first commit to main. Identity comes from the answers so it
-  # works even without a global git config.
-  - command:
-      ["git", "-c", "user.name={{ author_name }}", "-c", "user.email={{ author_email }}",
-       "commit", "-q", "-m", "🎉 init: scaffold {{ project_slug }}"]
+  # works even without a global git config. The `git diff --cached --quiet ||` guard makes
+  # the task idempotent: copying into an EXISTING repo where nothing ended up staged (e.g.
+  # a re-run) would otherwise make `git commit` exit non-zero and fail the whole task.
+  # A string command (not a list) so the shell evaluates the `||`.
+  - command: >-
+      git diff --cached --quiet ||
+      git -c user.name="{{ author_name }}" -c user.email="{{ author_email }}"
+      commit -q -m "🎉 init: scaffold {{ project_slug }}"
     when: "{{ _copier_operation == 'copy' }}"
   - command: ["uvx", "prek", "install"]
     when: "{{ _copier_operation == 'copy' }}"
