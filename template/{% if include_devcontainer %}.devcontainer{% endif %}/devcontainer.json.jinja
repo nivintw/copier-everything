@@ -8,6 +8,11 @@
 {%- endif %}
   "customizations": {
     "vscode": {
+{%- if has_python %}
+      "settings": {
+        "python.defaultInterpreterPath": ".venv/bin/python"
+      },
+{%- endif %}
       "extensions": [
         "charliermarsh.ruff",
         "tamasfe.even-better-toml"
