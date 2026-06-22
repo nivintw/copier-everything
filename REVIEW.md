@@ -138,9 +138,15 @@ Design notes:
   `# renovate:`-annotated **env-var** pattern (their release assets embed the version, so a
   URL-path bump would desync). A second customManager handles that pattern; the URL one was
   tightened so the two never bind the wrong version.
-- **Trade-off — CVE scans are time-varying**: a newly-published advisory in a (dev-only) dep
-  can turn a green gate red with no code change. That's inherent to CVE scanning; the scaffold
-  has no runtime deps, so only dev-tool deps are audited.
+- **Trade-off — CVE scans are time-varying _and_ network-dependent**: a newly-published
+  advisory in a (dev-only) dep can turn a green gate red with no code change — inherent to CVE
+  scanning (the scaffold has no runtime deps, so only dev-tool deps are audited). The flip side:
+  uv audit / osv-scanner hit remote advisory APIs and `trivy config` pulls its checks bundle
+  from a registry, so a registry/API **outage** also fails the gate with zero advisory changes.
+- **`uv audit` is an experimental command** (uv 0.11.x; the `--preview-features audit-command`
+  flag only silences the preview warning today). Renovate auto-bumps uv, and an experimental
+  CLI surface is the most likely thing to rename/remove a flag and break the hook — watch uv
+  release notes when its `audit` bumps land.
 
 ## Open follow-ups (not blocking)
 

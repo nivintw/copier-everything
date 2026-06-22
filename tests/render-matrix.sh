@@ -65,8 +65,8 @@ for answers in "$ANSWERS_DIR"/*.yml; do
   # run `uv sync` before the first commit) and stage it, so the gate runs against a realistic
   # tree. In particular the osv-scanner hook keys off a committed uv.lock.
   if [ -f "$out/pyproject.toml" ]; then
-    run "uv lock" "$out" uv lock
-    (cd "$out" && git add -A)
+    run "uv lock"          "$out" uv lock
+    run "stage uv.lock"    "$out" git add -A
   fi
 
   # Always: licensing + TOML formatting (system tools; prek skips them so they run here).
