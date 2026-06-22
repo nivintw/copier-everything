@@ -50,9 +50,10 @@ The cross-cutting quality infrastructure, lifted from
 
 | Piece | What it gives you |
 | --- | --- |
-| **prek hooks** (`.pre-commit-config.yaml`) | Git hygiene, secret scanning (gitleaks), spelling (typos), markdown (rumdl), license headers — run identically locally and in CI. |
+| **prek hooks** (`.pre-commit-config.yaml`) | Git hygiene, secret scanning (gitleaks), spelling (typos), markdown (rumdl), license headers, shell lint + format (shellcheck, shfmt), and workflow lint + security-audit (actionlint, zizmor) — run identically locally and in CI. |
 | **REUSE licensing** (`licenserc.toml`, `REUSE.toml`, `LICENSES/`) | Every file carries an SPDX header; `hawkeye` maintains them, `reuse` verifies. |
-| **CI** (`.github/workflows/`) | Each generated repo gets a reusable `ci.yml` gate called by `pr.yml` (every PR) and `main.yml` (push to main → automated, signed commitizen release). The template itself is tested by its own root `.github/workflows/ci.yml` (see `tests/`). |
+| **CI** (`.github/workflows/`) | Each generated repo gets a reusable `ci.yml` gate called by `pr.yml` (every PR) and `main.yml` (push to main → automated, signed commitizen release). Every action is SHA-pinned with a version comment. The template itself is tested by its own root `.github/workflows/ci.yml` (see `tests/`). |
+| **Renovate** (`.github/renovate.json`) | Automates the pins (pre-commit hook revs + action digests) and groups `ruff` bumps so a new lint rule lands as a reviewable PR, not a surprise red. |
 | **commitizen + gitmoji** (`.cz.toml`) | Conventional commits enforced at commit-msg time; version + `CHANGELOG.md` computed from history. Language-agnostic — lives in `.cz.toml`, present even with no Python. |
 | **uv + ruff** (Python shapes) | When the project has Python, `pyproject.toml` hosts the ruff/ty/pytest config and a uv-managed dev environment. A no-Python repo ships no `pyproject.toml`. |
 | **`.editorconfig`, `_typos.toml`, `.rumdl.toml`** | Editor + linter config that agrees with the hooks. |

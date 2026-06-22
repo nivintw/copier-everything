@@ -85,6 +85,31 @@ lint). The matrix covers the 4 canonical Python/testing shapes, the unpublished-
 bare-spine edges, the Apache-license path, and a full terraform+docker+helm build. Run it
 locally or let `.github/workflows/ci.yml` run it on every PR.
 
+## CI / supply-chain hardening (issue #3)
+
+The workflow/release pipeline and dependency pins are hardened end-to-end:
+
+- **Workflow lint + audit as prek hooks** — `actionlint` (lints workflows, shellchecks
+  `run:` blocks), `zizmor` (security audit), and `shfmt` (shell formatter, complementing
+  shellcheck). All three are pip-backed (`actionlint-py`, `zizmor`, `shfmt-py`) so they
+  **self-bootstrap a pinned env** — no new `language: system` exceptions, and `render-matrix`
+  exercises them on every rendered shape with no new CI tooling.
+- **zizmor runs `--offline`** in the hook: the AST audits (template-injection,
+  excessive-permissions, artipacked, blanket App-token) run with no network; the audits that
+  need a GH token (known-vulnerable-actions, ref-confusion) are skipped there and instead run
+  **online in the template repo's own `lint-workflows` CI job** for full coverage. This keeps
+  a generated repo's local gate deterministic and token-free.
+- **Findings fixed in the generated release workflow** (`main.yml`): the release tag is routed
+  through `env:` (was interpolated into the `gh release create` shell — template-injection);
+  the App token is scoped `permission-contents: write` (was inheriting blanket installation
+  permissions); checkouts set `persist-credentials: false` (artipacked).
+- **Actions are SHA-pinned** with a `# vX.Y.Z` comment so Renovate maintains the digest.
+- **Renovate** — the generated repo ships `.github/renovate.json` (pre-commit + action-digest
+  managers, ruff grouped). The template repo dogfoods a root `.github/renovate.json5`: its own
+  `ci.yml` is handled by the native managers, but the pins **inside `template/**/*.jinja`** need
+  `customManagers` (regex) because Renovate's native managers don't parse `.jinja`. The pinned
+  hawkeye/taplo release binaries are bumped via `# renovate:` comment annotations.
+
 ## Open follow-ups (not blocking)
 
 - **Release infra**: `main.yml` keeps the full App-signed commitizen release. Each
