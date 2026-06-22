@@ -156,8 +156,12 @@ A new `include_sql` toggle, modeled on terraform/docker/helm:
   pattern for SQL: fix autofixes, lint catches the rest.
 - **`sql_dialect`** (mandatory when `include_sql`) is the full sqlfluff dialect list, default
   `sqlite`; it renders into `.sqlfluff` (which *requires* a dialect). **`sql_use_dbt`** (opt-in)
-  sets `templater = dbt` for dbt-templated SQL — untested in render-matrix because the dbt
-  templater needs a real dbt project; the non-dbt path is fully covered.
+  sets `templater = dbt` **and** adds `sqlfluff-templater-dbt` to the hooks'
+  `additional_dependencies` (the hook runs in an isolated venv, so a global dbt install isn't
+  visible to it). The dbt shape ships **no `example.sql`** — sqlfluff has nothing to lint until
+  the user adds dbt models + a reachable dbt project, so it's green-on-arrival. The dbt templater
+  *env build* isn't exercised by render-matrix (the `sql-dbt` shape has no `.sql` to trigger it);
+  the non-dbt path is fully covered across all 29 dialects.
 - A `sql/` dir (`example.sql` + `.sqlfluff` + README), a dedicated no-Python `sql` answer
   shape, and `include_sql` added to `full-modules`.
 
