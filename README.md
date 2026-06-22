@@ -56,6 +56,7 @@ The cross-cutting quality infrastructure, lifted from
 | **Renovate** (`.github/renovate.json`) | Automates the pins (pre-commit hook revs + action digests) and groups `ruff` bumps so a new lint rule lands as a reviewable PR, not a surprise red. |
 | **Security scanning** | Dependency-CVE scanning (`uv audit`, `osv-scanner`), Terraform IaC misconfig (`checkov`, `trivy`), and Dockerfile lint (`hadolint`) — wired as gate hooks wherever the matching shape/module is present. |
 | **commitizen + gitmoji** (`.cz.toml`) | Conventional commits enforced at commit-msg time; version + `CHANGELOG.md` computed from history. Language-agnostic — lives in `.cz.toml`, present even with no Python. |
+| **Governance files** | `CODEOWNERS`, `SECURITY.md`, `CONTRIBUTING.md`, a PR template, and YAML issue forms — every repo starts with the standard hygiene/DX baseline. |
 | **uv + ruff** (Python shapes) | When the project has Python, `pyproject.toml` hosts the ruff/ty/pytest config and a uv-managed dev environment; source shapes get a `pytest-cov` coverage gate (`--cov-fail-under`). A no-Python repo ships no `pyproject.toml`. |
 | **`.editorconfig`, `_typos.toml`, `.rumdl.toml`** | Editor + linter config that agrees with the hooks. |
 
@@ -74,6 +75,7 @@ installable package, a pyproject-only-for-pytest repo, a pytest + bats repo (the
 | `include_docker` | `Dockerfile`, `.dockerignore`, `compose.yaml` + `hadolint` lint |
 | `include_helm` | A starter Helm chart under `helm/<slug>/` |
 | `include_sql` | `sql/` with a dialect-aware `.sqlfluff` + `sqlfluff` lint/fix (optional dbt templater) |
+| `include_devcontainer` | `.devcontainer/devcontainer.json` for Codespaces / VS Code |
 
 The spine (prek hooks, REUSE licensing, `.cz.toml` commitizen release, CI) is
 language-agnostic and ships with every shape. See [`REVIEW.md`](REVIEW.md) for the model.

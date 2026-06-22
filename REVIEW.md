@@ -177,12 +177,34 @@ Licensing of the new file types was the fiddly part:
   short arrays and auto-expands long ones). Excluding via the already-multi-line `excludes`
   array sidesteps the reflow entirely.
 
+## Repo-hygiene / governance files (issue #6)
+
+Every generated repo now starts with the standard governance + DX baseline. The docs are
+**always-on** (governance is universal); the dev container is the one opinionated/heavier
+piece, so it's behind an `include_devcontainer` toggle.
+
+- **Always-on**: `.github/CODEOWNERS`, `SECURITY.md`, `CONTRIBUTING.md`,
+  `.github/PULL_REQUEST_TEMPLATE.md`, and YAML issue forms (`bug_report` / `feature_request`
+  / `config`). A new **`repo_owner`** question (GitHub login, default `nivintw`) drives
+  CODEOWNERS and the repo links in SECURITY/CONTRIBUTING.
+- **`include_devcontainer`** (opt-in) → `.devcontainer/devcontainer.json` (the Microsoft
+  Python image + `uv` for Python shapes, the generic base image otherwise).
+
+Licensing followed the established patterns:
+- `.md` / `.yml` carry SPDX headers hawkeye maintains (`<!-- -->` / `#`).
+- **`CODEOWNERS`** has no extension hawkeye maps, so — like `.sqlfluff` — it keeps its own
+  `#` header (reuse-verified) and is added to hawkeye's `excludes`.
+- **`devcontainer.json`** is strict JSON (no comments → `check-json` passes); the pre-existing
+  `**/*.json` REUSE annotation + hawkeye exclude already cover it, so no header.
+- The PR template has no H1 (it's section stubs), so it carries `<!-- rumdl-disable-file
+  MD041 -->`, mirroring the README's disable.
+
 ## Open follow-ups (not blocking)
 
 - **Release infra**: `main.yml` keeps the full App-signed commitizen release. Each
   generated repo still needs a release App + `CI_APP_ID`/`CI_APP_PRIVATE_KEY` + a ruleset
   bypass before it works. Apply the production rulesets to this repo once that App exists.
 - **`python_version`** is a question (default `3.13`); bump to `3.14` to match dotfiles if wanted.
-- **Rust module** is *enabled by* this architecture but unbuilt. So are `docs`(mkdocs)/devcontainer.
+- **Rust module** is *enabled by* this architecture but unbuilt; so is a `docs` (mkdocs) module.
 - Terraform/Docker/Helm are still minimal **stubs** (a single example resource, a generic
   image, a bare Deployment/Service) — now gate-clean and CI-covered, but flesh out per project.
