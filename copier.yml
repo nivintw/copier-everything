@@ -200,3 +200,49 @@ include_helm:
   type: bool
   help: Helm chart scaffolding
   default: false
+
+include_sql:
+  type: bool
+  help: SQL scaffolding (sqlfluff lint/fix + a dialect-aware .sqlfluff)
+  default: false
+
+sql_dialect:
+  type: str
+  help: SQL dialect — drives .sqlfluff (sqlfluff lints/fixes against it)
+  when: "{{ include_sql }}"
+  default: sqlite
+  choices:
+    - ansi
+    - athena
+    - bigquery
+    - clickhouse
+    - databricks
+    - db2
+    - doris
+    - duckdb
+    - exasol
+    - flink
+    - greenplum
+    - hive
+    - impala
+    - mariadb
+    - materialize
+    - mysql
+    - oracle
+    - postgres
+    - redshift
+    - snowflake
+    - soql
+    - sparksql
+    - sqlite
+    - starrocks
+    - teradata
+    - trino
+    - tsql
+    - vertica
+
+sql_use_dbt:
+  type: bool
+  help: "Is the SQL dbt-templated? Yes → sqlfluff templater = dbt (needs a dbt project)"
+  when: "{{ include_sql }}"
+  default: false

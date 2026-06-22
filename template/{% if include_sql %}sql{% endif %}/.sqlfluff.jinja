@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
+# SPDX-License-Identifier: {{ license }}
+
+# sqlfluff config (https://docs.sqlfluff.com). `dialect` is required — sqlfluff lints and
+# fixes against it. Run:  sqlfluff lint sql/   ·   sqlfluff fix sql/
+[sqlfluff]
+dialect = {{ sql_dialect }}
+max_line_length = 100
+{%- if sql_use_dbt %}
+# dbt-templated SQL: sqlfluff compiles the models via dbt before linting. Needs a reachable
+# dbt project (dbt_project.yml + profiles.yml).
+templater = dbt
+{%- endif %}

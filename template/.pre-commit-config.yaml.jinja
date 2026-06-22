@@ -190,6 +190,18 @@ repos:
         language: system
         pass_filenames: false
         files: '\.tf$'
+{% endif %}{% if include_sql %}
+  # ---------------------------------- 🗄️ SQL ---------------------------------------- #
+  # sqlfluff lints AND fixes across dialects (config: .sqlfluff). pip-backed → self-
+  # bootstraps. fix first (autofix), then lint catches what can't be auto-fixed — the
+  # ruff check+format pattern, for SQL.
+  - repo: https://github.com/sqlfluff/sqlfluff
+    rev: 4.2.2
+    hooks:
+      - id: sqlfluff-fix
+        name: "🗄️ sql · Fix SQL with sqlfluff"
+      - id: sqlfluff-lint
+        name: "🗄️ sql · Lint SQL with sqlfluff"
 {% endif %}{% if has_python %}
   # -------------------------------- 🐍 Python --------------------------------------- #
   - repo: https://github.com/astral-sh/ruff-pre-commit

@@ -36,6 +36,11 @@ excludes = [
 {%- if include_helm %}
   "**/Chart.lock",
 {%- endif %}
+{%- if include_sql %}
+  # hawkeye doesn't map the `.sqlfluff` filename; it carries its own `#` header (verified
+  # by reuse), so tell hawkeye to skip it rather than warn about an unknown file.
+  "**/.sqlfluff",
+{%- endif %}
 ]
 
 additionalHeaders = ["markdown-header.toml"]
