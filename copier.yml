@@ -243,6 +243,6 @@ sql_dialect:
 
 sql_use_dbt:
   type: bool
-  help: "Is the SQL dbt-templated? Yes → sqlfluff templater = dbt (needs a dbt project)"
+  help: "dbt-templated SQL? Yes → templater=dbt + the templater dep; bring your dbt project & models"
   when: "{{ include_sql }}"
   default: false

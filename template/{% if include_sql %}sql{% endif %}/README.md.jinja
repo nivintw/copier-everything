@@ -7,6 +7,12 @@ SPDX-License-Identifier: {{ license }}
 
 SQL linted and fixed by [sqlfluff](https://docs.sqlfluff.com) against the
 `{{ sql_dialect }}` dialect (config: `.sqlfluff`).
+{% if sql_use_dbt %}
+Uses the **dbt templater** — add your dbt models here. sqlfluff compiles them via dbt before
+linting, so it needs a reachable dbt project (`dbt_project.yml` + `profiles.yml`).
+{%- else %}
+Edit `example.sql`, or add more `.sql` files.
+{%- endif %}
 
 ```bash
 sqlfluff lint sql/

@@ -200,8 +200,16 @@ repos:
     hooks:
       - id: sqlfluff-fix
         name: "🗄️ sql · Fix SQL with sqlfluff"
+{%- if sql_use_dbt %}
+        # The dbt templater is a separate package, and the hook runs in an isolated venv, so
+        # it must be installed here. You still need a reachable dbt project to lint models.
+        additional_dependencies: ["sqlfluff-templater-dbt"]
+{%- endif %}
       - id: sqlfluff-lint
         name: "🗄️ sql · Lint SQL with sqlfluff"
+{%- if sql_use_dbt %}
+        additional_dependencies: ["sqlfluff-templater-dbt"]
+{%- endif %}
 {% endif %}{% if has_python %}
   # -------------------------------- 🐍 Python --------------------------------------- #
   - repo: https://github.com/astral-sh/ruff-pre-commit
