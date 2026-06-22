@@ -73,6 +73,7 @@ installable package, a pyproject-only-for-pytest repo, a pytest + bats repo (the
 | `include_terraform` | `terraform/` with `versions.tf`, `variables.tf`, `outputs.tf`, `main.tf` + `checkov`/`trivy` IaC scanning |
 | `include_docker` | `Dockerfile`, `.dockerignore`, `compose.yaml` + `hadolint` lint |
 | `include_helm` | A starter Helm chart under `helm/<slug>/` |
+| `include_sql` | `sql/` with a dialect-aware `.sqlfluff` + `sqlfluff` lint/fix (optional dbt templater) |
 
 The spine (prek hooks, REUSE licensing, `.cz.toml` commitizen release, CI) is
 language-agnostic and ships with every shape. See [`REVIEW.md`](REVIEW.md) for the model.

@@ -148,6 +148,31 @@ Design notes:
   CLI surface is the most likely thing to rename/remove a flag and break the hook — watch uv
   release notes when its `audit` bumps land.
 
+## SQL module (issue #5)
+
+A new `include_sql` toggle, modeled on terraform/docker/helm:
+
+- **sqlfluff-fix + sqlfluff-lint** (pip-backed, self-bootstrapping) — the ruff check+format
+  pattern for SQL: fix autofixes, lint catches the rest.
+- **`sql_dialect`** (mandatory when `include_sql`) is the full sqlfluff dialect list, default
+  `sqlite`; it renders into `.sqlfluff` (which *requires* a dialect). **`sql_use_dbt`** (opt-in)
+  sets `templater = dbt` for dbt-templated SQL — untested in render-matrix because the dbt
+  templater needs a real dbt project; the non-dbt path is fully covered.
+- A `sql/` dir (`example.sql` + `.sqlfluff` + README), a dedicated no-Python `sql` answer
+  shape, and `include_sql` added to `full-modules`.
+
+Licensing of the new file types was the fiddly part:
+- **`example.sql`** uses hawkeye's *native* SQL header style — `--` delimiter lines wrapping
+  the SPDX lines (hawkeye rewrites a bare `-- SPDX` header to that form, so the template emits
+  it pre-shaped).
+- **`.sqlfluff`** keeps its own `#` header (reuse-verified) but is **excluded from hawkeye**,
+  which doesn't map that filename. The tempting fix — mapping it into `licenserc`'s
+  `SCRIPT_STYLE` `filenames` array — pushes that single-line array past taplo's 80-col wrap
+  point *only* when helm+sql coincide, so taplo would demand a multi-line array there but a
+  single-line one elsewhere, and no static Jinja source satisfies both (taplo auto-collapses
+  short arrays and auto-expands long ones). Excluding via the already-multi-line `excludes`
+  array sidesteps the reflow entirely.
+
 ## Open follow-ups (not blocking)
 
 - **Release infra**: `main.yml` keeps the full App-signed commitizen release. Each
