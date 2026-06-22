@@ -110,6 +110,38 @@ The workflow/release pipeline and dependency pins are hardened end-to-end:
   `customManagers` (regex) because Renovate's native managers don't parse `.jinja`. The pinned
   hawkeye/taplo release binaries are bumped via `# renovate:` comment annotations.
 
+## Module + dependency-CVE scanning (issue #4)
+
+The modules linted *syntax* but didn't scan for *security*; the dependency tree wasn't
+scanned at all (ruff `ALL` lints code, not deps). Added, each gated to its shape/module:
+
+- **hadolint** (docker) — the Dockerfile analog of shellcheck. `hadolint-py` is pip-backed
+  so it self-bootstraps (no Docker). The uv stage image is pinned off `:latest` (DL3007).
+- **checkov + trivy** (terraform) — IaC misconfig (e.g. a public bucket) that `fmt`/`validate`
+  miss. checkov self-bootstraps (pip); **trivy is a system release binary** (Brewfile locally,
+  CI install), like hawkeye/taplo. trivy needs `--exit-code 1` to fail the gate.
+- **uv audit + osv-scanner** (deps) — `uv audit` (native, PyPA advisories) plus osv-scanner
+  (system binary; reads `uv.lock` directly and also non-Python lockfiles). Both gate on
+  `has_python`.
+- **pytest-cov** — a `--cov-fail-under=80` gate, **only for `python_source` shapes** (a
+  pytest-only-no-src repo has no package to measure).
+
+Design notes:
+- **render-matrix now runs `uv lock` before the gate** for Python shapes (and stages the lock),
+  so the osv-scanner hook — which keys off a committed `uv.lock` — is actually exercised. This
+  mirrors a real generated repo, whose `_tasks` run `uv sync` before the first commit.
+- **System tools** (trivy, osv-scanner) follow the hawkeye/taplo pattern: local via the
+  dotfiles Brewfile, CI via a pinned curl install. render-matrix's tool-presence check now
+  lists them so a missing binary fails loudly instead of mid-hook.
+- **Renovate**: new pre-commit hooks (hadolint, checkov) and the uv image are picked up by the
+  native managers / existing customManagers; trivy/osv-scanner CI-install versions use a
+  `# renovate:`-annotated **env-var** pattern (their release assets embed the version, so a
+  URL-path bump would desync). A second customManager handles that pattern; the URL one was
+  tightened so the two never bind the wrong version.
+- **Trade-off — CVE scans are time-varying**: a newly-published advisory in a (dev-only) dep
+  can turn a green gate red with no code change. That's inherent to CVE scanning; the scaffold
+  has no runtime deps, so only dev-tool deps are audited.
+
 ## Open follow-ups (not blocking)
 
 - **Release infra**: `main.yml` keeps the full App-signed commitizen release. Each
