@@ -100,6 +100,12 @@ author_email:
   default: tyler@nivin.tech
   validator: "{% if not author_email %}author_email cannot be empty.{% endif %}"
 
+repo_owner:
+  type: str
+  help: GitHub owner (user/org login) — for CODEOWNERS and the repo links in SECURITY/CONTRIBUTING
+  default: nivintw
+  validator: "{% if not repo_owner %}repo_owner cannot be empty.{% endif %}"
+
 year:
   type: int
   help: Inception year (SPDX headers)
@@ -245,4 +251,9 @@ sql_use_dbt:
   type: bool
   help: "dbt-templated SQL? Yes → templater=dbt + the templater dep; bring your dbt project & models"
   when: "{{ include_sql }}"
+  default: false
+
+include_devcontainer:
+  type: bool
+  help: Dev Container scaffolding (.devcontainer/devcontainer.json for Codespaces / VS Code)
   default: false

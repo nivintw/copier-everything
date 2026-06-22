@@ -33,6 +33,8 @@ excludes = [
   "!**/.gitignore",
   "**/.python-version",
   "**/.vscode/*",
+  # CODEOWNERS has no extension hawkeye maps; it carries its own `#` header (reuse-verified).
+  "**/CODEOWNERS",
 {%- if include_helm %}
   "**/Chart.lock",
 {%- endif %}

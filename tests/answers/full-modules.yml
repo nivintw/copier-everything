@@ -14,3 +14,4 @@ include_helm: true
 include_sql: true
 sql_dialect: postgres
 sql_use_dbt: false
+include_devcontainer: true

@@ -1,7 +1,8 @@
 # SPDX-FileCopyrightText: © 2026 Tyler Nivin
 # SPDX-License-Identifier: MIT
 # Shape: the SQL module on the bare spine (no Python) — exercises sqlfluff + the
-# dialect-aware .sqlfluff and SQL/.sqlfluff header (REUSE) compliance.
+# dialect-aware .sqlfluff and SQL/.sqlfluff header (REUSE) compliance. Also carries the
+# no-Python devcontainer branch.
 project_name: SQL Shape
 project_description: sql linting module
 test_frameworks: []
@@ -9,3 +10,4 @@ contains_python: false
 include_sql: true
 sql_dialect: sqlite
 sql_use_dbt: false
+include_devcontainer: true

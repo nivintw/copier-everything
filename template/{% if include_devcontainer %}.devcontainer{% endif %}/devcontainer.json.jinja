@@ -1,0 +1,17 @@
+{
+  "name": "{{ project_name }}",
+{%- if has_python %}
+  "image": "mcr.microsoft.com/devcontainers/python:{{ python_version }}",
+  "postCreateCommand": "pip install uv && uv sync",
+{%- else %}
+  "image": "mcr.microsoft.com/devcontainers/base:debian",
+{%- endif %}
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "charliermarsh.ruff",
+        "tamasfe.even-better-toml"
+      ]
+    }
+  }
+}
