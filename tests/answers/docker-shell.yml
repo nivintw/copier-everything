@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: © 2026 Tyler Nivin
+# SPDX-License-Identifier: MIT
+
+# Shape: Docker on the bare spine, no Python — exercises the *alpine* Dockerfile branch
+# (the non-root USER addition) plus the hadolint + trivy-config hooks on it. full-modules
+# only covers the Python Dockerfile branch, so this guards the no-Python path.
+project_name: Docker Shell
+project_description: containerized shell tool, no python
+test_frameworks: [bats]
+contains_python: false
+include_docker: true

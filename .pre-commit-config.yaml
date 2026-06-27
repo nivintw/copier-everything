@@ -118,6 +118,16 @@ repos:
         args: ["--force-exclude", "--config", ".config/typos.toml"]
         pass_filenames: false
 
+  # --------------------------------- 📐 YAML ---------------------------------------- #
+  # check-yaml (above) only checks that YAML parses; yamllint enforces style — indentation,
+  # key duplicates, truthy values, … (config: .config/yamllint.yaml). pip-backed → self-bootstraps.
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.38.0
+    hooks:
+      - id: yamllint
+        name: "📐 yaml · Lint YAML style with yamllint"
+        args: ["-c", ".config/yamllint.yaml"]
+
   # -------------------------------- 📝 Markdown ------------------------------------- #
   - repo: https://github.com/rvben/rumdl-pre-commit
     rev: v0.2.17

@@ -1,0 +1,35 @@
+# SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
+# SPDX-License-Identifier: {{ license }}
+
+# Dead-link check for the Markdown docs (lychee). Kept OUT of the reusable ci.yml gate on
+# purpose: link checking is a network operation (flaky, depends on third-party uptime),
+# whereas ci.yml is the deterministic, offline-reproducible gate. Run it as its own check so
+# branch protection can require `ci` without making a flaky external link block every merge.
+
+name: link-check
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lychee:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Check links (lychee)
+        uses: lycheeverse/lychee-action@8646ba30535128ac92d33dfc9133794bfdd9b411 # v2.8.0
+        with:
+          # Exclude this repo's own URL — it 404s until the repo is pushed/public. (lychee
+          # excludes mailto: links by default.) Scope to Markdown so LICENSES/lockfiles aren't crawled.
+          args: "--no-progress --exclude 'github\\.com/{{ repo_owner }}/{{ project_slug }}' '**/*.md'"
+          fail: true
+        env:
+          # Authenticated requests raise GitHub's rate limit, so github.com links don't flake.
+          GITHUB_TOKEN: ${{ '{{' }} secrets.GITHUB_TOKEN {{ '}}' }}

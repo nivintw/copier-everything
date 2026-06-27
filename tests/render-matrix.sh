@@ -15,7 +15,8 @@
 # in single-shape mode (`--one`) as its own process — no bash-4 job control needed (macOS
 # ships bash 3.2). Per-shape output is buffered to a log and printed grouped at the end.
 #
-# Requires: copier, uv (provides uvx), reuse, hawkeye, taplo, bats, git.
+# Requires: copier, uv (provides uvx), reuse, hawkeye, taplo, bats, git, trivy, osv-scanner,
+# terraform, tflint, helm (the last five back module hooks the full-modules shape exercises).
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -133,7 +134,7 @@ SRC="$WORK/src"
 rsync -a --exclude '.git' --exclude '.venv' "$REPO_ROOT/" "$SRC/"
 
 missing=()
-for tool in copier uv uvx reuse hawkeye taplo bats git rsync trivy osv-scanner; do
+for tool in copier uv uvx reuse hawkeye taplo bats git rsync trivy osv-scanner terraform tflint helm; do
   command -v "$tool" >/dev/null 2>&1 || missing+=("$tool")
 done
 if [ "${#missing[@]}" -gt 0 ]; then

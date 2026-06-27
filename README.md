@@ -50,11 +50,12 @@ The cross-cutting quality infrastructure, lifted from
 
 | Piece | What it gives you |
 | --- | --- |
-| **prek hooks** (`.pre-commit-config.yaml`) | Git hygiene, secret scanning (gitleaks), spelling (typos), markdown (rumdl), license headers, shell lint + format (shellcheck, shfmt), and workflow lint + security-audit (actionlint, zizmor) — run identically locally and in CI. |
+| **prek hooks** (`.pre-commit-config.yaml`) | Git hygiene, secret scanning (gitleaks), spelling (typos), markdown (rumdl), YAML style (yamllint), license headers, shell lint + format (shellcheck, shfmt), and workflow lint + security-audit (actionlint, zizmor) — run identically locally and in CI. |
 | **REUSE licensing** (`.config/licenserc.toml`, `REUSE.toml`, `LICENSES/`) | Every file carries an SPDX header; `hawkeye` maintains them, `reuse` verifies. |
 | **CI** (`.github/workflows/`) | Each generated repo gets a reusable `ci.yml` gate called by `pr.yml` (every PR) and `main.yml` (push to main → release-please). Every action is SHA-pinned with a version comment. The template itself uses the same shape — a reusable root `ci.yml` called by `pr.yml` and `main.yml` (which also runs release-please) (see `tests/`). |
 | **Renovate** (`.github/renovate.json`) | Automates the pins (pre-commit hook revs + action digests) and groups `ruff` bumps so a new lint rule lands as a reviewable PR, not a surprise red. |
-| **Security scanning** | Dependency-CVE scanning (`uv audit`, `osv-scanner`), Terraform IaC misconfig (`checkov`, `trivy`), and Dockerfile lint (`hadolint`) — wired as gate hooks wherever the matching shape/module is present. |
+| **Security scanning** | Dependency-CVE scanning (`uv audit`, `osv-scanner`), Terraform IaC misconfig (`checkov`, `trivy`), Dockerfile lint + misconfig (`hadolint`, `trivy config`) and image-layer CVEs (`trivy image`, in CI) — wired wherever the matching shape/module is present. |
+| **Link checking** (`link-check.yml`) | `lychee` checks the Markdown docs for dead links. A separate CI workflow (not the deterministic gate) since it's a network operation — make `ci` required in branch protection, leave `link-check` advisory. |
 | **Conventional Commits + release-please** (`.cz.toml`, `.config/release-please-config.json`) | Plain Conventional Commits enforced at commit-msg time (commitizen, in `.cz.toml`); release-please derives the version + `CHANGELOG.md` from commit history and publishes via an auto-merged Release PR — continuous releases once checks pass (→ `vX.Y.Z` tag + GitHub Release). Language-agnostic — present even with no Python. |
 | **Governance files** | `CODEOWNERS`, `SECURITY.md`, `CONTRIBUTING.md`, a PR template, and YAML issue forms — every repo starts with the standard hygiene/DX baseline. |
 | **uv + ruff** (Python shapes) | When the project has Python, `pyproject.toml` hosts the ruff/ty/pytest config and a uv-managed dev environment; source shapes get a `pytest-cov` coverage gate (`--cov-fail-under`). A no-Python repo ships no `pyproject.toml`. |
@@ -71,9 +72,9 @@ installable package, a pyproject-only-for-pytest repo, a pytest + bats repo (the
 | `test_frameworks` (`pytest`/`bats`) | the `tests/` suites; empty ⇒ no `tests/`. `pytest` implies Python |
 | `python_source` | `src/<package>` Python source + src assumptions in `pyproject.toml` |
 | `is_package` | `[build-system]` + distribution metadata (installable/publishable) |
-| `include_terraform` | `terraform/` with `versions.tf`, `variables.tf`, `outputs.tf`, `main.tf` + `checkov`/`trivy` IaC scanning |
-| `include_docker` | `Dockerfile`, `.dockerignore`, `compose.yaml` + `hadolint` lint |
-| `include_helm` | A starter Helm chart under `helm/<slug>/` |
+| `include_terraform` | `terraform/` with `versions.tf`, `variables.tf`, `outputs.tf`, `main.tf` + `terraform fmt`/`validate`/`tflint` and `checkov`/`trivy` IaC scanning |
+| `include_docker` | `Dockerfile` (non-root), `.dockerignore`, `compose.yaml` + `hadolint`/`trivy config` lint and a `trivy image` CVE scan in CI |
+| `include_helm` | A starter Helm chart under `helm/<slug>/` + `helm lint` and `kubeconform` manifest validation (CI) |
 | `include_sql` | `sql/` with a dialect-aware `.sqlfluff` + `sqlfluff` lint/fix (optional dbt templater) |
 | `include_devcontainer` | `.devcontainer/devcontainer.json` for Codespaces / VS Code |
 

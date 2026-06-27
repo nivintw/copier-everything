@@ -57,8 +57,15 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq bats
 
-      - name: Install helm (for the full-modules shape's helm lint)
+      - name: Install helm (for the full-modules shape's helm-lint hook)
         uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+
+      - name: Install terraform + tflint (for the full-modules shape's terraform hooks)
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          # The wrapper breaks the terraform_validate hook's output parsing — see ci.yml.jinja.
+          terraform_wrapper: false
+      - uses: terraform-linters/setup-tflint@b480b8fcdaa6f2c577f8e4fa799e89e756bb7c93 # v6.2.2
 
       - name: Install hawkeye + taplo (pinned, matching the template's CI)
         run: |
