@@ -15,6 +15,15 @@ name: ci
 
 on:
   workflow_call:
+    inputs:
+      skip-quality-gate:
+        description: >-
+          When true, skip the heavy lint/format/test steps but still report success.
+          main.yml sets this for release-please's bump commit (already validated as the
+          Release PR), so a release doesn't re-run the full gate (doubled minutes). Callers'
+          `needs: ci` is unaffected because the job still succeeds.
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -40,6 +49,7 @@ jobs:
           key: prek-${{ '{{' }} hashFiles('.pre-commit-config.yaml') {{ '}}' }}
 {% if include_terraform %}
       - name: Install trivy (terraform IaC scan — runs inside the prek gate)
+        if: inputs.skip-quality-gate != true
         env:
           # renovate: datasource=github-releases depName=aquasecurity/trivy
           TRIVY_VERSION: "0.71.2"
@@ -49,6 +59,7 @@ jobs:
           echo "$RUNNER_TEMP" >>"$GITHUB_PATH"
 {% endif %}{% if has_python %}
       - name: Install osv-scanner (dependency CVE scan — runs inside the prek gate)
+        if: inputs.skip-quality-gate != true
         env:
           # renovate: datasource=github-releases depName=google/osv-scanner
           OSV_VERSION: "2.4.0"
@@ -59,6 +70,7 @@ jobs:
           echo "$RUNNER_TEMP" >>"$GITHUB_PATH"
 {% endif %}
       - name: Run prek hooks (same as local)
+        if: inputs.skip-quality-gate != true
         env:
           # taplo/hawkeye run as dedicated steps below; no-commit-to-branch is a
           # commit-time guard meaningless in CI (we're checked out on the branch). zizmor
@@ -68,6 +80,7 @@ jobs:
         run: uvx prek run --all-files
 
       - name: Audit workflows for security issues (zizmor, online)
+        if: inputs.skip-quality-gate != true
         # The prek zizmor hook is --offline (deterministic, token-free) and SKIP'd above, so
         # CI runs the full audit here — the network audits (known-vulnerable-actions,
         # ref-confusion) need a GH token; the AST audits run as in the hook. Pinned to the
@@ -79,6 +92,7 @@ jobs:
         run: uvx "zizmor@${ZIZMOR_VERSION}" --no-progress .github/workflows/
 
       - name: Check SPDX license headers (hawkeye)
+        if: inputs.skip-quality-gate != true
         # renovate: datasource=github-releases depName=korandoru/hawkeye
         run: |
           curl -fsSL https://github.com/korandoru/hawkeye/releases/download/v6.5.1/hawkeye-x86_64-unknown-linux-gnu.tar.xz \
@@ -87,6 +101,7 @@ jobs:
           "$RUNNER_TEMP/hawkeye" check
 
       - name: Check TOML formatting (taplo)
+        if: inputs.skip-quality-gate != true
         # renovate: datasource=github-releases depName=tamasfe/taplo
         run: |
           curl -fsSL https://github.com/tamasfe/taplo/releases/download/0.10.0/taplo-linux-x86_64.gz \
@@ -95,20 +110,26 @@ jobs:
           "$RUNNER_TEMP/taplo" fmt --check --diff
 {% if 'pytest' in test_frameworks %}
       - name: Tests (pytest)
+        if: inputs.skip-quality-gate != true
         run: uv run pytest
 {% endif %}{% if 'bats' in test_frameworks %}
       - name: Shell tests (bats)
+        if: inputs.skip-quality-gate != true
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq bats
           bats tests/
 {% endif %}{% if include_terraform %}
       - name: Terraform fmt + validate
+        if: inputs.skip-quality-gate != true
         uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
       - name: terraform fmt -check
+        if: inputs.skip-quality-gate != true
         run: terraform -chdir=terraform fmt -check -recursive
 {% endif %}{% if include_helm %}
       - name: Helm lint
+        if: inputs.skip-quality-gate != true
         uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
-      - run: helm lint helm/{{ project_slug }}
+      - if: inputs.skip-quality-gate != true
+        run: helm lint helm/{{ project_slug }}
 {% endif %}
