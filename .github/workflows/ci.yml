@@ -133,3 +133,26 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: uvx zizmor@1.26.1 --no-progress .github/workflows
+
+  # Single required status check for branch protection. repo-management requires the context
+  # "ci / lint-and-test" across every managed repo (the name a generated repo's reusable
+  # ci.yml reports). This repo's CI is split into render-matrix + lint, so this aggregator
+  # reports that one context and is green ONLY when both real jobs succeed — the template
+  # dogfooding the very gate it hands its children. `if: always()` + an explicit result
+  # check means it always reports a definitive pass/fail (a skipped required check would
+  # otherwise wedge branch protection).
+  lint-and-test:
+    needs: [render-matrix, lint]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Gate on render-matrix + lint
+        env:
+          RENDER_MATRIX: ${{ needs.render-matrix.result }}
+          LINT: ${{ needs.lint.result }}
+        run: |
+          if [ "$RENDER_MATRIX" != "success" ] || [ "$LINT" != "success" ]; then
+            echo "Required job failed: render-matrix=$RENDER_MATRIX lint=$LINT"
+            exit 1
+          fi
+          echo "render-matrix + lint passed"
