@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: MIT
 
 # commitizen config — its ONLY job here is the commit-msg hook: enforcing plain
-# Conventional Commits. Releases are release-please's job (release-please-config.json +
-# .release-please-manifest.json; see .github/workflows/release-please.yml), so no
+# Conventional Commits. Releases are release-please's job (.config/release-please-config.json +
+# .config/.release-please-manifest.json; see .github/workflows/main.yml), so no
 # version-of-record / bump / tag config lives here — `name` is all the linter needs.
 #
 # Plain conventional (NOT gitmoji): release-please derives version bumps from commit types

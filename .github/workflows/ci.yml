@@ -95,8 +95,8 @@ jobs:
 
   # Lint the template repo's OWN files with the same prek hooks the generated projects use
   # (the applicable subset — see .pre-commit-config.yaml: no Python/SQL/etc. hooks here).
-  # Licensing (hawkeye + reuse) DOES run on this repo's own files, governed by the root
-  # licenserc.toml + REUSE.toml; the GENERATED files' licensing is covered separately by
+  # Licensing (hawkeye + reuse) DOES run on this repo's own files, governed by
+  # .config/licenserc.toml + REUSE.toml; the GENERATED files' licensing is covered separately by
   # render-matrix. This is the dogfood gate for this repo.
   # actionlint + zizmor (offline) run as prek hooks; the online zizmor step adds the network
   # audits (known-vulnerable-actions, ref-confusion) that the offline hook can't do.
@@ -152,7 +152,7 @@ jobs:
           curl -fsSL https://github.com/korandoru/hawkeye/releases/download/v6.5.1/hawkeye-x86_64-unknown-linux-gnu.tar.xz \
             | tar -xJ --strip-components=1 -C "$RUNNER_TEMP" hawkeye-x86_64-unknown-linux-gnu/hawkeye
           chmod +x "$RUNNER_TEMP/hawkeye"
-          "$RUNNER_TEMP/hawkeye" check
+          "$RUNNER_TEMP/hawkeye" check --config .config/licenserc.toml
 
       - name: Audit workflows (zizmor — online, full coverage)
         env:
