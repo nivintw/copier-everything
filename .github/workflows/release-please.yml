@@ -4,7 +4,7 @@
 # release-please for the scaffold template repo ITSELF (single package, release-type
 # `simple` → bare `vX.Y.Z` tags). On push to main it maintains a Release PR that bumps
 # the version + CHANGELOG.md; merging that PR is what publishes — release-please then cuts
-# the annotated `vX.Y.Z` tag and the GitHub Release. Copier consumers can pin a release
+# the `vX.Y.Z` tag and the GitHub Release. Copier consumers can pin a release
 # with `copier copy --vcs-ref vX.Y.Z` / `copier update`.
 #
 # The render-matrix gate (ci.yml) is not a `needs:` here: the Release PR release-please

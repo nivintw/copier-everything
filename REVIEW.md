@@ -40,7 +40,7 @@ pytest, `[build-system]`, `[project]`, `[tool.uv]`).
 release-please owns versioning: `release-please-config.json` (`release-type: simple`) +
 `.release-please-manifest.json` hold the version of record. On push to `main` it maintains
 a reviewable Release PR that bumps the version + `CHANGELOG.md`; merging it cuts the
-annotated `vX.Y.Z` tag + GitHub Release. For Python shapes an `extra-files` TOML updater
+`vX.Y.Z` tag + GitHub Release. For Python shapes an `extra-files` TOML updater
 mirrors the version into `pyproject.toml [project].version` (what a wheel build reads);
 no-Python shapes keep the version in the manifest + tags only. commitizen stays solely as
 the commit-msg linter (`.cz.toml`, `cz_conventional_commits`) — plain Conventional Commits,
