@@ -6,8 +6,10 @@
 # template/.pre-commit-config.yaml.jinja; this is the subset that applies to THIS repo:
 #   - no Python package here → no ruff/ty/uv/validate-pyproject hooks;
 #   - no SQL/Docker/Terraform/Helm/bats → those hooks are omitted;
-#   - licensing (hawkeye/reuse) is verified PER RENDER by tests/render-matrix.sh, and reuse
-#     can't parse the template's `{{ ... }}` license placeholders, so it isn't run here.
+#   - licensing (hawkeye/reuse) DOES run here, governed by this repo's own licenserc.toml +
+#     REUSE.toml: the template/ tree's render-time `{{ ... }}` license placeholders are
+#     excluded (hawkeye) / overridden (reuse), and its rendered headers are verified
+#     per-shape by tests/render-matrix.sh.
 # Designed to run identically in CI (.github/workflows/ci.yml) — most hooks self-bootstrap.
 #   Run on demand:  uvx prek run --all-files
 #   Install hooks:  uvx prek install
@@ -123,6 +125,28 @@ repos:
       - id: rumdl
         name: "📝 markdown · Lint/format with rumdl"
         args: [--fix]
+
+  # --------------------------- ⚖️ Licensing & Compliance ---------------------------- #
+  # hawkeye maintains the SPDX headers (config: licenserc.toml); reuse verifies overall
+  # REUSE compliance. hawkeye is system (release binary, like taplo) so CI/local match.
+  # Both honor their own configs, which exclude/override the template/ tree — its headers
+  # carry render-time `{{ license }}` placeholders and are verified per-shape by
+  # render-matrix instead. (Files with a header + trailing doc block keep a blank line
+  # after the SPDX lines so hawkeye's header replacement stops there and leaves the docs.)
+  - repo: local
+    hooks:
+      - id: hawkeye-format
+        name: "⚖️ license · Add/format SPDX headers with hawkeye"
+        entry: hawkeye format
+        language: system
+        pass_filenames: false
+        require_serial: true
+
+  - repo: https://github.com/fsfe/reuse-tool
+    rev: v6.2.0
+    hooks:
+      - id: reuse
+        name: "⚖️ license · Check REUSE compliance"
 
   # ------------------------------ ✨ Commit Messages -------------------------------- #
   # Plain Conventional Commits (no gitmoji): release-please derives version bumps from

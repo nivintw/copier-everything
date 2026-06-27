@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SPDX-FileCopyrightText: © 2026 Tyler Nivin
 # SPDX-License-Identifier: MIT
-#
+
 # One-time helper: create the public GitHub repo for this template and copy the
 # branch rulesets from an existing repo (default: nivintw/dotfiles). Uses your local
 # `gh` auth — run it from your machine, NOT from CI. Safe to delete after use.

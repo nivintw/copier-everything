@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: © 2026 Tyler Nivin
 # SPDX-License-Identifier: MIT
+
 # Shape: no Python at all — a pure-shell repo with bats tests (no pyproject.toml).
 project_name: Shell Bats
 project_description: pure shell, bats only

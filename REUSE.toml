@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: © 2026 Tyler Nivin
+# SPDX-License-Identifier: MIT
+
+version = 1
+
+# The Jinja template tree (template/**) carries SPDX headers whose `{{ license }}`
+# placeholders only resolve at render time. `precedence = "override"` makes reuse use the
+# license declared here instead of trying to parse those placeholders as SPDX expressions.
+# The rendered output's real headers are verified per-shape by tests/render-matrix.sh.
+[[annotations]]
+path = "template/**"
+precedence = "override"
+SPDX-FileCopyrightText = "© 2026 Tyler Nivin"
+SPDX-License-Identifier = "MIT"
+
+# JSON has no comment syntax for an inline SPDX header (release-please's config + manifest).
+[[annotations]]
+path = ["**/*.json"]
+SPDX-FileCopyrightText = "© 2026 Tyler Nivin"
+SPDX-License-Identifier = "MIT"
