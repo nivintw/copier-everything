@@ -9,7 +9,7 @@
 #      and maintains a "Release PR" that bumps the version (.release-please-manifest.json,
 #      mirrored into the version-of-record via release-please-config.json's extra-files)
 #      + CHANGELOG.md.
-#   2. Merging that Release PR is what publishes: release-please then cuts the annotated
+#   2. Merging that Release PR is what publishes: release-please then cuts the
 #      `vX.Y.Z` tag and the GitHub Release.
 #   3. The action authenticates as the release GitHub App (see below). An App token is a
 #      distinct actor, so — unlike the default GITHUB_TOKEN — the Release PR runs CI and
