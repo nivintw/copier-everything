@@ -103,6 +103,9 @@ jobs:
         with:
           path: ~/.cache/prek
           key: prek-${{ hashFiles('.pre-commit-config.yaml') }}
+          # Reuse the prior cache on a hook bump so only the changed env reinstalls.
+          restore-keys: |
+            prek-
 
       - name: Install taplo (pinned; the taplo hook is language:system)
         run: |
@@ -116,10 +119,11 @@ jobs:
           # Fail loudly if the pinned release URL 404s and the pipe yielded an empty binary.
           test -s "$HOME/.local/bin/taplo" && "$HOME/.local/bin/taplo" --version >/dev/null
 
-      - name: Run prek hooks (same as local; taplo runs as its own step below)
+      - name: Run prek hooks (same as local; taplo + zizmor run as their own steps below)
         env:
-          # taplo is a system hook (its own step); no-commit-to-branch is a local-only guard.
-          SKIP: taplo,no-commit-to-branch
+          # taplo is a system hook (its own step); zizmor runs online below (a superset of
+          # the hook's offline pass); no-commit-to-branch is a local-only guard.
+          SKIP: taplo,zizmor,no-commit-to-branch
         run: uvx prek run --all-files
 
       - name: Check TOML formatting (taplo)
