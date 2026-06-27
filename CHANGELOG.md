@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.1](https://github.com/nivintw/scaffold/compare/v1.0.0...v1.0.1) (2026-06-27)
+
+
+### Bug Fixes
+
+* Mark render-matrix shapes done only at a known conclusion ([55109e0](https://github.com/nivintw/scaffold/commit/55109e0a78f349d73e870c4d78437d7665828a6d))
+
+
+### Performance Improvements
+
+* Parallelize render-matrix shapes + cache prek envs in CI ([4d82ddf](https://github.com/nivintw/scaffold/commit/4d82ddf24b0a4093102c345d83dab71b65b9cf77))
+
 ## 1.0.0 (2026-06-27)
 
 
