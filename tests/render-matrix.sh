@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SPDX-FileCopyrightText: © 2026 Tyler Nivin
 # SPDX-License-Identifier: MIT
-#
+
 # Render every answer set in tests/answers/ and run the full quality gate on each
 # generated project. Which checks run is derived from what the render produced (a
 # pyproject → uv/ruff/ty/pytest; *.bats → bats), so adding a new shape is just a new

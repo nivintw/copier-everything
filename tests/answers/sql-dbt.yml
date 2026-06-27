@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: © 2026 Tyler Nivin
 # SPDX-License-Identifier: MIT
+
 # Shape: the SQL module with the dbt templater. Renders templater=dbt into .sqlfluff and the
 # sqlfluff-templater-dbt additional_dependency, and ships NO example.sql (the user brings dbt
 # models + a dbt project), so the gate is green-on-arrival. The dbt templater env itself isn't

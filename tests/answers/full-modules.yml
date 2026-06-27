@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: © 2026 Tyler Nivin
 # SPDX-License-Identifier: MIT
+
 # Shape: a package with every module enabled (terraform + docker + helm + sql) — exercises
 # the module scaffolding's REUSE/header compliance and the helm check-yaml exclusion.
 project_name: Full Modules

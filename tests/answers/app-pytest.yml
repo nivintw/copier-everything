@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: © 2026 Tyler Nivin
 # SPDX-License-Identifier: MIT
+
 # Shape: non-package repo whose pyproject exists only to host pytest + tooling.
 project_name: App Pytest
 project_description: pyproject for pytest only
