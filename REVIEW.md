@@ -23,8 +23,8 @@ boolean (*is-a-package* + *has-pytest* + *src-layout*). They're now separate:
 
 `has_python` is a hidden computed flag (`contains_python or pytest`) that everything
 Python gates on. **The spine is language-agnostic**: every cross-cutting tool keeps its
-own native config file (`.cz.toml`, `_typos.toml`, `.rumdl.toml`, `.editorconfig`,
-`licenserc.toml`, `REUSE.toml`), identical across Python/Rust/shell repos. `pyproject.toml`
+own native config file (`.cz.toml`, `.config/typos.toml`, `.config/rumdl.toml`, `.editorconfig`,
+`.config/licenserc.toml`, `REUSE.toml`), identical across Python/Rust/shell repos. `pyproject.toml`
 exists **only** when there's Python and holds only Python-specific config (ruff, ty,
 pytest, `[build-system]`, `[project]`, `[tool.uv]`).
 
@@ -33,12 +33,12 @@ pytest, `[build-system]`, `[project]`, `[tool.uv]`).
 1. **Installable package** — `python_source=T, is_package=T`: `src/<pkg>`, `[build-system]`, wheel.
 2. **pyproject-only-for-pytest** — `python_source=F, [pytest]`: no `src/`, `package=false`, flat `tests/` + `conftest.py`.
 3. **pytest + bats (dotfiles model)** — `python_source=F, [pytest, bats]`.
-4. **No Python** — `contains_python=F`: **no `pyproject.toml`**; the version of record lives only in `.release-please-manifest.json` + tags.
+4. **No Python** — `contains_python=F`: **no `pyproject.toml`**; the version of record lives only in `.config/.release-please-manifest.json` + tags.
 
 ### release-please (versioning) + commitizen (commit-msg only)
 
-release-please owns versioning: `release-please-config.json` (`release-type: simple`) +
-`.release-please-manifest.json` hold the version of record. On push to `main` it maintains
+release-please owns versioning: `.config/release-please-config.json` (`release-type: simple`) +
+`.config/.release-please-manifest.json` hold the version of record. On push to `main` it maintains
 a Release PR that bumps the version + `CHANGELOG.md` and auto-merges (`--auto --rebase`)
 once its required checks pass — continuous releases — cutting the `vX.Y.Z` tag + GitHub
 Release. For Python shapes an `extra-files` TOML updater
@@ -80,7 +80,7 @@ so it replaces the old GraphQL signed-commit dance.
   trailing newline); fixed with Jinja whitespace control.
 - **Module shapes didn't pass their own gate** (found in review): `.dockerignore`/`.helmignore`
   had no SPDX header; Helm's Go-templated YAML tripped `check-yaml` and the templates left a
-  double-newline EOF. Headers added (+ `.helmignore` mapped in `licenserc.toml`), `check-yaml`
+  double-newline EOF. Headers added (+ `.helmignore` mapped in `.config/licenserc.toml`), `check-yaml`
   now excludes `helm/*/templates/` (validated by `helm lint`), and the `{%- endraw %}` trim
   fixes the EOF. `.dockerignore` also still listed `.mypy_cache` → now `.ty_cache`.
 

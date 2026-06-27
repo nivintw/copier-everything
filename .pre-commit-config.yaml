@@ -6,7 +6,7 @@
 # template/.pre-commit-config.yaml.jinja; this is the subset that applies to THIS repo:
 #   - no Python package here → no ruff/ty/uv/validate-pyproject hooks;
 #   - no SQL/Docker/Terraform/Helm/bats → those hooks are omitted;
-#   - licensing (hawkeye/reuse) DOES run here, governed by this repo's own licenserc.toml +
+#   - licensing (hawkeye/reuse) DOES run here, governed by this repo's own .config/licenserc.toml +
 #     REUSE.toml: the template/ tree's render-time `{{ ... }}` license placeholders are
 #     excluded (hawkeye) / overridden (reuse), and its rendered headers are verified
 #     per-shape by tests/render-matrix.sh.
@@ -115,7 +115,7 @@ repos:
       - id: typos
         name: "✨ language · Check spelling with typos"
         # CHECK-ONLY: drop the hook default --write-changes; keep --force-exclude.
-        args: ["--force-exclude"]
+        args: ["--force-exclude", "--config", ".config/typos.toml"]
         pass_filenames: false
 
   # -------------------------------- 📝 Markdown ------------------------------------- #
@@ -124,10 +124,10 @@ repos:
     hooks:
       - id: rumdl
         name: "📝 markdown · Lint/format with rumdl"
-        args: [--fix]
+        args: [--fix, --config, .config/rumdl.toml]
 
   # --------------------------- ⚖️ Licensing & Compliance ---------------------------- #
-  # hawkeye maintains the SPDX headers (config: licenserc.toml); reuse verifies overall
+  # hawkeye maintains the SPDX headers (config: .config/licenserc.toml); reuse verifies overall
   # REUSE compliance. hawkeye is system (release binary, like taplo) so CI/local match.
   # Both honor their own configs, which exclude/override the template/ tree — its headers
   # carry render-time `{{ license }}` placeholders and are verified per-shape by
@@ -137,7 +137,7 @@ repos:
     hooks:
       - id: hawkeye-format
         name: "⚖️ license · Add/format SPDX headers with hawkeye"
-        entry: hawkeye format
+        entry: hawkeye format --config .config/licenserc.toml
         language: system
         pass_filenames: false
         require_serial: true
