@@ -3,19 +3,29 @@
 
 # release-please for the scaffold template repo ITSELF (single package, release-type
 # `simple` → bare `vX.Y.Z` tags). On push to main it maintains a Release PR that bumps
-# the version + CHANGELOG.md; merging that PR is what publishes — release-please then cuts
-# the `vX.Y.Z` tag and the GitHub Release. Copier consumers can pin a release
-# with `copier copy --vcs-ref vX.Y.Z` / `copier update`.
+# the version + CHANGELOG.md. That PR is AUTO-MERGED (`--auto --rebase`) the moment its
+# required checks pass, so releases are continuous: every qualifying push to main publishes
+# — release-please then cuts the `vX.Y.Z` tag and the GitHub Release. Copier consumers can
+# pin a release with `copier copy --vcs-ref vX.Y.Z` / `copier update`.
 #
 # The render-matrix gate (ci.yml) is not a `needs:` here: the Release PR release-please
-# opens is itself gated by ci.yml (it runs on every PR), so the gate is already in the path
-# to publishing.
+# opens is itself gated by ci.yml (it runs on every PR), and auto-merge waits for those
+# required checks — so the gate is already in the path to publishing.
 #
 # Auth: a release GitHub App, NOT the default GITHUB_TOKEN — an App token is a distinct
-# actor, so the Release PR runs CI and merging it triggers downstream workflows. The
-# release SKIPS cleanly until the App's CI_CLIENT_ID (variable) + CI_APP_PRIVATE_KEY
-# (secret) exist (see the preflight job), so pushing to main is always safe. The App needs
-# Contents + Pull requests: read/write and a bypass entry on any ruleset protecting main.
+# actor, so the Release PR runs CI and (because the auto-merge is performed as the App)
+# merging it triggers this workflow again to cut the tag + release. The release SKIPS
+# cleanly until the App's CI_CLIENT_ID (variable) + CI_APP_PRIVATE_KEY (secret) exist (see
+# the preflight job), so pushing to main is always safe.
+#
+# REPO SETTINGS the auto-merge depends on (managed centrally for this repo):
+#   - "Allow auto-merge" enabled, and "Allow rebase merging" (this repo's only merge method;
+#     the auto-merge step uses `--rebase` to match).
+#   - The App (Contents + Pull requests: read/write) in the bypass list of the ruleset
+#     protecting main. That ruleset must gate releases on REQUIRED STATUS CHECKS, not a human
+#     approving review: the App authored the Release PR and GitHub forbids approving your own
+#     PR, so a required review would deadlock auto-merge. `--auto` also needs at least one
+#     required check to exist, or it errors.
 
 name: release-please
 
@@ -76,8 +86,20 @@ jobs:
           permission-pull-requests: write
 
       - name: Run release-please (Release PR, tag, release)
+        id: release
         uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4.4.1
         with:
           token: ${{ steps.app-token.outputs.token }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+      # Continuous release: when release-please opens/updates a Release PR, enable
+      # auto-merge so it lands (rebase) once required checks pass — no standing PR, no
+      # manual step. On the next run (a release was cut, no PR) `pr` is empty and this
+      # skips. PR JSON travels via env, never inline `${{ }}`, to dodge script injection.
+      - name: Auto-merge the Release PR
+        if: ${{ steps.release.outputs.pr }}
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          RELEASE_PR: ${{ steps.release.outputs.pr }}
+        run: gh pr merge "$(printf '%s' "$RELEASE_PR" | jq -r '.number')" --auto --rebase
