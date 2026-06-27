@@ -47,8 +47,12 @@ jobs:
         with:
           path: ~/.cache/prek
           key: prek-${{ '{{' }} hashFiles('.pre-commit-config.yaml') {{ '}}' }}
-{% if include_terraform %}
-      - name: Install trivy (terraform IaC scan — runs inside the prek gate)
+          # Fall back to any prior prek cache so a hook-rev bump rebuilds only the changed
+          # env (not all of them) — matters more now there are more, oftener-bumped hooks.
+          restore-keys: |
+            prek-
+{% if include_terraform or include_docker %}
+      - name: Install trivy (Dockerfile/IaC scan — runs inside the prek gate)
         if: inputs.skip-quality-gate != true
         env:
           # renovate: datasource=github-releases depName=aquasecurity/trivy
@@ -68,6 +72,21 @@ jobs:
             -o "$RUNNER_TEMP/osv-scanner"
           chmod +x "$RUNNER_TEMP/osv-scanner"
           echo "$RUNNER_TEMP" >>"$GITHUB_PATH"
+{% endif %}{% if include_terraform %}
+      - name: Set up Terraform (backs the terraform_fmt/validate prek hooks)
+        if: inputs.skip-quality-gate != true
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          # The default wrapper rewrites `terraform` to emit extra output, which breaks the
+          # terraform_validate hook's JSON parsing. Disable it so the hook sees raw output.
+          terraform_wrapper: false
+      - name: Set up tflint (backs the terraform_tflint prek hook)
+        if: inputs.skip-quality-gate != true
+        uses: terraform-linters/setup-tflint@b480b8fcdaa6f2c577f8e4fa799e89e756bb7c93 # v6.2.2
+{% endif %}{% if include_helm %}
+      - name: Set up Helm (backs the helm-lint prek hook + the kubeconform step below)
+        if: inputs.skip-quality-gate != true
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
 {% endif %}
       - name: Run prek hooks (same as local)
         if: inputs.skip-quality-gate != true
@@ -119,17 +138,29 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq bats
           bats tests/
-{% endif %}{% if include_terraform %}
-      - name: Terraform fmt + validate
+{% endif %}{% if include_docker %}
+      - name: Build image + scan for CVEs (trivy image)
         if: inputs.skip-quality-gate != true
-        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
-      - name: terraform fmt -check
-        if: inputs.skip-quality-gate != true
-        run: terraform -chdir=terraform fmt -check -recursive
+        # Image-layer CVE scan — needs a *built* image, so it runs here, not in the prek gate
+        # (which only scans the Dockerfile via `trivy config`). --ignore-unfixed skips
+        # base-image CVEs with no available fix (keeps the gate actionable); HIGH/CRITICAL
+        # only. trivy is already on PATH (installed above).
+        run: |
+          docker build -t {{ project_slug }}:ci .
+          trivy image --exit-code 1 --ignore-unfixed --severity HIGH,CRITICAL {{ project_slug }}:ci
 {% endif %}{% if include_helm %}
-      - name: Helm lint
+      - name: Validate rendered manifests (kubeconform)
         if: inputs.skip-quality-gate != true
-        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
-      - if: inputs.skip-quality-gate != true
-        run: helm lint helm/{{ project_slug }}
+        # `helm lint` runs in the prek gate; kubeconform validates the rendered manifests
+        # against upstream Kubernetes schemas (a network fetch), so it runs here.
+        # -ignore-missing-schemas: a CRD/Custom Resource the chart adds has no upstream schema;
+        # skip those rather than fail (a valid manifest shouldn't redden CI). -strict still
+        # rejects unknown fields on the built-in kinds it does know.
+        env:
+          # renovate: datasource=github-releases depName=yannh/kubeconform
+          KUBECONFORM_VERSION: "0.8.0"
+        run: |
+          curl -fsSL "https://github.com/yannh/kubeconform/releases/download/v${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" \
+            | tar -xz -C "$RUNNER_TEMP" kubeconform
+          helm template helm/{{ project_slug }} | "$RUNNER_TEMP/kubeconform" -strict -ignore-missing-schemas -summary
 {% endif %}

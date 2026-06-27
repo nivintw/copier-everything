@@ -53,7 +53,7 @@
     },
     {
       "customType": "regex",
-      "description": "Release binaries whose version lives in a `# renovate:`-annotated env var (trivy, osv-scanner) — own + generated workflows",
+      "description": "Release binaries whose version lives in a `# renovate:`-annotated env var (trivy, osv-scanner, kubeconform) — own + generated workflows",
       "managerFilePatterns": [
         "/^\\.github/workflows/.+\\.ya?ml$/",
         "/^template/\\.github/workflows/.+\\.jinja$/",

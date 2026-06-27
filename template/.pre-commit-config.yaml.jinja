@@ -169,11 +169,44 @@ repos:
     hooks:
       - id: hadolint
         name: "🐳 docker · Lint Dockerfile with hadolint"
+
+  # trivy config applies misconfiguration policies hadolint doesn't (missing HEALTHCHECK,
+  # running as root, …). Image-layer CVE scanning needs a *built* image, so `trivy image`
+  # runs in CI (build-then-scan) — see .github/workflows. trivy is a system release binary
+  # (Brewfile/CI install), like hawkeye/taplo.
+  - repo: local
+    hooks:
+      - id: trivy-dockerfile
+        name: "🐳 docker · Scan Dockerfile for misconfig (trivy config)"
+        # --exit-code 1 makes findings fail the gate (trivy exits 0 by default). HIGH/CRITICAL
+        # only (matching the trivy image scan): LOW/MEDIUM advisories like "add a HEALTHCHECK"
+        # are app-specific and can't be templated meaningfully — drop --severity to surface them.
+        # --skip-check-update uses trivy's bundled checks instead of fetching the policy bundle,
+        # so this gate hook stays offline/deterministic (the online image scan lives in CI).
+        entry: trivy config --exit-code 1 --skip-check-update --severity HIGH,CRITICAL Dockerfile
+        language: system
+        pass_filenames: false
+        files: '^Dockerfile$'
 {% endif %}{% if include_terraform %}
   # ------------------------------- 🏗️ Terraform ------------------------------------- #
-  # `terraform fmt`/`validate` check syntax, not security — these catch misconfig (e.g. a
-  # public bucket). checkov is pip-backed (self-bootstraps); trivy is a system release
-  # binary (Brewfile/CI install), like hawkeye/taplo.
+  # Two layers. antonbabenko/pre-commit-terraform wraps the local `terraform`/`tflint`
+  # binaries for fmt/validate/lint (syntax + style); then checkov/trivy scan for *security*
+  # misconfig (e.g. a public bucket) that fmt/validate miss. terraform_validate self-runs
+  # `terraform init -backend=false` — offline only while no providers are declared (the stub
+  # declares none); add a provider and `validate` becomes a network op (provider download),
+  # like any terraform repo. tflint's bundled rules run offline (`tflint --init` is only
+  # needed once you configure cloud plugins). checkov is pip-backed (self-bootstraps); trivy
+  # is a system release binary (Brewfile/CI install).
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.108.0
+    hooks:
+      - id: terraform_fmt
+        name: "🏗️ terraform · Format (terraform fmt)"
+      - id: terraform_validate
+        name: "🏗️ terraform · Validate (terraform validate)"
+      - id: terraform_tflint
+        name: "🏗️ terraform · Lint (tflint)"
+
   - repo: https://github.com/bridgecrewio/checkov
     rev: 3.3.1
     hooks:
@@ -186,11 +219,28 @@ repos:
     hooks:
       - id: trivy
         name: "🏗️ terraform · Scan IaC for misconfig (trivy)"
-        # --exit-code 1 makes findings fail the gate (trivy exits 0 by default).
-        entry: trivy config --exit-code 1 terraform
+        # --exit-code 1 makes findings fail the gate (trivy exits 0 by default). No --severity
+        # filter here (unlike the Dockerfile hook): IaC misconfigs are the user's own resources
+        # (e.g. a public bucket) where blocking even MEDIUM is worthwhile, whereas the Dockerfile
+        # carries un-templatable LOW/MEDIUM noise (HEALTHCHECK) that HIGH/CRITICAL scoping drops.
+        # --skip-check-update uses trivy's bundled checks (no policy-bundle fetch) so the gate
+        # stays offline/deterministic.
+        entry: trivy config --exit-code 1 --skip-check-update terraform
         language: system
         pass_filenames: false
         files: '\.tf$'
+{% endif %}{% if include_helm %}
+  # --------------------------------- ⎈ Helm ---------------------------------------- #
+  # `helm lint` runs the local helm binary (offline). Schema validation (kubeconform) needs
+  # to fetch upstream Kubernetes schemas, so it runs in CI — see .github/workflows.
+  - repo: local
+    hooks:
+      - id: helm-lint
+        name: "⎈ helm · Lint chart (helm lint)"
+        entry: helm lint helm/{{ project_slug }}
+        language: system
+        pass_filenames: false
+        files: '^helm/'
 {% endif %}{% if include_sql %}
   # ---------------------------------- 🗄️ SQL ---------------------------------------- #
   # sqlfluff lints AND fixes across dialects (config: .sqlfluff). pip-backed → self-
@@ -229,6 +279,20 @@ repos:
         name: "🐍 python · Validate pyproject.toml"
         additional_dependencies: ["validate-pyproject-schema-store[all]"]
 {% endif %}
+  # --------------------------------- 📐 YAML ---------------------------------------- #
+  # check-yaml (above) only checks that YAML *parses*; yamllint enforces style — indentation,
+  # key duplicates, truthy values, … (config: .config/yamllint.yaml). pip-backed → self-bootstraps.
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.38.0
+    hooks:
+      - id: yamllint
+        name: "📐 yaml · Lint YAML style with yamllint"
+        args: ["-c", ".config/yamllint.yaml"]
+{%- if include_helm %}
+        # Helm templates are Go-templated, not valid YAML (same exclude as check-yaml).
+        exclude: '^helm/[^/]+/templates/'
+{%- endif %}
+
   # -------------------------------- 📝 Markdown ------------------------------------- #
   - repo: https://github.com/rvben/rumdl-pre-commit
     rev: v0.2.17

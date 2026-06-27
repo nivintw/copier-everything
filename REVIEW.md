@@ -214,6 +214,74 @@ Licensing followed the established patterns:
 - The PR template has no H1 (it's section stubs), so it carries `<!-- rumdl-disable-file
   MD041 -->`, mirroring the README's disable.
 
+## Lint/security tooling expansion (lychee, yamllint, terraform/helm gate hooks)
+
+The modules security-scanned but didn't lint/validate locally: Terraform `fmt`/`validate`/
+`tflint` weren't run (the old CI step was even *mislabeled* "fmt + validate" but only ran
+`fmt`), Helm `lint` was CI-only, YAML had no style linter, container images weren't CVE-scanned,
+and docs links were unchecked. Added, organized by a single principle.
+
+**Principle — the local gate is deterministic/offline; network & heavy checks go to CI.**
+This already governed zizmor (offline locally, online in CI). Applying it here decides where
+each tool lands:
+
+- **yamllint** (always-on, **gate hook**) — pip-backed, self-bootstraps. `check-yaml` only
+  proves YAML *parses*; yamllint enforces *style*. Config `.config/yamllint.yaml` `extends: default`
+  but relaxes the rules that would fail green-on-arrival across the workflows/issue-forms/compose
+  YAML: `line-length` → warning, `truthy` allows Actions' `on:` key, `document-start` off,
+  `comments` min-spaces relaxed to 1 (SHA-pin `# vX.Y` comments use one space), and
+  `indentation` accepts unindented block sequences. Run **without `--strict`**, so error-level rules block and
+  warnings are advisory. Helm Go-templates are excluded (same as `check-yaml`).
+- **terraform fmt + validate + tflint** (terraform, **gate hooks**) via
+  `antonbabenko/pre-commit-terraform`, which wraps the local `terraform`/`tflint` binaries.
+  These are offline *with the right flags*: `terraform_validate` self-runs
+  `terraform init -backend=false` (no backend, and the scaffold declares **no providers**, so
+  nothing downloads until the user adds one); tflint's bundled rules run offline (`tflint --init`
+  is only for cloud plugins, which the scaffold ships none of). In CI, `setup-terraform` needs
+  `terraform_wrapper: false` or its output wrapper breaks `terraform_validate`'s parsing.
+- **helm lint** (helm, **gate hook**) — a `local` hook calling the offline `helm` binary
+  (was a CI-only step before).
+- **trivy config** on the Dockerfile (docker, **gate hook**) — misconfig policies hadolint
+  doesn't cover. Scoped to **HIGH/CRITICAL**: the only HIGH it found (DS-0002, running as root)
+  is fixed at the source — the generated Dockerfile now creates and drops to a **non-root
+  user** (both the Python and alpine branches) — while LOW/MEDIUM advisories like "add a
+  HEALTHCHECK" are app-specific and can't be templated, so the HIGH/CRITICAL scope filters
+  them out (drop `--severity` to scan them). The hook also runs `--skip-check-update` to keep
+  the local gate offline (no policy-bundle fetch); the online image scan lives in CI.
+- **trivy image** (docker, **CI-only**) — real image-layer CVE scanning needs a *built* image
+  (`docker build` then `trivy image`), so it can't be a local hook. `--ignore-unfixed`
+  keeps it actionable (base-image CVEs with no fix don't block); HIGH/CRITICAL only.
+- **kubeconform** (helm, **CI-only**) — validates rendered manifests against upstream
+  Kubernetes schemas, a network fetch; offline only if schemas were vendored (not worth it).
+  `helm template | kubeconform -strict`.
+- **lychee** (always, **CI-only**, own `link-check.yml` workflow) — dead-link checking is
+  inherently network/flaky, so it's a *separate* workflow, not part of the reusable `ci.yml`
+  gate: make `ci` required in branch protection and leave `link-check` advisory. Excludes the
+  repo's own (not-yet-pushed) URL and `mailto:`; uses `GITHUB_TOKEN` to dodge rate limits.
+
+Design notes:
+
+- **New system-binary gate deps.** terraform/helm hooks made `terraform`, `tflint`, `helm`
+  hard requirements of the local gate (helm went soft→required). render-matrix's tool-presence
+  loop now lists all three; the scaffold's own `ci.yml` installs `terraform`+`tflint` (via the
+  setup actions, `terraform_wrapper: false`) for its render-matrix job. This is the deliberate
+  cost of local (not just CI) feedback — accepted, consistent with how trivy is already handled.
+- **CI restructure (`ci.yml.jinja`).** terraform/tflint/helm now install **before** the prek
+  run (they back prek hooks), the way trivy/osv-scanner already did; the old standalone
+  "terraform fmt"/"helm lint" tail steps are gone (prek covers them). trivy's install gate
+  widened from `include_terraform` to `include_terraform or include_docker`.
+- **Renovate** needed no new managers: the new pre-commit hook revs ride the native `pre-commit`
+  manager / the `.jinja` hook customManager; the new SHA-pinned actions ride the github-actions
+  manager / the `.jinja` actions customManager; kubeconform's curl version uses the existing
+  `# renovate:`-annotated **env-var** pattern (its description gained `kubeconform`).
+- **render-matrix doesn't exercise the CI-only checks** (lychee/trivy-image/kubeconform) — they
+  need a Docker daemon / network and live only in the generated workflows. They get their first
+  real run when a generated repo's CI runs; called out so the coverage gap isn't silent.
+- **Trade-off — `trivy image` green-on-arrival risk**: a freshly-published *fixable* HIGH/CRITICAL
+  in the (floating) base image tag could turn a generated repo's first CI red with no user change.
+  `--ignore-unfixed` removes the common case (unfixed base-image CVEs); a residual fixable one is
+  arguably correct to flag (bump the base).
+
 ## Open follow-ups (not blocking)
 
 - **Release infra**: `main.yml` runs release-please. Each generated repo still needs a

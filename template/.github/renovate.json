@@ -28,7 +28,7 @@
     },
     {
       "customType": "regex",
-      "description": "Pinned release binaries whose version lives in a `# renovate:`-annotated env var (trivy, osv-scanner).",
+      "description": "Pinned release binaries whose version lives in a `# renovate:`-annotated env var (trivy, osv-scanner, kubeconform).",
       "managerFilePatterns": ["/^\\.github/workflows/.+\\.ya?ml$/"],
       "matchStrings": [
         "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s+\\w+: \"(?<currentValue>[^\"]+)\""
