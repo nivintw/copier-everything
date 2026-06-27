@@ -22,8 +22,9 @@ uvx prek install        # wire up the pre-commit hooks
 
 This project carries the shared quality spine: prek hooks (git hygiene, gitleaks,
 typos, rumdl, SPDX/REUSE headers{% if has_python %}, ruff, ty{% endif %}) that run
-identically locally and in CI. Conventional Commits (gitmoji) are enforced at
-commit-msg time (`.cz.toml`); releases on `main` are cut automatically by commitizen.
+identically locally and in CI. Conventional Commits are enforced at commit-msg time
+(`.cz.toml`); releases on `main` are managed by release-please (a Release PR →
+`vX.Y.Z` tag + GitHub Release on merge).
 
 ```bash
 uvx prek run --all-files   # run every hook on demand

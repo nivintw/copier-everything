@@ -52,10 +52,10 @@ The cross-cutting quality infrastructure, lifted from
 | --- | --- |
 | **prek hooks** (`.pre-commit-config.yaml`) | Git hygiene, secret scanning (gitleaks), spelling (typos), markdown (rumdl), license headers, shell lint + format (shellcheck, shfmt), and workflow lint + security-audit (actionlint, zizmor) — run identically locally and in CI. |
 | **REUSE licensing** (`licenserc.toml`, `REUSE.toml`, `LICENSES/`) | Every file carries an SPDX header; `hawkeye` maintains them, `reuse` verifies. |
-| **CI** (`.github/workflows/`) | Each generated repo gets a reusable `ci.yml` gate called by `pr.yml` (every PR) and `main.yml` (push to main → automated, signed commitizen release). Every action is SHA-pinned with a version comment. The template itself is tested by its own root `.github/workflows/ci.yml` (see `tests/`). |
+| **CI** (`.github/workflows/`) | Each generated repo gets a reusable `ci.yml` gate called by `pr.yml` (every PR) and `main.yml` (push to main → release-please). Every action is SHA-pinned with a version comment. The template itself is tested + linted by its own root `ci.yml` and released by its own `release-please.yml` (see `tests/`). |
 | **Renovate** (`.github/renovate.json`) | Automates the pins (pre-commit hook revs + action digests) and groups `ruff` bumps so a new lint rule lands as a reviewable PR, not a surprise red. |
 | **Security scanning** | Dependency-CVE scanning (`uv audit`, `osv-scanner`), Terraform IaC misconfig (`checkov`, `trivy`), and Dockerfile lint (`hadolint`) — wired as gate hooks wherever the matching shape/module is present. |
-| **commitizen + gitmoji** (`.cz.toml`) | Conventional commits enforced at commit-msg time; version + `CHANGELOG.md` computed from history. Language-agnostic — lives in `.cz.toml`, present even with no Python. |
+| **Conventional Commits + release-please** (`.cz.toml`, `release-please-config.json`) | Plain Conventional Commits enforced at commit-msg time (commitizen, in `.cz.toml`); release-please derives the version + `CHANGELOG.md` from commit history and publishes via a reviewable Release PR (→ `vX.Y.Z` tag + GitHub Release). Language-agnostic — present even with no Python. |
 | **Governance files** | `CODEOWNERS`, `SECURITY.md`, `CONTRIBUTING.md`, a PR template, and YAML issue forms — every repo starts with the standard hygiene/DX baseline. |
 | **uv + ruff** (Python shapes) | When the project has Python, `pyproject.toml` hosts the ruff/ty/pytest config and a uv-managed dev environment; source shapes get a `pytest-cov` coverage gate (`--cov-fail-under`). A no-Python repo ships no `pyproject.toml`. |
 | **`.editorconfig`, `_typos.toml`, `.rumdl.toml`** | Editor + linter config that agrees with the hooks. |
@@ -77,8 +77,9 @@ installable package, a pyproject-only-for-pytest repo, a pytest + bats repo (the
 | `include_sql` | `sql/` with a dialect-aware `.sqlfluff` + `sqlfluff` lint/fix (optional dbt templater) |
 | `include_devcontainer` | `.devcontainer/devcontainer.json` for Codespaces / VS Code |
 
-The spine (prek hooks, REUSE licensing, `.cz.toml` commitizen release, CI) is
-language-agnostic and ships with every shape. See [`REVIEW.md`](REVIEW.md) for the model.
+The spine (prek hooks, REUSE licensing, Conventional-Commit linting + release-please
+releases, CI) is language-agnostic and ships with every shape. See
+[`REVIEW.md`](REVIEW.md) for the model.
 
 ---
 
@@ -91,6 +92,20 @@ language-agnostic and ships with every shape. See [`REVIEW.md`](REVIEW.md) for t
 - **`tests/`** — the scaffold's own test suite: `render-matrix.sh` renders every
   `answers/*.yml` shape and runs the full gate. Wired into CI.
 - **`REVIEW.md`** — the design model, decisions/assumptions, and open follow-ups.
+
+## 🛠️ Developing this template
+
+This repo dogfoods its own spine. Install the hooks once, then commit via a branch:
+
+```bash
+uvx prek install            # wire up the pre-commit + commit-msg hooks
+uvx prek run --all-files    # run the gate on demand
+```
+
+Commits use plain Conventional Commits (no gitmoji — release-please can't parse a leading
+emoji). The template repo itself is versioned by `release-please.yml`: push to `main`
+maintains a Release PR; merging it cuts the `vX.Y.Z` tag consumers pin with
+`copier copy --vcs-ref` / `copier update`.
 
 ## 📄 License
 

@@ -1,6 +1,3 @@
-<!--
-SPDX-FileCopyrightText: © 2026 Tyler Nivin
-SPDX-License-Identifier: MIT
--->
+# Changelog
 
-<!-- Managed by commitizen. The first release will populate this file. -->
+<!-- release-please manages this file; the first release will populate it. -->

@@ -33,14 +33,20 @@ pytest, `[build-system]`, `[project]`, `[tool.uv]`).
 1. **Installable package** — `python_source=T, is_package=T`: `src/<pkg>`, `[build-system]`, wheel.
 2. **pyproject-only-for-pytest** — `python_source=F, [pytest]`: no `src/`, `package=false`, flat `tests/` + `conftest.py`.
 3. **pytest + bats (dotfiles model)** — `python_source=F, [pytest, bats]`.
-4. **No Python** — `contains_python=F`: **no `pyproject.toml`**; `.cz.toml` carries the release machinery.
+4. **No Python** — `contains_python=F`: **no `pyproject.toml`**; the version of record lives only in `.release-please-manifest.json` + tags.
 
-### commitizen `version_provider`
+### release-please (versioning) + commitizen (commit-msg only)
 
-commitizen lives in `.cz.toml` (always). `version_provider` is `uv` when Python is
-present (reads `pyproject [project].version`), else `commitizen` (stores `version` in
-`.cz.toml`, works on a tagless repo). A future Rust module would use `cargo`. All three
-give gitmoji-conventional commits + auto-`CHANGELOG.md` + an annotated `v$version` tag.
+release-please owns versioning: `release-please-config.json` (`release-type: simple`) +
+`.release-please-manifest.json` hold the version of record. On push to `main` it maintains
+a reviewable Release PR that bumps the version + `CHANGELOG.md`; merging it cuts the
+annotated `vX.Y.Z` tag + GitHub Release. For Python shapes an `extra-files` TOML updater
+mirrors the version into `pyproject.toml [project].version` (what a wheel build reads);
+no-Python shapes keep the version in the manifest + tags only. commitizen stays solely as
+the commit-msg linter (`.cz.toml`, `cz_conventional_commits`) — plain Conventional Commits,
+**no gitmoji**, because release-please can't parse a leading emoji. Auth is a release
+GitHub App (`CI_CLIENT_ID` + `CI_APP_PRIVATE_KEY`); an App-token commit is GitHub-verified,
+so it replaces the old GraphQL signed-commit dance.
 
 ## Assumptions made autonomously (no design owner present)
 
@@ -127,6 +133,7 @@ scanned at all (ruff `ALL` lints code, not deps). Added, each gated to its shape
   pytest-only-no-src repo has no package to measure).
 
 Design notes:
+
 - **render-matrix now runs `uv lock` before the gate** for Python shapes (and stages the lock),
   so the osv-scanner hook — which keys off a committed `uv.lock` — is actually exercised. This
   mirrors a real generated repo, whose `_tasks` run `uv sync` before the first commit.
@@ -138,7 +145,7 @@ Design notes:
   `# renovate:`-annotated **env-var** pattern (their release assets embed the version, so a
   URL-path bump would desync). A second customManager handles that pattern; the URL one was
   tightened so the two never bind the wrong version.
-- **Trade-off — CVE scans are time-varying _and_ network-dependent**: a newly-published
+- **Trade-off — CVE scans are time-varying *and* network-dependent**: a newly-published
   advisory in a (dev-only) dep can turn a green gate red with no code change — inherent to CVE
   scanning (the scaffold has no runtime deps, so only dev-tool deps are audited). The flip side:
   uv audit / osv-scanner hit remote advisory APIs and `trivy config` pulls its checks bundle
@@ -166,6 +173,7 @@ A new `include_sql` toggle, modeled on terraform/docker/helm:
   shape, and `include_sql` added to `full-modules`.
 
 Licensing of the new file types was the fiddly part:
+
 - **`example.sql`** uses hawkeye's *native* SQL header style — `--` delimiter lines wrapping
   the SPDX lines (hawkeye rewrites a bare `-- SPDX` header to that form, so the template emits
   it pre-shaped).
@@ -191,6 +199,7 @@ piece, so it's behind an `include_devcontainer` toggle.
   Python image + `uv` for Python shapes, the generic base image otherwise).
 
 Licensing followed the established patterns:
+
 - `.md` / `.yml` carry SPDX headers hawkeye maintains (`<!-- -->` / `#`).
 - **`CODEOWNERS`** has no extension hawkeye maps, so — like `.sqlfluff` — it keeps its own
   `#` header (reuse-verified) and is added to hawkeye's `excludes`.
@@ -201,9 +210,11 @@ Licensing followed the established patterns:
 
 ## Open follow-ups (not blocking)
 
-- **Release infra**: `main.yml` keeps the full App-signed commitizen release. Each
-  generated repo still needs a release App + `CI_APP_ID`/`CI_APP_PRIVATE_KEY` + a ruleset
-  bypass before it works. Apply the production rulesets to this repo once that App exists.
+- **Release infra**: `main.yml` runs release-please. Each generated repo still needs a
+  release GitHub App (Contents + Pull requests: read/write) + a `CI_CLIENT_ID` variable +
+  a `CI_APP_PRIVATE_KEY` secret + a ruleset bypass before releases activate (the release
+  job skips cleanly until then). The scaffold repo itself releases the same way via its
+  own `release-please.yml`. Apply the production rulesets once that App exists.
 - **`python_version`** is a question (default `3.13`); bump to `3.14` to match dotfiles if wanted.
 - **Rust module** is *enabled by* this architecture but unbuilt; so is a `docs` (mkdocs) module.
 - Terraform/Docker/Helm are still minimal **stubs** (a single example resource, a generic

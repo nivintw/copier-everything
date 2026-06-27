@@ -26,18 +26,9 @@ classifiers = ["Programming Language :: Python :: 3"]
 dependencies = []
 
 [dependency-groups]
-dev = [
-  "ruff>=0.8",
-  "commitizen>=3",
-  "cz-conventional-gitmoji>=0.6",
-  "ty>=0.0.1",
-{%- if 'pytest' in test_frameworks %}
-  "pytest>=8",
-{%- if python_source %}
-  "pytest-cov>=5",
-{%- endif %}
-{%- endif %}
-]
+# Kept on one line so taplo doesn't reformat it (it collapses short arrays); the set is
+# small now that release-please — not commitizen — owns releases.
+dev = ["ruff>=0.8", "ty>=0.0.1"{% if 'pytest' in test_frameworks %}, "pytest>=8"{% if python_source %}, "pytest-cov>=5"{% endif %}{% endif %}]
 
 [tool.uv]
 package = {{ 'true' if python_source else 'false' }}

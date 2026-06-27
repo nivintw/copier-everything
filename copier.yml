@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: © 2026 Tyler Nivin
+# SPDX-License-Identifier: MIT
+
 # Copier configuration for the `scaffold` project template.
 # Generate a new project with:  copier copy --trust gh:nivintw/scaffold path/to/new-project
 # (--trust lets the post-copy tasks run git init / uv sync / prek install for you.)
@@ -44,7 +47,7 @@ _tasks:
   - command: >-
       git diff --cached --quiet ||
       git -c user.name="{{ author_name }}" -c user.email="{{ author_email }}"
-      commit -q -m "🎉 init: scaffold {{ project_slug }}"
+      commit -q -m "chore: scaffold {{ project_slug }}"
     when: "{{ _copier_operation == 'copy' }}"
   - command: ["uvx", "prek", "install"]
     when: "{{ _copier_operation == 'copy' }}"
@@ -60,7 +63,7 @@ _message_after_copy: |
   {%- if has_python %}
     uv sync               # venv + dev toolchain
   {%- endif %}
-    git add -A && git commit -m "🎉 init: scaffold {{ project_slug }}"
+    git add -A && git commit -m "chore: scaffold {{ project_slug }}"
     uvx prek install      # wire up the pre-commit hooks
   {% endif -%}
 

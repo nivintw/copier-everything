@@ -1,24 +1,16 @@
 # SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
 # SPDX-License-Identifier: {{ license }}
 
-# commitizen config — standalone so it's language-agnostic (lives here whether or not
-# the repo is Python). Enforces Conventional Commits + gitmoji, and `cz bump` computes
-# the version + CHANGELOG.md from history and cuts the annotated `v$version` tag.
+# commitizen config — standalone so it's language-agnostic (lives here whether or not the
+# repo is Python). Its ONLY job is the commit-msg hook: enforcing plain Conventional
+# Commits via the commitizen pre-commit hook.
 #
-# version_provider = where the version-of-record lives:
-{%- if has_python %}
-#   uv         → pyproject.toml [project].version (a wheel build reads it)
-{%- else %}
-#   commitizen → the `version` field right here (works on a fresh, tagless repo)
-{%- endif %}
+# Plain conventional (NOT gitmoji): release-please derives version bumps from commit types
+# and cannot parse a leading emoji, so commits must start with the bare type.
+#
+# Releases are NOT commitizen's job — release-please owns versioning (release-please-config.json
+# + .release-please-manifest.json; see .github/workflows/main.yml). So no version-of-record
+# / bump / tag config lives here: `name` is all the linter needs.
 
 [tool.commitizen]
-name = "cz_gitmoji"
-version_provider = "{{ 'uv' if has_python else 'commitizen' }}"
-{%- if not has_python %}
-version = "0.0.0"
-{%- endif %}
-update_changelog_on_bump = true
-annotated_tag = true
-tag_format = "v$version"
-bump_message = "🔖 bump: $current_version → $new_version"
+name = "cz_conventional_commits"

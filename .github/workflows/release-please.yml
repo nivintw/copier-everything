@@ -1,29 +1,23 @@
-# SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
-# SPDX-License-Identifier: {{ license }}
-{% raw %}
-# Main pipeline: on every push to main, run the SAME quality gate as PRs, then — only
-# here — release-please (gated by `needs: ci`).
-#
-# RELEASE FLOW (release-please, manifest mode — single package):
-#   1. On push to main, release-please scans Conventional Commits since the last release
-#      and maintains a "Release PR" that bumps the version (.release-please-manifest.json,
-#      mirrored into the version-of-record via release-please-config.json's extra-files)
-#      + CHANGELOG.md.
-#   2. Merging that Release PR is what publishes: release-please then cuts the annotated
-#      `vX.Y.Z` tag and the GitHub Release.
-#   3. The action authenticates as the release GitHub App (see below). An App token is a
-#      distinct actor, so — unlike the default GITHUB_TOKEN — the Release PR runs CI and
-#      merging it triggers downstream workflows.
-#
-# REPO SETUP TO ENABLE RELEASES (the release job SKIPS cleanly until these exist, so
-# merging to main is always safe — see the `preflight` job below):
-#   - A release GitHub App with Contents: Read+write AND Pull requests: Read+write,
-#     installed on this repo, and in the bypass list of any ruleset that protects main.
-#   - A repository variable CI_CLIENT_ID (the App's Client ID — non-secret) and a
-#     repository secret CI_APP_PRIVATE_KEY (the App's private key).
-#   - If you don't want app releases, pass a PAT as `token` instead, or delete this job.
+# SPDX-FileCopyrightText: © 2026 Tyler Nivin
+# SPDX-License-Identifier: MIT
 
-name: main
+# release-please for the scaffold template repo ITSELF (single package, release-type
+# `simple` → bare `vX.Y.Z` tags). On push to main it maintains a Release PR that bumps
+# the version + CHANGELOG.md; merging that PR is what publishes — release-please then cuts
+# the annotated `vX.Y.Z` tag and the GitHub Release. Copier consumers can pin a release
+# with `copier copy --vcs-ref vX.Y.Z` / `copier update`.
+#
+# The render-matrix gate (ci.yml) is not a `needs:` here: the Release PR release-please
+# opens is itself gated by ci.yml (it runs on every PR), so the gate is already in the path
+# to publishing.
+#
+# Auth: a release GitHub App, NOT the default GITHUB_TOKEN — an App token is a distinct
+# actor, so the Release PR runs CI and merging it triggers downstream workflows. The
+# release SKIPS cleanly until the App's CI_CLIENT_ID (variable) + CI_APP_PRIVATE_KEY
+# (secret) exist (see the preflight job), so pushing to main is always safe. The App needs
+# Contents + Pull requests: read/write and a bypass entry on any ruleset protecting main.
+
+name: release-please
 
 on:
   push:
@@ -39,9 +33,6 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  ci:
-    uses: ./.github/workflows/ci.yml
-
   # Guard: the release job needs the App's Client ID + private key. A secret can't be read
   # in a job-level `if:`, so a step (which CAN see them) reports whether BOTH are present,
   # and the release job gates on that output. Until both are set, release SKIPS cleanly
@@ -67,7 +58,7 @@ jobs:
           fi
 
   release:
-    needs: [ci, preflight]
+    needs: preflight
     if: needs.preflight.outputs.release_enabled == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -88,4 +79,3 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
-{% endraw %}
