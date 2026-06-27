@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.4](https://github.com/nivintw/scaffold/compare/v1.0.3...v1.0.4) (2026-06-27)
+
+
+### Bug Fixes
+
+* Make the generated release-please flow work end-to-end ([e9bb68b](https://github.com/nivintw/scaffold/commit/e9bb68bc183a2da06fa26bdf6efa52562b1b0249)), closes [#34](https://github.com/nivintw/scaffold/issues/34) [#30](https://github.com/nivintw/scaffold/issues/30) [#35](https://github.com/nivintw/scaffold/issues/35) [#36](https://github.com/nivintw/scaffold/issues/36) [#37](https://github.com/nivintw/scaffold/issues/37)
+
 ## [1.0.3](https://github.com/nivintw/scaffold/compare/v1.0.2...v1.0.3) (2026-06-27)
 
 
