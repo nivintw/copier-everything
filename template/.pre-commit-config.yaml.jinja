@@ -97,10 +97,11 @@ repos:
     hooks:
       - id: zizmor
         name: "🔒 ci · Audit workflows for security issues (zizmor)"
-        # --offline keeps the gate deterministic and token-free: the AST audits (template
-        # injection, excessive permissions, artipacked, …) run offline, while the network
-        # audits (known-vulnerable-actions, ref-confusion) need a GH token and are skipped
-        # here — run zizmor online in CI for those. Overriding args drops the upstream
+        # --offline keeps THIS hook deterministic and token-free: the AST audits (template
+        # injection, excessive permissions, artipacked, …) run offline everywhere. The
+        # network audits (known-vulnerable-actions, ref-confusion) need a GH token, so they
+        # don't run in this hook — CI runs the FULL zizmor audit (online) as a dedicated
+        # step that SKIPs this hook (see ci.yml). Overriding args drops the upstream
         # default, so re-add --no-progress.
         args: ["--no-progress", "--offline"]
 
