@@ -81,9 +81,10 @@ jobs:
         run: tests/render-matrix.sh
 
   # Lint the template repo's OWN files with the same prek hooks the generated projects use
-  # (the applicable subset — see .pre-commit-config.yaml: no Python/SQL/etc. hooks here, and
-  # licensing is verified per-render by render-matrix, not at this repo's root). The
-  # GENERATED files are covered by render-matrix; this is the dogfood gate for this repo.
+  # (the applicable subset — see .pre-commit-config.yaml: no Python/SQL/etc. hooks here).
+  # Licensing (hawkeye + reuse) DOES run on this repo's own files, governed by the root
+  # licenserc.toml + REUSE.toml; the GENERATED files' licensing is covered separately by
+  # render-matrix. This is the dogfood gate for this repo.
   # actionlint + zizmor (offline) run as prek hooks; the online zizmor step adds the network
   # audits (known-vulnerable-actions, ref-confusion) that the offline hook can't do.
   lint:
