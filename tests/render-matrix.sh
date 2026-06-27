@@ -88,7 +88,7 @@ if [ "${1:-}" = "--one" ]; then
 
   # Always: licensing + TOML formatting (system tools; prek skips them so they run here).
   run "reuse lint" reuse lint
-  run "hawkeye check" hawkeye check
+  run "hawkeye check" hawkeye check --config .config/licenserc.toml
   run "taplo fmt --check" taplo fmt --check
   run "prek (all hooks)" env SKIP=taplo,hawkeye-format,no-commit-to-branch uvx prek run --all-files
 
