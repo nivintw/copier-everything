@@ -75,6 +75,8 @@ jobs:
         id: app-token
         uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2.2.2
         with:
+          # `app-id` accepts the App's Client ID as well as the numeric App ID
+          # (create-github-app-token supports both); the Client ID is non-secret, hence a var.
           app-id: ${{ vars.CI_CLIENT_ID }}
           private-key: ${{ secrets.CI_APP_PRIVATE_KEY }}
           # Scope the token to exactly what release-please needs: the bump commit + tag +
