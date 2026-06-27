@@ -98,10 +98,14 @@ jobs:
       # Continuous release: enable auto-merge on the Release PR so it lands (rebase) once
       # required checks pass. On the next run (release cut, no PR) `pr` is empty and this
       # skips. PR JSON travels via env, never inline `${{ }}`, to dodge script injection.
+      # GH_REPO tells gh which repo to act on: this job has no checkout, so without it
+      # `gh pr merge` probes the working dir for a git remote and dies ("not a git
+      # repository"). gh reads GH_REPO natively, so no `actions/checkout` is needed.
       - name: Auto-merge the Release PR
         if: ${{ steps.release.outputs.pr }}
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_REPO: ${{ github.repository }}
           RELEASE_PR: ${{ steps.release.outputs.pr }}
         run: gh pr merge "$(printf '%s' "$RELEASE_PR" | jq -r '.number')" --auto --rebase
 {% endraw %}
