@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/nivintw/scaffold/compare/v1.0.4...v1.1.0) (2026-06-27)
+
+
+### Features
+
+* Expand lint/security tooling (yamllint, terraform/helm hooks, trivy, lychee, kubeconform) ([27dc217](https://github.com/nivintw/scaffold/commit/27dc217d1c1c576f3a5008466b53e22c6a3d04e6))
+
 ## [1.0.4](https://github.com/nivintw/scaffold/compare/v1.0.3...v1.0.4) (2026-06-27)
 
 
