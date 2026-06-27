@@ -92,6 +92,11 @@ lint). The matrix covers the 4 canonical Python/testing shapes, the unpublished-
 bare-spine edges, the Apache-license path, and a full terraform+docker+helm build. Run it
 locally or let `.github/workflows/ci.yml` run it on every PR.
 
+The shapes are independent, so the harness **warms the shared prek/uv caches on one shape
+(`full-modules`, the superset of hooks) then runs the rest in parallel** (`xargs -P`,
+re-invoking itself per shape — no bash-4 job control). CI additionally caches `~/.cache/prek`
+for the render job, so hook envs aren't cold-bootstrapped every run.
+
 ## CI / supply-chain hardening (issue #3)
 
 The workflow/release pipeline and dependency pins are hardened end-to-end:

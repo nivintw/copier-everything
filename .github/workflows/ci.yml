@@ -34,6 +34,17 @@ jobs:
         with:
           enable-cache: true
 
+      - name: Cache prek hook environments
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          # Each rendered shape runs the TEMPLATE's hook set, so key off that config (not
+          # the root's). Without this the gate cold-bootstraps every hook env on every run.
+          path: ~/.cache/prek
+          key: prek-render-${{ hashFiles('template/.pre-commit-config.yaml.jinja') }}
+          # Reuse the prior cache on a hook bump so only the changed env reinstalls.
+          restore-keys: |
+            prek-render-
+
       - name: Install Python CLI tools (copier, reuse)
         run: |
           mkdir -p "$HOME/.local/bin"
