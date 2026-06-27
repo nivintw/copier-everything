@@ -102,6 +102,10 @@ uvx prek install            # wire up the pre-commit + commit-msg hooks
 uvx prek run --all-files    # run the gate on demand
 ```
 
+> **One system tool:** the `taplo` hook is `language: system`, so install `taplo` locally
+> (`brew install taplo` / `cargo install taplo-cli`) before running the gate — that one hook
+> fails without it. Every other hook self-bootstraps. (CI installs `taplo` as its own step.)
+
 Commits use plain Conventional Commits (no gitmoji — release-please can't parse a leading
 emoji). The template repo itself is versioned by `release-please.yml`: push to `main`
 maintains a Release PR that auto-merges (rebase) once checks pass, cutting the `vX.Y.Z` tag
