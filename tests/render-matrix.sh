@@ -34,11 +34,12 @@ if [ "${1:-}" = "--one" ]; then
   out="$WORK/render/$name"
   log="$WORK/logs/$name.log"
 
-  # Drop a completion marker on exit so the orchestrator can tell "ran and passed" apart
-  # from "the worker died": a SIGKILL (e.g. OOM, plausible under parallel uv/prek/pytest)
-  # skips this trap, so the missing done-marker is caught as a failure rather than counted
-  # as a silent green. Set before any work so every exit path is covered.
-  trap 'touch "$WORK/done/$name"' EXIT
+  # A shape leaves a "done" marker ONLY when it reaches a known conclusion — the success
+  # path's end or fail_exit. Deliberately NOT a `trap … EXIT`: that would also fire on an
+  # abnormal exit (a `set -u` unbound-var error mid-run), masking it as completed. So any
+  # path that doesn't reach a done() call — a SIGKILL (OOM), a `set -u` abort, or xargs
+  # failing to exec the worker — leaves no marker and is caught as a failure downstream.
+  done_mark() { touch "$WORK/done/$name"; }
 
   emit() { printf '%s\n' "$*" >>"$log"; } # append a line to this shape's log
   mark_fail() { touch "$WORK/fail/$name"; }
@@ -46,6 +47,7 @@ if [ "${1:-}" = "--one" ]; then
     emit "    ❌ $1"
     [ -n "${2:-}" ] && sed 's/^/        /' "$2" | tail -15 >>"$log"
     mark_fail
+    done_mark
     exit 0
   }
   run() { # label, cmd...
@@ -113,6 +115,8 @@ if [ "${1:-}" = "--one" ]; then
       [ -f "$chart/Chart.yaml" ] && run "helm lint $(basename "$chart")" helm lint "$chart"
     done
   fi
+
+  done_mark # reached the end cleanly (failures, if any, are recorded as fail-markers)
   exit 0
 fi
 
