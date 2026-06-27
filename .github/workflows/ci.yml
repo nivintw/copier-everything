@@ -4,20 +4,22 @@
 # CI for the scaffold template ITSELF: render every shape in tests/answers/ and run the
 # full quality gate on each generated project (tests/render-matrix.sh). This is what
 # proves a template change doesn't break any supported project shape.
+#
+# REUSABLE (on: workflow_call) — the triggers live in the callers, so a caller job named
+# `ci` produces the check-run name `ci / <job>` (e.g. `ci / lint-and-test`), which is the
+# context branch protection / the ruleset requires:
+#   - pr.yml   (on: pull_request) → this gate. The open-PR pipeline.
+#   - main.yml (on: push to main) → this gate, THEN the release-please stage.
+# (A flat workflow's check-run name would be the bare job name, with no `ci /` prefix —
+# which is why this MUST be reusable for the ruleset's `ci / lint-and-test` to match.)
 
 name: ci
 
 on:
-  pull_request:
-  push:
-    branches: [main]
+  workflow_call:
 
 permissions:
   contents: read
-
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   render-matrix:
@@ -147,12 +149,12 @@ jobs:
         run: uvx zizmor@1.26.1 --no-progress .github/workflows
 
   # Single required status check for branch protection. repo-management requires the context
-  # "ci / lint-and-test" across every managed repo (the name a generated repo's reusable
-  # ci.yml reports). This repo's CI is split into render-matrix + lint, so this aggregator
-  # reports that one context and is green ONLY when both real jobs succeed — the template
-  # dogfooding the very gate it hands its children. `if: always()` + an explicit result
-  # check means it always reports a definitive pass/fail (a skipped required check would
-  # otherwise wedge branch protection).
+  # "ci / lint-and-test" across every managed repo — the name produced when a caller job
+  # `ci` invokes this reusable workflow's `lint-and-test` job. This repo's gate is split into
+  # render-matrix + lint, so this aggregator job carries that required name and is green ONLY
+  # when both real jobs succeed (the template dogfooding the gate it hands its children).
+  # `if: always()` + an explicit result check means it always reports a definitive pass/fail
+  # (a skipped required check would otherwise wedge branch protection).
   lint-and-test:
     needs: [render-matrix, lint]
     if: always()

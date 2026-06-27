@@ -1,16 +1,19 @@
 # SPDX-FileCopyrightText: © 2026 Tyler Nivin
 # SPDX-License-Identifier: MIT
 
-# release-please for the scaffold template repo ITSELF (single package, release-type
-# `simple` → bare `vX.Y.Z` tags). On push to main it maintains a Release PR that bumps
-# the version + CHANGELOG.md. That PR is AUTO-MERGED (`--auto --rebase`) the moment its
-# required checks pass, so releases are continuous: every qualifying push to main publishes
-# — release-please then cuts the `vX.Y.Z` tag and the GitHub Release. Copier consumers can
-# pin a release with `copier copy --vcs-ref vX.Y.Z` / `copier update`.
+# Main pipeline: on every push to main, run the SAME quality gate as PRs (ci.yml), then —
+# only here, and only if the gate is green — the release-please stage.
 #
-# The render-matrix gate (ci.yml) is not a `needs:` here: the Release PR release-please
-# opens is itself gated by ci.yml (it runs on every PR), and auto-merge waits for those
-# required checks — so the gate is already in the path to publishing.
+# RELEASE FLOW (release-please, manifest mode — single package, release-type `simple` →
+# bare `vX.Y.Z` tags):
+#   1. On push to main, release-please maintains a Release PR that bumps the version +
+#      CHANGELOG.md.
+#   2. That Release PR is AUTO-MERGED (`--auto --rebase`) the moment its required checks
+#      pass, so releases are continuous: release-please then cuts the `vX.Y.Z` tag + GitHub
+#      Release. Copier consumers pin a release with `copier copy --vcs-ref vX.Y.Z` /
+#      `copier update`.
+#   3. The release job gates on `needs: [ci, preflight]`, so a tag is never cut on a red
+#      gate. The `ci` job here reuses ci.yml — the exact gate PRs run.
 #
 # Auth: a release GitHub App, NOT the default GITHUB_TOKEN — an App token is a distinct
 # actor, so the Release PR runs CI and (because the auto-merge is performed as the App)
@@ -27,7 +30,7 @@
 #     PR, so a required review would deadlock auto-merge. `--auto` also needs at least one
 #     required check to exist, or it errors.
 
-name: release-please
+name: main
 
 on:
   push:
@@ -43,6 +46,11 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # The same gate PRs run. The caller job is named `ci` so its check-runs report as
+  # `ci / <job>` — matching what the ruleset requires and what PRs produce via pr.yml.
+  ci:
+    uses: ./.github/workflows/ci.yml
+
   # Guard: the release job needs the App's Client ID + private key. A secret can't be read
   # in a job-level `if:`, so a step (which CAN see them) reports whether BOTH are present,
   # and the release job gates on that output. Until both are set, release SKIPS cleanly
@@ -68,7 +76,7 @@ jobs:
           fi
 
   release:
-    needs: preflight
+    needs: [ci, preflight]
     if: needs.preflight.outputs.release_enabled == 'true'
     runs-on: ubuntu-latest
     steps:

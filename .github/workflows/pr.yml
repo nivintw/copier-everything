@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: © 2026 Tyler Nivin
+# SPDX-License-Identifier: MIT
+
+# Open-PR pipeline: run the shared quality gate (ci.yml) on every pull request. No write
+# access, nothing released — just the checks. The caller job is named `ci` so the gate's
+# check-runs are reported as `ci / <job>` (e.g. `ci / lint-and-test`), the context branch
+# protection / the ruleset requires.
+
+name: pr
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml

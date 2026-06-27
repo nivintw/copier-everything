@@ -215,7 +215,8 @@ Licensing followed the established patterns:
   release GitHub App (Contents + Pull requests: read/write) + a `CI_CLIENT_ID` variable +
   a `CI_APP_PRIVATE_KEY` secret + a ruleset bypass before releases activate (the release
   job skips cleanly until then). The scaffold repo itself releases the same way via its
-  own `release-please.yml`. Apply the production rulesets once that App exists.
+  own `main.yml` (reusable `ci.yml` + release-please), matching the template's shape. Apply
+  the production rulesets once that App exists.
 - **`python_version`** is a question (default `3.13`); bump to `3.14` to match dotfiles if wanted.
 - **Rust module** is *enabled by* this architecture but unbuilt; so is a `docs` (mkdocs) module.
 - Terraform/Docker/Helm are still minimal **stubs** (a single example resource, a generic

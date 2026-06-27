@@ -52,7 +52,7 @@ The cross-cutting quality infrastructure, lifted from
 | --- | --- |
 | **prek hooks** (`.pre-commit-config.yaml`) | Git hygiene, secret scanning (gitleaks), spelling (typos), markdown (rumdl), license headers, shell lint + format (shellcheck, shfmt), and workflow lint + security-audit (actionlint, zizmor) — run identically locally and in CI. |
 | **REUSE licensing** (`licenserc.toml`, `REUSE.toml`, `LICENSES/`) | Every file carries an SPDX header; `hawkeye` maintains them, `reuse` verifies. |
-| **CI** (`.github/workflows/`) | Each generated repo gets a reusable `ci.yml` gate called by `pr.yml` (every PR) and `main.yml` (push to main → release-please). Every action is SHA-pinned with a version comment. The template itself is tested + linted by its own root `ci.yml` and released by its own `release-please.yml` (see `tests/`). |
+| **CI** (`.github/workflows/`) | Each generated repo gets a reusable `ci.yml` gate called by `pr.yml` (every PR) and `main.yml` (push to main → release-please). Every action is SHA-pinned with a version comment. The template itself uses the same shape — a reusable root `ci.yml` called by `pr.yml` and `main.yml` (which also runs release-please) (see `tests/`). |
 | **Renovate** (`.github/renovate.json`) | Automates the pins (pre-commit hook revs + action digests) and groups `ruff` bumps so a new lint rule lands as a reviewable PR, not a surprise red. |
 | **Security scanning** | Dependency-CVE scanning (`uv audit`, `osv-scanner`), Terraform IaC misconfig (`checkov`, `trivy`), and Dockerfile lint (`hadolint`) — wired as gate hooks wherever the matching shape/module is present. |
 | **Conventional Commits + release-please** (`.cz.toml`, `release-please-config.json`) | Plain Conventional Commits enforced at commit-msg time (commitizen, in `.cz.toml`); release-please derives the version + `CHANGELOG.md` from commit history and publishes via an auto-merged Release PR — continuous releases once checks pass (→ `vX.Y.Z` tag + GitHub Release). Language-agnostic — present even with no Python. |
@@ -109,9 +109,9 @@ uvx prek run --all-files    # run the gate on demand
 > Every other hook self-bootstraps. (CI installs both as their own steps.)
 
 Commits use plain Conventional Commits (no gitmoji — release-please can't parse a leading
-emoji). The template repo itself is versioned by `release-please.yml`: push to `main`
-maintains a Release PR that auto-merges (rebase) once checks pass, cutting the `vX.Y.Z` tag
-consumers pin with `copier copy --vcs-ref` / `copier update`.
+emoji). The template repo itself is versioned by `main.yml` (release-please): push to `main`
+runs the gate, then maintains a Release PR that auto-merges (rebase) once checks pass, cutting
+the `vX.Y.Z` tag consumers pin with `copier copy --vcs-ref` / `copier update`.
 
 ## 📄 License
 
