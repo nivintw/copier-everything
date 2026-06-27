@@ -55,7 +55,7 @@ The cross-cutting quality infrastructure, lifted from
 | **CI** (`.github/workflows/`) | Each generated repo gets a reusable `ci.yml` gate called by `pr.yml` (every PR) and `main.yml` (push to main → release-please). Every action is SHA-pinned with a version comment. The template itself is tested + linted by its own root `ci.yml` and released by its own `release-please.yml` (see `tests/`). |
 | **Renovate** (`.github/renovate.json`) | Automates the pins (pre-commit hook revs + action digests) and groups `ruff` bumps so a new lint rule lands as a reviewable PR, not a surprise red. |
 | **Security scanning** | Dependency-CVE scanning (`uv audit`, `osv-scanner`), Terraform IaC misconfig (`checkov`, `trivy`), and Dockerfile lint (`hadolint`) — wired as gate hooks wherever the matching shape/module is present. |
-| **Conventional Commits + release-please** (`.cz.toml`, `release-please-config.json`) | Plain Conventional Commits enforced at commit-msg time (commitizen, in `.cz.toml`); release-please derives the version + `CHANGELOG.md` from commit history and publishes via a reviewable Release PR (→ `vX.Y.Z` tag + GitHub Release). Language-agnostic — present even with no Python. |
+| **Conventional Commits + release-please** (`.cz.toml`, `release-please-config.json`) | Plain Conventional Commits enforced at commit-msg time (commitizen, in `.cz.toml`); release-please derives the version + `CHANGELOG.md` from commit history and publishes via an auto-merged Release PR — continuous releases once checks pass (→ `vX.Y.Z` tag + GitHub Release). Language-agnostic — present even with no Python. |
 | **Governance files** | `CODEOWNERS`, `SECURITY.md`, `CONTRIBUTING.md`, a PR template, and YAML issue forms — every repo starts with the standard hygiene/DX baseline. |
 | **uv + ruff** (Python shapes) | When the project has Python, `pyproject.toml` hosts the ruff/ty/pytest config and a uv-managed dev environment; source shapes get a `pytest-cov` coverage gate (`--cov-fail-under`). A no-Python repo ships no `pyproject.toml`. |
 | **`.editorconfig`, `_typos.toml`, `.rumdl.toml`** | Editor + linter config that agrees with the hooks. |
@@ -104,8 +104,8 @@ uvx prek run --all-files    # run the gate on demand
 
 Commits use plain Conventional Commits (no gitmoji — release-please can't parse a leading
 emoji). The template repo itself is versioned by `release-please.yml`: push to `main`
-maintains a Release PR; merging it cuts the `vX.Y.Z` tag consumers pin with
-`copier copy --vcs-ref` / `copier update`.
+maintains a Release PR that auto-merges (rebase) once checks pass, cutting the `vX.Y.Z` tag
+consumers pin with `copier copy --vcs-ref` / `copier update`.
 
 ## 📄 License
 
