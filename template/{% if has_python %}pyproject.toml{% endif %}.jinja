@@ -26,8 +26,7 @@ classifiers = ["Programming Language :: Python :: 3"]
 dependencies = []
 
 [dependency-groups]
-# Kept on one line so taplo doesn't reformat it (it collapses short arrays); the set is
-# small now that release-please — not commitizen — owns releases.
+# One line keeps it green-on-arrival under taplo, which collapses short arrays after render.
 dev = ["ruff>=0.8", "ty>=0.0.1"{% if 'pytest' in test_frameworks %}, "pytest>=8"{% if python_source %}, "pytest-cov>=5"{% endif %}{% endif %}]
 
 [tool.uv]
