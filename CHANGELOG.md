@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.2.0](https://github.com/nivintw/copier-everything/compare/v1.1.0...v1.2.0) (2026-06-28)
+
+
+### Features
+
+* Support fleet adoption (PyPI publish, repo_name, version, adoption mode, agent docs) ([798b156](https://github.com/nivintw/copier-everything/commit/798b156390d11fb82e522667b052896fa146a1a3)), closes [#56](https://github.com/nivintw/copier-everything/issues/56) [#60](https://github.com/nivintw/copier-everything/issues/60) [#59](https://github.com/nivintw/copier-everything/issues/59) [#61](https://github.com/nivintw/copier-everything/issues/61) [#49](https://github.com/nivintw/copier-everything/issues/49) [#50](https://github.com/nivintw/copier-everything/issues/50) [#47](https://github.com/nivintw/copier-everything/issues/47)
+
+
+### Bug Fixes
+
+* Escape author identity in scaffold-commit task for names with quotes ([a30f99c](https://github.com/nivintw/copier-everything/commit/a30f99ce897361ad68fcffa9770b8062de2d9968))
+
 ## [1.1.0](https://github.com/nivintw/copier-everything/compare/v1.0.4...v1.1.0) (2026-06-27)
 
 
