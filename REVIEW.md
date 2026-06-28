@@ -161,6 +161,34 @@ Design notes:
   CLI surface is the most likely thing to rename/remove a flag and break the hook — watch uv
   release notes when its `audit` bumps land.
 
+## Checksum-pinned CI binaries (issue #58)
+
+The five release binaries CI installs by hand (trivy, osv-scanner, hawkeye, taplo,
+kubeconform) were pinned by **version** but fetched over `curl … | tar/gunzip` with **no
+integrity check** — a tampered or MITM'd asset would execute in CI. Now each is verified
+against a committed **SHA256** that fails the step closed on mismatch:
+
+- **Download → verify → extract.** The streaming pipes (`curl | tar`, `curl | gunzip`) became
+  download-to-file, `sha256sum -c`, *then* extract, so a bad byte never reaches `tar`/the
+  executable. Every step runs `set -euo pipefail`. The SHA is of the **published asset** (the
+  archive / `.gz` / bare binary), matching what upstreams sign in their checksum files.
+- **Uniform pinning.** All five normalized to a `# renovate:`-annotated `*_VERSION` +
+  adjacent `*_SHA256` env-var pair. hawkeye/taplo moved off the version-in-URL form, so the
+  single env-var `customManager` now covers all five and the URL-path manager was retired.
+- **Keeping the hash fresh — the gap and the fix.** Renovate's `github-releases` datasource
+  has **no asset-digest concept**, so it can bump `*_VERSION` but cannot update `*_SHA256`.
+  Left there, a version bump would fail CI on the stale hash. `scripts/refresh-binary-checksums.sh`
+  recomputes each SHA from its pinned version (reading the upstream checksum file for
+  trivy/osv-scanner/hawkeye/kubeconform; **hashing the asset for taplo, which publishes no
+  checksum file**). The `refresh-binary-checksums` workflow runs it on `renovate/**` pushes and
+  commits the result back **as the release App** so the push re-triggers CI (a `GITHUB_TOKEN`
+  push wouldn't). Without the App configured the job skips and the fail-closed mismatch stands —
+  re-pin by hand with the script. So: automated when the App exists, safe-by-default when it
+  doesn't.
+- **Scope.** zizmor (pip/uvx) and the SHA-pinned `uses:` actions already have integrity
+  (PyPI / action-digest pinning); this issue is specifically the hand-installed `language:
+  system` binaries.
+
 ## SQL module (issue #5)
 
 A new `include_sql` toggle, modeled on terraform/docker/helm:

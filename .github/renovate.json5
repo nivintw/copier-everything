@@ -42,18 +42,7 @@
     },
     {
       "customType": "regex",
-      "description": "Release binaries whose version lives in the download URL (hawkeye, taplo) — own + generated workflows",
-      "managerFilePatterns": [
-        "/^\\.github/workflows/.+\\.ya?ml$/",
-        "/^template/\\.github/workflows/.+\\.jinja$/",
-      ],
-      "matchStrings": [
-        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s+(?:run: \\|\\s+)?curl[^\\n]*?/releases/download/(?<currentValue>[^/]+)/",
-      ],
-    },
-    {
-      "customType": "regex",
-      "description": "Release binaries whose version lives in a `# renovate:`-annotated env var (trivy, osv-scanner, kubeconform) — own + generated workflows",
+      "description": "Release binaries pinned by a `# renovate:`-annotated *_VERSION env var (trivy, osv-scanner, hawkeye, taplo, kubeconform) — own + generated workflows. Renovate bumps the version; the adjacent *_SHA256 is refreshed by scripts/refresh-binary-checksums.sh (the refresh-binary-checksums workflow runs it on Renovate PRs), since github-releases has no asset-digest datasource.",
       "managerFilePatterns": [
         "/^\\.github/workflows/.+\\.ya?ml$/",
         "/^template/\\.github/workflows/.+\\.jinja$/",

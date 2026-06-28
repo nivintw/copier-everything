@@ -57,9 +57,15 @@ jobs:
         env:
           # renovate: datasource=github-releases depName=aquasecurity/trivy
           TRIVY_VERSION: "0.71.2"
+          # SHA256 of trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz — refreshed with the version
+          # by scripts/refresh-binary-checksums.sh (see the refresh-binary-checksums workflow).
+          TRIVY_SHA256: "0510e71e2fd39bf863856d499c8dc19feb4e7336546394c502a8f5cc7ab27460"
         run: |
+          set -euo pipefail
           curl -fsSL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" \
-            | tar -xz -C "$RUNNER_TEMP" trivy
+            -o "$RUNNER_TEMP/trivy.tar.gz"
+          echo "${TRIVY_SHA256}  $RUNNER_TEMP/trivy.tar.gz" | sha256sum -c -
+          tar -xz -C "$RUNNER_TEMP" -f "$RUNNER_TEMP/trivy.tar.gz" trivy
           echo "$RUNNER_TEMP" >>"$GITHUB_PATH"
 {% endif %}{% if has_python %}
       - name: Install osv-scanner (dependency CVE scan — runs inside the prek gate)
@@ -67,9 +73,14 @@ jobs:
         env:
           # renovate: datasource=github-releases depName=google/osv-scanner
           OSV_VERSION: "2.4.0"
+          # SHA256 of osv-scanner_linux_amd64 (the published asset is the bare binary) —
+          # refreshed with the version by scripts/refresh-binary-checksums.sh.
+          OSV_SHA256: "15314940c10d26af9c6649f150b8a47c1262e8fc7e17b1d1029b0e479e8ed8a0"
         run: |
+          set -euo pipefail
           curl -fsSL "https://github.com/google/osv-scanner/releases/download/v${OSV_VERSION}/osv-scanner_linux_amd64" \
             -o "$RUNNER_TEMP/osv-scanner"
+          echo "${OSV_SHA256}  $RUNNER_TEMP/osv-scanner" | sha256sum -c -
           chmod +x "$RUNNER_TEMP/osv-scanner"
           echo "$RUNNER_TEMP" >>"$GITHUB_PATH"
 {% endif %}{% if include_terraform %}
@@ -112,19 +123,35 @@ jobs:
 
       - name: Check SPDX license headers (hawkeye)
         if: inputs.skip-quality-gate != true
-        # renovate: datasource=github-releases depName=korandoru/hawkeye
+        env:
+          # renovate: datasource=github-releases depName=korandoru/hawkeye
+          HAWKEYE_VERSION: "6.5.1"
+          # SHA256 of hawkeye-x86_64-unknown-linux-gnu.tar.xz — refreshed with the version
+          # by scripts/refresh-binary-checksums.sh.
+          HAWKEYE_SHA256: "d6eb0505a45a15244f4f789158aafe5e3f1a7dc86c9dc1d7651f3cb1e1b321e0"
         run: |
-          curl -fsSL https://github.com/korandoru/hawkeye/releases/download/v6.5.1/hawkeye-x86_64-unknown-linux-gnu.tar.xz \
-            | tar -xJ --strip-components=1 -C "$RUNNER_TEMP" hawkeye-x86_64-unknown-linux-gnu/hawkeye
+          set -euo pipefail
+          curl -fsSL "https://github.com/korandoru/hawkeye/releases/download/v${HAWKEYE_VERSION}/hawkeye-x86_64-unknown-linux-gnu.tar.xz" \
+            -o "$RUNNER_TEMP/hawkeye.tar.xz"
+          echo "${HAWKEYE_SHA256}  $RUNNER_TEMP/hawkeye.tar.xz" | sha256sum -c -
+          tar -xJ --strip-components=1 -C "$RUNNER_TEMP" -f "$RUNNER_TEMP/hawkeye.tar.xz" hawkeye-x86_64-unknown-linux-gnu/hawkeye
           chmod +x "$RUNNER_TEMP/hawkeye"
           "$RUNNER_TEMP/hawkeye" check --config .config/licenserc.toml
 
       - name: Check TOML formatting (taplo)
         if: inputs.skip-quality-gate != true
-        # renovate: datasource=github-releases depName=tamasfe/taplo
+        env:
+          # renovate: datasource=github-releases depName=tamasfe/taplo
+          TAPLO_VERSION: "0.10.0"
+          # SHA256 of taplo-linux-x86_64.gz. taplo ships no upstream checksum file, so this is
+          # computed from the asset by scripts/refresh-binary-checksums.sh.
+          TAPLO_SHA256: "8fe196b894ccf9072f98d4e1013a180306e17d244830b03986ee5e8eabeb6156"
         run: |
-          curl -fsSL https://github.com/tamasfe/taplo/releases/download/0.10.0/taplo-linux-x86_64.gz \
-            | gunzip -c >"$RUNNER_TEMP/taplo"
+          set -euo pipefail
+          curl -fsSL "https://github.com/tamasfe/taplo/releases/download/${TAPLO_VERSION}/taplo-linux-x86_64.gz" \
+            -o "$RUNNER_TEMP/taplo.gz"
+          echo "${TAPLO_SHA256}  $RUNNER_TEMP/taplo.gz" | sha256sum -c -
+          gunzip -c "$RUNNER_TEMP/taplo.gz" >"$RUNNER_TEMP/taplo"
           chmod +x "$RUNNER_TEMP/taplo"
           "$RUNNER_TEMP/taplo" fmt --check --diff
 {% if 'pytest' in test_frameworks %}
@@ -159,8 +186,14 @@ jobs:
         env:
           # renovate: datasource=github-releases depName=yannh/kubeconform
           KUBECONFORM_VERSION: "0.8.0"
+          # SHA256 of kubeconform-linux-amd64.tar.gz — refreshed with the version by
+          # scripts/refresh-binary-checksums.sh.
+          KUBECONFORM_SHA256: "9bc2bffbf71f261128533edaf912153948b7ff238f9a531ae6d34466ec287883"
         run: |
+          set -euo pipefail
           curl -fsSL "https://github.com/yannh/kubeconform/releases/download/v${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" \
-            | tar -xz -C "$RUNNER_TEMP" kubeconform
+            -o "$RUNNER_TEMP/kubeconform.tar.gz"
+          echo "${KUBECONFORM_SHA256}  $RUNNER_TEMP/kubeconform.tar.gz" | sha256sum -c -
+          tar -xz -C "$RUNNER_TEMP" -f "$RUNNER_TEMP/kubeconform.tar.gz" kubeconform
           helm template helm/{{ project_slug }} | "$RUNNER_TEMP/kubeconform" -strict -ignore-missing-schemas -summary
 {% endif %}
