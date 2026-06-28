@@ -45,34 +45,34 @@ sha256_of() { # <file> -> bare hex digest
 fetch_sha() { # <TOOL> <version> -> bare hex digest on stdout
   local tool="$1" version="$2"
   case "$tool" in
-    TRIVY)
-      curl -fsSL "https://github.com/aquasecurity/trivy/releases/download/v${version}/trivy_${version}_checksums.txt" |
-        awk -v a="trivy_${version}_Linux-64bit.tar.gz" '$2 == a {print $1}'
-      ;;
-    OSV)
-      curl -fsSL "https://github.com/google/osv-scanner/releases/download/v${version}/osv-scanner_SHA256SUMS" |
-        awk '$2 == "osv-scanner_linux_amd64" {print $1}'
-      ;;
-    HAWKEYE)
-      curl -fsSL "https://github.com/korandoru/hawkeye/releases/download/v${version}/hawkeye-x86_64-unknown-linux-gnu.tar.xz.sha256" |
-        awk '{print $1}'
-      ;;
-    KUBECONFORM)
-      curl -fsSL "https://github.com/yannh/kubeconform/releases/download/v${version}/CHECKSUMS" |
-        awk '$2 == "kubeconform-linux-amd64.tar.gz" {print $1}'
-      ;;
-    TAPLO)
-      # taplo ships no checksum file, so hash the asset (no `v` prefix on taplo tags).
-      # --remove-on-error so a half-written file is never left behind to be hashed.
-      curl -fsSL --remove-on-error \
-        "https://github.com/tamasfe/taplo/releases/download/${version}/taplo-linux-x86_64.gz" \
-        -o "$WORKDIR/taplo.gz"
-      sha256_of "$WORKDIR/taplo.gz"
-      ;;
-    *)
-      echo "unknown tool: $tool" >&2
-      return 1
-      ;;
+  TRIVY)
+    curl -fsSL "https://github.com/aquasecurity/trivy/releases/download/v${version}/trivy_${version}_checksums.txt" |
+      awk -v a="trivy_${version}_Linux-64bit.tar.gz" '$2 == a {print $1}'
+    ;;
+  OSV)
+    curl -fsSL "https://github.com/google/osv-scanner/releases/download/v${version}/osv-scanner_SHA256SUMS" |
+      awk '$2 == "osv-scanner_linux_amd64" {print $1}'
+    ;;
+  HAWKEYE)
+    curl -fsSL "https://github.com/korandoru/hawkeye/releases/download/v${version}/hawkeye-x86_64-unknown-linux-gnu.tar.xz.sha256" |
+      awk '{print $1}'
+    ;;
+  KUBECONFORM)
+    curl -fsSL "https://github.com/yannh/kubeconform/releases/download/v${version}/CHECKSUMS" |
+      awk '$2 == "kubeconform-linux-amd64.tar.gz" {print $1}'
+    ;;
+  TAPLO)
+    # taplo ships no checksum file, so hash the asset (no `v` prefix on taplo tags).
+    # --remove-on-error so a half-written file is never left behind to be hashed.
+    curl -fsSL --remove-on-error \
+      "https://github.com/tamasfe/taplo/releases/download/${version}/taplo-linux-x86_64.gz" \
+      -o "$WORKDIR/taplo.gz"
+    sha256_of "$WORKDIR/taplo.gz"
+    ;;
+  *)
+    echo "unknown tool: $tool" >&2
+    return 1
+    ;;
   esac
 }
 
