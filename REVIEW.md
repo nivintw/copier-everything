@@ -65,8 +65,9 @@ so it replaces the old GraphQL signed-commit dance.
   hooks (e.g. `check-json`) that match zero files, which that meta-hook fails on.
 - **The copier-everything repo does not copy the full dotfiles branch rulesets.** Those assume a
   release GitHub App + bypass actors that don't exist on a fresh repo and would block an
-  automated merge. Branch protection here just requires the `ci` check + a PR. Applying
-  the production rulesets + release App is a follow-up (see below).
+  automated merge. Branch protection here just requires the `ci` check + a PR. The production
+  rulesets + release App are provisioned out-of-band by
+  [`nivintw/repo-management`](https://github.com/nivintw/repo-management), not by this repo.
 
 ## Bugs found & fixed (pre-existing in the first pass; never validated post-render)
 
@@ -318,13 +319,6 @@ Design notes:
 
 ## Open follow-ups (not blocking)
 
-- **Release infra**: `main.yml` runs release-please. Each generated repo still needs a
-  release GitHub App (Contents + Pull requests: read/write) + a `CI_CLIENT_ID` variable +
-  a `CI_APP_PRIVATE_KEY` secret + a ruleset bypass before releases activate (the release
-  job skips cleanly until then). copier-everything itself releases the same way via its
-  own `main.yml` (reusable `ci.yml` + release-please), matching the template's shape. Apply
-  the production rulesets once that App exists.
-- **`python_version`** is a question (default `3.13`); bump to `3.14` to match dotfiles if wanted.
 - **Rust module** is *enabled by* this architecture but unbuilt; so is a `docs` (mkdocs) module.
 - Terraform/Docker/Helm are still minimal **stubs** (a single example resource, a generic
   image, a bare Deployment/Service) — now gate-clean and CI-covered, but flesh out per project.
