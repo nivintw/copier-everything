@@ -28,7 +28,7 @@ jobs:
         with:
           # Exclude this repo's own URL — it 404s until the repo is pushed/public. (lychee
           # excludes mailto: links by default.) Scope to Markdown so LICENSES/lockfiles aren't crawled.
-          args: "--no-progress --exclude 'github\\.com/{{ repo_owner }}/{{ project_slug }}' '**/*.md'"
+          args: "--no-progress --exclude 'github\\.com/{{ repo_owner }}/{{ repo_name }}' '**/*.md'"
           fail: true
         env:
           # Authenticated requests raise GitHub's rate limit, so github.com links don't flake.

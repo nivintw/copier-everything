@@ -1,9 +1,12 @@
 # SPDX-FileCopyrightText: © 2026 Tyler Nivin
 # SPDX-License-Identifier: MIT
 
-# Shape: installable package (src/ layout) + pytest.
+# Shape: installable package (src/ layout) + pytest. Also exercises repo_name ≠ project_slug
+# (dist "pkg-demo" vs repo "demo-repo") so the GitHub-URL refs render from repo_name, and the
+# default publish_to_pypi=is_package path that emits publish.yml.
 project_name: Pkg Demo
 project_description: An installable package
+repo_name: demo-repo
 test_frameworks: [pytest]
 contains_python: true
 python_source: true
