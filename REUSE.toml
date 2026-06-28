@@ -13,8 +13,7 @@ precedence = "override"
 SPDX-FileCopyrightText = "© 2026 Tyler Nivin"
 SPDX-License-Identifier = "MIT"
 
-# JSON has no comment syntax for an inline SPDX header (release-please's config + manifest;
-# the docs site's search-index.json).
+# JSON has no comment syntax for an inline SPDX header (release-please's config + manifest).
 [[annotations]]
 path = ["**/*.json"]
 SPDX-FileCopyrightText = "© 2026 Tyler Nivin"

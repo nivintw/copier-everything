@@ -1,4 +1,9 @@
-[
+/*
+ * SPDX-FileCopyrightText: © 2026 Tyler Nivin
+ * SPDX-License-Identifier: MIT
+ */
+
+window.SEARCH_INDEX = [
 {
 "title": "copier-everything — a language-agnostic project template",
 "text": "Home",
@@ -120,7 +125,7 @@
 "url": "questions.html#_message_after_copy"
 },
 {
-"title": "Modules &amp; levers — copier-everything",
+"title": "Modules & levers — copier-everything",
 "text": "Modules & levers",
 "page": "Modules & levers",
 "url": "modules.html"
@@ -130,6 +135,12 @@
 "text": "Modules & levers",
 "page": "Modules & levers",
 "url": "modules.html"
+},
+{
+"title": "The modules at a glance",
+"text": "Modules & levers",
+"page": "Modules & levers",
+"url": "modules.html#at-a-glance"
 },
 {
 "title": "Python levers",
@@ -294,6 +305,12 @@
 "url": "baseline.html"
 },
 {
+"title": "At a glance",
+"text": "Quality baseline",
+"page": "Quality baseline",
+"url": "baseline.html#at-a-glance"
+},
+{
 "title": "prek hooks",
 "text": "Quality baseline",
 "page": "Quality baseline",
@@ -384,7 +401,7 @@
 "url": "baseline.html#security"
 },
 {
-"title": "Usage &amp; adoption — copier-everything",
+"title": "Usage & adoption — copier-everything",
 "text": "Usage & adoption",
 "page": "Usage & adoption",
 "url": "usage.html"
@@ -581,4 +598,4 @@
 "page": "Design model",
 "url": "design.html#open-followups"
 }
-]
+];
