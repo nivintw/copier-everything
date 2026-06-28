@@ -55,11 +55,9 @@
   var activeIdx = -1;
 
   if (input && results) {
-    // Resolve the index relative to the current page so it works in any subdir.
-    fetch("search-index.json")
-      .then(function (r) { return r.ok ? r.json() : []; })
-      .then(function (data) { index = Array.isArray(data) ? data : []; })
-      .catch(function () { index = []; });
+    // The index is loaded as a <script src="search-index.js"> global rather than fetched,
+    // so search works from file:// too (browsers block fetch() against local files).
+    index = Array.isArray(window.SEARCH_INDEX) ? window.SEARCH_INDEX : [];
 
     input.addEventListener("input", function () { runSearch(input.value); });
     input.addEventListener("focus", function () { if (input.value) runSearch(input.value); });
@@ -103,7 +101,7 @@
     var html = "";
     for (var i = 0; i < items.length; i++) {
       var it = items[i];
-      html += '<a href="' + escapeHtml(it.url) + '" data-i="' + i + '">' +
+      html += '<a role="option" href="' + escapeHtml(it.url) + '" data-i="' + i + '">' +
         '<span class="r-title">' + escapeHtml(it.title) + "</span> " +
         '<span class="r-page">' + escapeHtml(it.page || "") + "</span></a>";
     }
