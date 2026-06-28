@@ -235,15 +235,15 @@ python_package:
 
 python_version:
   type: str
-  help: Minimum Python version (e.g. 3.13)
-  default: "3.13"
+  help: Minimum Python version (e.g. 3.14)
+  default: "3.14"
   when: "{{ has_python }}"
-  # MAJOR.MINOR only — it feeds ruff's target-version (py313) and requires-python; a patch
-  # component (3.13.2) or a comparator (>=3.13) would render an invalid value.
+  # MAJOR.MINOR only — it feeds ruff's target-version (py314) and requires-python; a patch
+  # component (3.14.2) or a comparator (>=3.14) would render an invalid value.
   validator: >-
     {% if python_version.split('.') | length != 2
        or not (python_version.split('.')[0].isdigit() and python_version.split('.')[1].isdigit()) %}
-    python_version must be MAJOR.MINOR, e.g. 3.13.
+    python_version must be MAJOR.MINOR, e.g. 3.14.
     {% endif %}
 
 # ----------------------------------------------------------------------------- #
