@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: © 2026 Tyler Nivin
 # SPDX-License-Identifier: MIT
 
-# Shape: the SQL module on the bare spine (no Python) — exercises sqlfluff + the
+# Shape: the SQL module on the bare baseline (no Python) — exercises sqlfluff + the
 # dialect-aware .sqlfluff and SQL/.sqlfluff header (REUSE) compliance. Also carries the
 # no-Python devcontainer branch.
 project_name: SQL Shape

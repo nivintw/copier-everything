@@ -53,7 +53,7 @@ _tasks:
     when: "{{ _copier_operation == 'copy' }}"
 
 _message_after_copy: |
-  🦴 "{{ project_name }}" scaffolded.
+  "{{ project_name }}" scaffolded.
 
   {% if _copier_operation == 'copy' -%}
   If you ran without --trust, finish setup manually (commit BEFORE installing hooks —

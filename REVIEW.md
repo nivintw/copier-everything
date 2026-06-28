@@ -5,11 +5,11 @@ SPDX-License-Identifier: MIT
 
 # copier-everything — design notes & decisions
 
-This template extracts the reusable "spine" from `nivintw/dotfiles` and makes the
+This template extracts the reusable "baseline" from `nivintw/dotfiles` and makes the
 language/testing/packaging shape configurable. This doc records the model, the
 decisions taken (several made autonomously — see **Assumptions**), and open follow-ups.
 
-## The model: a language-agnostic spine + decoupled Python levers
+## The model: a language-agnostic baseline + decoupled Python levers
 
 The original first pass collapsed three independent choices into one `include_python`
 boolean (*is-a-package* + *has-pytest* + *src-layout*). They're now separate:
@@ -22,7 +22,7 @@ boolean (*is-a-package* + *has-pytest* + *src-layout*). They're now separate:
 | `is_package` | bool (`when` source) | `[build-system]` distribution metadata (installable/publishable) |
 
 `has_python` is a hidden computed flag (`contains_python or pytest`) that everything
-Python gates on. **The spine is language-agnostic**: every cross-cutting tool keeps its
+Python gates on. **The baseline is language-agnostic**: every cross-cutting tool keeps its
 own native config file (`.cz.toml`, `.config/typos.toml`, `.config/rumdl.toml`, `.editorconfig`,
 `.config/licenserc.toml`, `REUSE.toml`), identical across Python/Rust/shell repos. `pyproject.toml`
 exists **only** when there's Python and holds only Python-specific config (ruff, ty,
@@ -89,7 +89,7 @@ so it replaces the old GraphQL signed-commit dance.
 `tests/render-matrix.sh` renders every `tests/answers/*.yml` shape and runs the full gate
 (reuse, hawkeye, taplo, prek, and — derived from the render — uv/ruff/ty/pytest/bats/helm
 lint). The matrix covers the 4 canonical Python/testing shapes, the unpublished-package and
-bare-spine edges, the Apache-license path, and a full terraform+docker+helm build. Run it
+bare-baseline edges, the Apache-license path, and a full terraform+docker+helm build. Run it
 locally or let `.github/workflows/ci.yml` run it on every PR.
 
 The shapes are independent, so the harness **warms the shared prek/uv caches on one shape

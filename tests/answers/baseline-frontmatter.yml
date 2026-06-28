@@ -1,11 +1,11 @@
 # SPDX-FileCopyrightText: © 2026 Tyler Nivin
 # SPDX-License-Identifier: MIT
 
-# Shape: bare spine with frontmatter-first markdown — markdown is licensed via REUSE.toml
+# Shape: bare baseline with frontmatter-first markdown — markdown is licensed via REUSE.toml
 # instead of inline hawkeye headers (so a line-1 SPDX comment can't break YAML frontmatter
 # in e.g. Claude Code skills or Jekyll/Hugo). Exercises markdown_has_frontmatter=true.
-project_name: Spine Frontmatter
-project_description: bare spine, frontmatter-first markdown
+project_name: Baseline Frontmatter
+project_description: bare baseline, frontmatter-first markdown
 test_frameworks: []
 contains_python: false
 markdown_has_frontmatter: true

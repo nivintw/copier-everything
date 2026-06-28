@@ -7,12 +7,12 @@ SPDX-License-Identifier: MIT
 
 <div align="center">
 
-# 🦴 copier-everything
+# copier-everything
 
-**_The bones of every project I start — clone the spine, snap on the parts._**
+**_The starting point for every project I build — clone the baseline, add the modules you need._**
 
 A [Copier](https://copier.readthedocs.io) template that scaffolds a new repo with a
-batteries-included quality spine, plus opt-in modules for Python, Terraform, Docker,
+batteries-included quality baseline, plus opt-in modules for Python, Terraform, Docker,
 and Helm.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -43,7 +43,7 @@ copier update
 
 ---
 
-## 🧱 What you always get (the spine)
+## 🧱 What you always get (the baseline)
 
 The cross-cutting quality infrastructure, lifted from
 [`nivintw/dotfiles`](https://github.com/nivintw/dotfiles) and de-personalized:
@@ -78,7 +78,7 @@ installable package, a pyproject-only-for-pytest repo, a pytest + bats repo (the
 | `include_sql` | `sql/` with a dialect-aware `.sqlfluff` + `sqlfluff` lint/fix (optional dbt templater) |
 | `include_devcontainer` | `.devcontainer/devcontainer.json` for Codespaces / VS Code |
 
-The spine (prek hooks, REUSE licensing, Conventional-Commit linting + release-please
+The baseline (prek hooks, REUSE licensing, Conventional-Commit linting + release-please
 releases, CI) is language-agnostic and ships with every shape. See
 [`REVIEW.md`](REVIEW.md) for the model.
 
@@ -96,7 +96,7 @@ releases, CI) is language-agnostic and ships with every shape. See
 
 ## 🛠️ Developing this template
 
-This repo dogfoods its own spine. Install the hooks once, then commit via a branch:
+This repo dogfoods its own baseline. Install the hooks once, then commit via a branch:
 
 ```bash
 uvx prek install            # wire up the pre-commit + commit-msg hooks

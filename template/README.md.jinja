@@ -20,7 +20,7 @@ uvx prek install        # wire up the pre-commit hooks
 
 ## Quality gate
 
-This project carries the shared quality spine: prek hooks (git hygiene, gitleaks,
+This project carries the shared quality baseline: prek hooks (git hygiene, gitleaks,
 typos, rumdl, SPDX/REUSE headers{% if has_python %}, ruff, ty{% endif %}) that run
 identically locally and in CI. Conventional Commits are enforced at commit-msg time
 (`.cz.toml`); releases on `main` are managed by release-please (a Release PR →
