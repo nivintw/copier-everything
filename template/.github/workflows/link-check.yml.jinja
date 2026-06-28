@@ -12,7 +12,9 @@ on:
   pull_request:
     # lychee only crawls Markdown, so a PR touching no docs gains nothing from running it —
     # and re-crawling every PR needlessly exposes them to third-party-uptime flakiness.
-    paths: ['**.md']
+    # `**/*.md` covers any subdirectory depth; `*.md` covers root-level files — together
+    # they match every Markdown file regardless of how the filter engine treats `**`.
+    paths: ['**/*.md', '*.md']
   workflow_dispatch:
 
 permissions:
