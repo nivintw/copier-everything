@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.2](https://github.com/nivintw/copier-everything/compare/v1.3.1...v1.3.2) (2026-06-28)
+
+
+### Bug Fixes
+
+* Raise template ruff floor to &gt;=0.12 for py314 target-version ([fd6074c](https://github.com/nivintw/copier-everything/commit/fd6074c46a2ede8a69798f0a21883ef6ca41f466)), closes [#73](https://github.com/nivintw/copier-everything/issues/73)
+
 ## [1.3.1](https://github.com/nivintw/copier-everything/compare/v1.3.0...v1.3.1) (2026-06-28)
 
 
