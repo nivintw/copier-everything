@@ -71,11 +71,11 @@ jobs:
         env:
           # renovate: datasource=github-releases depName=korandoru/hawkeye
           HAWKEYE_VERSION: "6.5.1"
-          HAWKEYE_SHA256: "d6eb0505a45a15244f4f789158aafe5e3f1a7dc86c9dc1d7651f3cb1e1b321e0"
+          HAWKEYE_SHA256: "d6eb0505a45a15244f4f789158aafe5e3f1a7dc86c9dc1d7651f3cb1e1b321e0"  # gitleaks:allow
           # renovate: datasource=github-releases depName=tamasfe/taplo
           TAPLO_VERSION: "0.10.0"
           # taplo ships no upstream checksum file; this SHA is computed from the asset.
-          TAPLO_SHA256: "8fe196b894ccf9072f98d4e1013a180306e17d244830b03986ee5e8eabeb6156"
+          TAPLO_SHA256: "8fe196b894ccf9072f98d4e1013a180306e17d244830b03986ee5e8eabeb6156"  # gitleaks:allow
         run: |
           set -euo pipefail
           # Download the published asset, verify its SHA256, THEN extract (a tampered/MITM'd
@@ -95,11 +95,11 @@ jobs:
         env:
           # renovate: datasource=github-releases depName=aquasecurity/trivy
           TRIVY_VERSION: "0.71.2"
-          TRIVY_SHA256: "0510e71e2fd39bf863856d499c8dc19feb4e7336546394c502a8f5cc7ab27460"
+          TRIVY_SHA256: "0510e71e2fd39bf863856d499c8dc19feb4e7336546394c502a8f5cc7ab27460"  # gitleaks:allow
           # renovate: datasource=github-releases depName=google/osv-scanner
           OSV_VERSION: "2.4.0"
           # The published osv-scanner asset is the bare binary, so this checksums it directly.
-          OSV_SHA256: "15314940c10d26af9c6649f150b8a47c1262e8fc7e17b1d1029b0e479e8ed8a0"
+          OSV_SHA256: "15314940c10d26af9c6649f150b8a47c1262e8fc7e17b1d1029b0e479e8ed8a0"  # gitleaks:allow
         run: |
           set -euo pipefail
           curl -fsSL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" \
@@ -147,7 +147,7 @@ jobs:
           # renovate: datasource=github-releases depName=tamasfe/taplo
           TAPLO_VERSION: "0.10.0"
           # taplo ships no upstream checksum file; this SHA is computed from the asset.
-          TAPLO_SHA256: "8fe196b894ccf9072f98d4e1013a180306e17d244830b03986ee5e8eabeb6156"
+          TAPLO_SHA256: "8fe196b894ccf9072f98d4e1013a180306e17d244830b03986ee5e8eabeb6156"  # gitleaks:allow
         run: |
           set -euo pipefail
           mkdir -p "$HOME/.local/bin"
@@ -174,7 +174,7 @@ jobs:
         env:
           # renovate: datasource=github-releases depName=korandoru/hawkeye
           HAWKEYE_VERSION: "6.5.1"
-          HAWKEYE_SHA256: "d6eb0505a45a15244f4f789158aafe5e3f1a7dc86c9dc1d7651f3cb1e1b321e0"
+          HAWKEYE_SHA256: "d6eb0505a45a15244f4f789158aafe5e3f1a7dc86c9dc1d7651f3cb1e1b321e0"  # gitleaks:allow
         run: |
           set -euo pipefail
           curl -fsSL "https://github.com/korandoru/hawkeye/releases/download/v${HAWKEYE_VERSION}/hawkeye-x86_64-unknown-linux-gnu.tar.xz" \
