@@ -30,14 +30,20 @@ _exclude:
   - "{% if license != 'Apache-2.0' %}LICENSES/Apache-2.0.txt{% endif %}"
 
 # Post-copy setup. Only runs with `copier copy --trust`; the message below lists the
-# same steps for anyone who skips trust. Each task is gated to the initial copy.
+# same steps for anyone who skips trust. Each task is gated to the initial copy. The three
+# repo-INITIALIZING tasks (git init / git add / scaffold commit) additionally gate on
+# `initialize_repository` so they're skipped when adopting into an existing repo (which
+# already has git + real history) — see docs/adopting-into-an-existing-repo.md. `uv sync` and
+# `prek install` keep the plain copy gate (idempotent, useful in both greenfield and adoption)
+# — but `prek install` is guarded to no-op without a git repo, since installing hooks needs a
+# .git, which `initialize_repository: false` into a not-yet-init'd dir wouldn't have created.
 _tasks:
   - command: ["git", "init", "-q"]
-    when: "{{ _copier_operation == 'copy' }}"
+    when: "{{ _copier_operation == 'copy' and initialize_repository }}"
   - command: ["uv", "sync"]
     when: "{{ _copier_operation == 'copy' and has_python }}"
   - command: ["git", "add", "-A"]
-    when: "{{ _copier_operation == 'copy' }}"
+    when: "{{ _copier_operation == 'copy' and initialize_repository }}"
   # The initial commit runs BEFORE prek install on purpose: the no-commit-to-branch hook
   # would otherwise block the first commit to main. Identity comes from the answers so it
   # works even without a global git config. The `git diff --cached --quiet ||` guard makes
@@ -48,14 +54,25 @@ _tasks:
       git diff --cached --quiet ||
       git -c user.name="{{ author_name }}" -c user.email="{{ author_email }}"
       commit -q -m "chore: scaffold {{ project_slug }}"
-    when: "{{ _copier_operation == 'copy' }}"
-  - command: ["uvx", "prek", "install"]
+    when: "{{ _copier_operation == 'copy' and initialize_repository }}"
+  # Guarded on git presence: greenfield has just run `git init`, and an adopted repo already
+  # has `.git`, but adoption into a not-yet-init'd dir (initialize_repository: false) has none —
+  # there, hook install is a no-op, not a hard failure. An `if/then/else` (not `… || echo`) so a
+  # GENUINE prek-install failure on a real repo still propagates instead of being masked.
+  - command: >-
+      if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+      uvx prek install;
+      else echo "skipping prek install — no git repo yet (run it after you init/commit)";
+      fi
     when: "{{ _copier_operation == 'copy' }}"
 
+# Shown only after `copier copy` (update has its own _message_after_update), and
+# `_copier_operation` isn't in scope in this message context — so branch on
+# initialize_repository (greenfield vs adoption) rather than on the operation.
 _message_after_copy: |
   "{{ project_name }}" scaffolded.
 
-  {% if _copier_operation == 'copy' -%}
+  {% if initialize_repository -%}
   If you ran without --trust, finish setup manually (commit BEFORE installing hooks —
   main is protected by no-commit-to-branch):
     cd {{ _copier_conf.dst_path }}
@@ -65,6 +82,11 @@ _message_after_copy: |
   {%- endif %}
     git add -A && git commit -m "chore: scaffold {{ project_slug }}"
     uvx prek install      # wire up the pre-commit hooks
+  {% else -%}
+  Adopted into an existing repo (initialize_repository=false): git init + the scaffold commit
+  were skipped. Reconcile the scaffold against your real files, then commit on your own branch
+  — see docs/adopting-into-an-existing-repo.md.{% if has_python %} Run `uv sync` for the dev
+  toolchain and{% endif %} `uvx prek install` to wire up the hooks when ready.
   {% endif -%}
 
 # ----------------------------------------------------------------------------- #
@@ -109,6 +131,17 @@ repo_owner:
   default: nivintw
   validator: "{% if not repo_owner %}repo_owner cannot be empty.{% endif %}"
 
+repo_name:
+  type: str
+  # Decoupled from project_slug on purpose: project_slug is the distribution/package name,
+  # which need NOT equal the GitHub repo name. Every github.com/<owner>/<repo> URL is built
+  # from repo_owner/repo_name so a repo whose PyPI name ≠ repo name (e.g. dist
+  # `digital-ocean-dynamic-dns` living at repo `ddns`) gets correct links with no post-render
+  # hand-patching that `copier update` would re-break.
+  help: GitHub repository name — for the repo URLs in SECURITY/link-check (defaults to project_slug)
+  default: "{{ project_slug }}"
+  validator: "{% if not repo_name %}repo_name cannot be empty.{% endif %}"
+
 year:
   type: int
   help: Inception year (SPDX headers)
@@ -129,6 +162,16 @@ markdown_has_frontmatter:
     Jekyll/Hugo)? If yes, markdown is licensed via REUSE.toml instead of an inline SPDX
     header, which would otherwise be inserted above the frontmatter and break it.
   default: false
+
+initialize_repository:
+  type: bool
+  # Gates the three repo-initializing _tasks (git init / git add / scaffold commit); the rest
+  # (uv sync, prek install) are idempotent and run regardless. Full adoption procedure:
+  # docs/adopting-into-an-existing-repo.md.
+  help: >-
+    Initialize a fresh git repo and make the first commit? Answer NO when adopting into an
+    existing repository (it already has git + history).
+  default: true
 
 # ----------------------------------------------------------------------------- #
 #  Testing & Python shape — three decoupled levers
@@ -172,6 +215,13 @@ is_package:
   # Likewise tracks python_source so non-source repos don't inherit package metadata.
   default: "{{ python_source }}"
   when: "{{ python_source }}"
+
+publish_to_pypi:
+  type: bool
+  help: Emit a PyPI publish workflow (fires on each GitHub Release, OIDC Trusted Publishing)?
+  # Only meaningful for an installable dist, so it tracks (and is asked only when) is_package.
+  default: "{{ is_package }}"
+  when: "{{ is_package }}"
 
 python_package:
   type: str
