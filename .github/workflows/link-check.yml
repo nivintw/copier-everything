@@ -26,13 +26,16 @@ jobs:
         uses: lycheeverse/lychee-action@8646ba30535128ac92d33dfc9133794bfdd9b411 # v2.8.0
         with:
           # lychee excludes mailto: links by default; scope to Markdown so LICENSES/lockfiles
-          # aren't crawled. Two self-referential excludes:
+          # aren't crawled. Three excludes lychee can't verify from a PR despite being valid:
           #  - our GitHub Pages site: the README links to it but it only goes live after a docs
           #    change merges (Pages deploys from main /docs), so checking it on the PR 404s.
           #  - our own /compare/ URLs: release-please's generated CHANGELOG links to
           #    compare/<prev>...<next>, but the <next> tag isn't cut until the Release PR
           #    merges, so it 404s on every Release PR until then (then self-heals).
-          args: "--no-progress --exclude 'nivintw\\.github\\.io/copier-everything' --exclude 'github\\.com/nivintw/copier-everything/compare/' '**/*.md'"
+          #  - nivintw/repo-management: a private repo (REVIEW.md cites it as the owner of this
+          #    repo's release App + rulesets); the repo-scoped GITHUB_TOKEN can't read other
+          #    private repos, so lychee gets a 404 even though the link is correct.
+          args: "--no-progress --exclude 'nivintw\\.github\\.io/copier-everything' --exclude 'github\\.com/nivintw/copier-everything/compare/' --exclude 'github\\.com/nivintw/repo-management' '**/*.md'"
           fail: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
