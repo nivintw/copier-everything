@@ -5,7 +5,7 @@
 # Render every answer set in tests/answers/ and run the full quality gate on each
 # generated project. Which checks run is derived from what the render produced (a
 # pyproject → uv/ruff/ty/pytest; *.bats → bats), so adding a new shape is just a new
-# answers file. This is the scaffold's own test suite — run locally or in CI.
+# answers file. This is copier-everything's own test suite — run locally or in CI.
 #
 #   Run:  tests/render-matrix.sh
 #

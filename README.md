@@ -7,7 +7,7 @@ SPDX-License-Identifier: MIT
 
 <div align="center">
 
-# 🦴 scaffold
+# 🦴 copier-everything
 
 **_The bones of every project I start — clone the spine, snap on the parts._**
 
@@ -25,10 +25,10 @@ and Helm.
 
 ```bash
 # one-off (uvx) — no install needed
-uvx copier copy gh:nivintw/scaffold path/to/new-project
+uvx copier copy gh:nivintw/copier-everything path/to/new-project
 
 # or, if you keep copier as a uv tool
-copier copy gh:nivintw/scaffold path/to/new-project
+copier copy gh:nivintw/copier-everything path/to/new-project
 ```
 
 Answer the prompts (project name, author, license, and which modules to include) and
@@ -90,7 +90,7 @@ releases, CI) is language-agnostic and ships with every shape. See
 - **`template/`** — the rendered project tree (`_subdirectory`). Conditional dirs use
   `{% raw %}{% if <condition> %}...{% endif %}{% endraw %}` in their names; templated
   files end in `.jinja`.
-- **`tests/`** — the scaffold's own test suite: `render-matrix.sh` renders every
+- **`tests/`** — copier-everything's own test suite: `render-matrix.sh` renders every
   `answers/*.yml` shape and runs the full gate. Wired into CI.
 - **`REVIEW.md`** — the design model, decisions/assumptions, and open follow-ups.
 

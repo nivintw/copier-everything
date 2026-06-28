@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: © 2026 Tyler Nivin
 # SPDX-License-Identifier: MIT
 
-# CI for the scaffold template ITSELF: render every shape in tests/answers/ and run the
+# CI for the copier-everything template ITSELF: render every shape in tests/answers/ and run the
 # full quality gate on each generated project (tests/render-matrix.sh). This is what
 # proves a template change doesn't break any supported project shape.
 #

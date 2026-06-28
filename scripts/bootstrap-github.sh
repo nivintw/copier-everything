@@ -7,13 +7,13 @@
 # `gh` auth — run it from your machine, NOT from CI. Safe to delete after use.
 #
 # Usage:
-#   scripts/bootstrap-github.sh [--repo nivintw/scaffold] [--from nivintw/dotfiles] [--dry-run]
+#   scripts/bootstrap-github.sh [--repo nivintw/copier-everything] [--from nivintw/dotfiles] [--dry-run]
 #
 # Requirements: gh (authenticated), jq, git. Run from the repo root with a clean
 # `main` already committed.
 set -euo pipefail
 
-REPO="nivintw/scaffold"
+REPO="nivintw/copier-everything"
 FROM="nivintw/dotfiles"
 DRY_RUN=false
 

@@ -1,8 +1,8 @@
 # SPDX-FileCopyrightText: © 2026 Tyler Nivin
 # SPDX-License-Identifier: MIT
 
-# Copier configuration for the `scaffold` project template.
-# Generate a new project with:  copier copy --trust gh:nivintw/scaffold path/to/new-project
+# Copier configuration for the `copier-everything` project template.
+# Generate a new project with:  copier copy --trust gh:nivintw/copier-everything path/to/new-project
 # (--trust lets the post-copy tasks run git init / uv sync / prek install for you.)
 # Docs: https://copier.readthedocs.io
 

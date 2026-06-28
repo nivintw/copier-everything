@@ -3,7 +3,7 @@ SPDX-FileCopyrightText: © 2026 Tyler Nivin
 SPDX-License-Identifier: MIT
 -->
 
-# Scaffold — design notes & decisions
+# copier-everything — design notes & decisions
 
 This template extracts the reusable "spine" from `nivintw/dotfiles` and makes the
 language/testing/packaging shape configurable. This doc records the model, the
@@ -63,7 +63,7 @@ so it replaces the old GraphQL signed-commit dance.
   from the answered `author_name`/`author_email` so it works without a global git config.
 - **Dropped `check-hooks-apply`.** A freshly-scaffolded repo legitimately has hygiene
   hooks (e.g. `check-json`) that match zero files, which that meta-hook fails on.
-- **The scaffold repo does not copy the full dotfiles branch rulesets.** Those assume a
+- **The copier-everything repo does not copy the full dotfiles branch rulesets.** Those assume a
   release GitHub App + bypass actors that don't exist on a fresh repo and would block an
   automated merge. Branch protection here just requires the `ci` check + a PR. Applying
   the production rulesets + release App is a follow-up (see below).
@@ -153,7 +153,7 @@ Design notes:
   tightened so the two never bind the wrong version.
 - **Trade-off — CVE scans are time-varying *and* network-dependent**: a newly-published
   advisory in a (dev-only) dep can turn a green gate red with no code change — inherent to CVE
-  scanning (the scaffold has no runtime deps, so only dev-tool deps are audited). The flip side:
+  scanning (copier-everything has no runtime deps, so only dev-tool deps are audited). The flip side:
   uv audit / osv-scanner hit remote advisory APIs and `trivy config` pulls its checks bundle
   from a registry, so a registry/API **outage** also fails the gate with zero advisory changes.
 - **`uv audit` is an experimental command** (uv 0.11.x; the `--preview-features audit-command`
@@ -235,9 +235,9 @@ each tool lands:
 - **terraform fmt + validate + tflint** (terraform, **gate hooks**) via
   `antonbabenko/pre-commit-terraform`, which wraps the local `terraform`/`tflint` binaries.
   These are offline *with the right flags*: `terraform_validate` self-runs
-  `terraform init -backend=false` (no backend, and the scaffold declares **no providers**, so
+  `terraform init -backend=false` (no backend, and copier-everything declares **no providers**, so
   nothing downloads until the user adds one); tflint's bundled rules run offline (`tflint --init`
-  is only for cloud plugins, which the scaffold ships none of). In CI, `setup-terraform` needs
+  is only for cloud plugins, which copier-everything ships none of). In CI, `setup-terraform` needs
   `terraform_wrapper: false` or its output wrapper breaks `terraform_validate`'s parsing.
 - **helm lint** (helm, **gate hook**) — a `local` hook calling the offline `helm` binary
   (was a CI-only step before).
@@ -263,7 +263,7 @@ Design notes:
 
 - **New system-binary gate deps.** terraform/helm hooks made `terraform`, `tflint`, `helm`
   hard requirements of the local gate (helm went soft→required). render-matrix's tool-presence
-  loop now lists all three; the scaffold's own `ci.yml` installs `terraform`+`tflint` (via the
+  loop now lists all three; copier-everything's own `ci.yml` installs `terraform`+`tflint` (via the
   setup actions, `terraform_wrapper: false`) for its render-matrix job. This is the deliberate
   cost of local (not just CI) feedback — accepted, consistent with how trivy is already handled.
 - **CI restructure (`ci.yml.jinja`).** terraform/tflint/helm now install **before** the prek
@@ -287,7 +287,7 @@ Design notes:
 - **Release infra**: `main.yml` runs release-please. Each generated repo still needs a
   release GitHub App (Contents + Pull requests: read/write) + a `CI_CLIENT_ID` variable +
   a `CI_APP_PRIVATE_KEY` secret + a ruleset bypass before releases activate (the release
-  job skips cleanly until then). The scaffold repo itself releases the same way via its
+  job skips cleanly until then). copier-everything itself releases the same way via its
   own `main.yml` (reusable `ci.yml` + release-please), matching the template's shape. Apply
   the production rulesets once that App exists.
 - **`python_version`** is a question (default `3.13`); bump to `3.14` to match dotfiles if wanted.

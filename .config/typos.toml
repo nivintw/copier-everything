@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: © 2026 Tyler Nivin
 # SPDX-License-Identifier: MIT
 
-# typos config for the scaffold template repo ITSELF (CHECK-ONLY; the hook drops
+# typos config for the copier-everything template repo ITSELF (CHECK-ONLY; the hook drops
 # --write-changes). The generated projects get their own template/.config/typos.toml.jinja.
 
 [files]
