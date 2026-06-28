@@ -252,11 +252,9 @@
         <span class="callout-title">Not blocking — recorded for honesty</span>
         <p>The template is production-usable today. The following are known gaps and future work from the design record.</p>
         <ul>
-          <li><strong>Release App setup is a manual post-generation step.</strong> Each generated repo needs a release GitHub App (Contents + Pull requests: read/write) plus a <code>CI_CLIENT_ID</code> variable, <code>CI_APP_PRIVATE_KEY</code> secret, and a ruleset bypass before releases activate. The release job skips cleanly until then. Production branch rulesets should be applied once the App is in place.</li>
           <li><strong>Rust module.</strong> The lever architecture supports a Rust module but it is unbuilt.</li>
           <li><strong>Docs module.</strong> An mkdocs (or equivalent) module is architecturally possible but not yet implemented.</li>
           <li><strong>Terraform, Docker, and Helm are minimal stubs.</strong> All three modules are gate-clean and CI-covered, but they remain thin starting points — a single example resource, a generic image, a bare Deployment/Service. Flesh them out per project needs.</li>
-          <li><strong><code>python_version</code> defaults to <code>3.13</code>.</strong> Bump to <code>3.14</code> to match the dotfiles default if wanted.</li>
           <li><strong>CI-only checks have a first-run coverage gap.</strong> <code>render-matrix.sh</code> does not exercise lychee, <code>trivy image</code>, or kubeconform — they need a Docker daemon or network access. Their first real run happens when a generated repo's CI runs.</li>
         </ul>
       </div>

@@ -402,7 +402,7 @@
             <tr>
               <td><code>python_version</code></td>
               <td><span class="badge type-str">str</span></td>
-              <td><code>3.13</code></td>
+              <td><code>3.14</code></td>
               <td><code>when: {{ has_python }}</code></td>
             </tr>
           </tbody>
@@ -539,17 +539,17 @@
         <summary>
           <span class="def-name">python_version</span>
           <span class="badge type-str">str</span>
-          Minimum Python version (e.g. 3.13)
+          Minimum Python version (e.g. 3.14)
         </summary>
         <div class="def-body">
           <div class="meta-row">
-            <span><span class="k">default</span> <code>3.13</code></span>
+            <span><span class="k">default</span> <code>3.14</code></span>
             <span><span class="k">when</span> <code>{{ has_python }}</code></span>
           </div>
           <div class="meta-row">
-            <span><span class="k">validator</span> Must be MAJOR.MINOR only (e.g. <code>3.13</code>). A patch component (<code>3.13.2</code>) or a comparator (<code>&gt;=3.13</code>) will fail validation and render an invalid ruff target-version string.</span>
+            <span><span class="k">validator</span> Must be MAJOR.MINOR only (e.g. <code>3.14</code>). A patch component (<code>3.14.2</code>) or a comparator (<code>&gt;=3.14</code>) will fail validation and render an invalid ruff target-version string.</span>
           </div>
-          <p><strong>Help:</strong> Minimum Python version (e.g. 3.13)</p>
+          <p><strong>Help:</strong> Minimum Python version (e.g. 3.14)</p>
           <p><strong>Drives:</strong> The <code>requires-python = "&gt;=X.Y"</code> constraint in <code>pyproject.toml</code> and the <code>target-version = "pyXY"</code> setting in the ruff config. MAJOR.MINOR only — a patch component or comparator would produce an invalid <code>target-version</code> value in ruff's configuration.</p>
         </div>
       </details>
