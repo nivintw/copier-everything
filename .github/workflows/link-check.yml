@@ -26,8 +26,10 @@ jobs:
         uses: lycheeverse/lychee-action@8646ba30535128ac92d33dfc9133794bfdd9b411 # v2.8.0
         with:
           # lychee excludes mailto: links by default; scope to Markdown so LICENSES/lockfiles
-          # aren't crawled.
-          args: "--no-progress '**/*.md'"
+          # aren't crawled. Exclude our own GitHub Pages site: the README links to it but it
+          # only goes live after this docs change merges (Pages deploys from main /docs), so
+          # link-checking it on the PR would 404 on a page we are in the act of publishing.
+          args: "--no-progress --exclude 'nivintw\\.github\\.io/copier-everything' '**/*.md'"
           fail: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
