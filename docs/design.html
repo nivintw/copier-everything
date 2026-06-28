@@ -1,0 +1,272 @@
+<!--
+
+    SPDX-FileCopyrightText: © 2026 Tyler Nivin
+    SPDX-License-Identifier: MIT
+
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Design model — copier-everything</title>
+  <meta name="description" content="The architectural model, design decisions, and trade-offs behind the copier-everything template — surfaced from the project design record.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="logo">cE</span>
+      <a href="index.html">copier-everything</a>
+    </div>
+    <div class="search">
+      <input type="search" placeholder="Search docs…  (press /)" aria-label="Search documentation">
+      <div class="search-results" role="listbox"></div>
+    </div>
+    <nav class="toc">
+      <div class="group">
+        <p class="group-title">Overview</p>
+        <a href="index.html">Home</a>
+        <a href="index.html#quick-start">Quick start</a>
+        <a href="index.html#the-model">The model</a>
+      </div>
+      <div class="group">
+        <p class="group-title">Reference</p>
+        <a href="questions.html">Template questions</a>
+        <a href="modules.html">Modules &amp; levers</a>
+        <a href="baseline.html">Quality baseline</a>
+      </div>
+      <div class="group">
+        <p class="group-title">Guides</p>
+        <a href="usage.html">Usage &amp; adoption</a>
+        <a href="design.html" class="current">Design model</a>
+      </div>
+      <div class="group">
+        <p class="group-title">Links</p>
+        <a href="https://github.com/nivintw/copier-everything">GitHub repo ↗</a>
+      </div>
+    </nav>
+  </aside>
+  <div class="scrim"></div>
+
+  <main class="content">
+    <div class="content-inner">
+      <div class="topbar">
+        <button class="icon-btn menu-toggle" data-menu-toggle aria-label="Toggle navigation">☰</button>
+        <button class="icon-btn" data-theme-toggle aria-label="Toggle light/dark theme" title="Toggle theme">◑</button>
+      </div>
+
+      <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <a href="index.html">Home</a>
+        <span class="sep">›</span>
+        <span>Design model</span>
+      </nav>
+
+      <h1>Design model</h1>
+      <p class="lead">The "why it's built this way" record — the architectural model, the key decisions, the trade-offs, and what's still open.</p>
+
+      <h2 id="core-model">The core model <a class="anchor" href="#core-model">#</a></h2>
+      <p>Two ideas do all the work. A <strong>language-agnostic baseline</strong> that every generated project gets regardless of language, and a set of <strong>decoupled opt-in levers</strong> you turn on only when you need them. A shell-only dotfiles repo and a published Python package come off the same template without carrying each other's configuration baggage.</p>
+      <p>Every cross-cutting tool keeps its own native config file — <code>.cz.toml</code>, <code>.config/typos.toml</code>, <code>.config/rumdl.toml</code>, <code>.editorconfig</code>, <code>.config/licenserc.toml</code>, <code>REUSE.toml</code> — identical across Python, Rust, and shell repos. Language-specific tooling only appears when the relevant lever is turned on.</p>
+      <p>See the <a href="baseline.html">quality baseline reference</a> for everything every project gets, and <a href="modules.html">modules &amp; levers</a> for the opt-in additions.</p>
+
+      <h3 id="python-levers">The Python levers</h3>
+      <p>The original design collapsed three independent choices into a single <code>include_python</code> boolean — is-a-package, has-pytest, and src-layout were all conflated. They are now separate questions with a clear dependency chain:</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Question</th>
+              <th>Type</th>
+              <th>Drives</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>test_frameworks</code></td>
+              <td>multiselect (<code>pytest</code> / <code>bats</code>)</td>
+              <td>Which <code>tests/</code> suites exist; empty selection → no <code>tests/</code> directory</td>
+            </tr>
+            <tr>
+              <td><code>contains_python</code></td>
+              <td>bool (auto-true if pytest selected)</td>
+              <td>ruff/ty, Python pre-commit hooks, Python <code>.gitignore</code></td>
+            </tr>
+            <tr>
+              <td><code>python_source</code></td>
+              <td>bool (only asked when Python is present)</td>
+              <td>The <code>src/&lt;pkg&gt;</code> package and src-layout assumptions in <code>pyproject.toml</code></td>
+            </tr>
+            <tr>
+              <td><code>is_package</code></td>
+              <td>bool (only asked when <code>python_source</code>)</td>
+              <td><code>[build-system]</code> distribution metadata — installable and publishable</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p><code>has_python</code> is a <strong>hidden computed flag</strong> (<code>contains_python or pytest</code>). Everything Python-specific gates on it. <code>pyproject.toml</code> is emitted only when <code>has_python</code> is true, and it holds only Python-specific config: ruff, ty, pytest, <code>[build-system]</code>, <code>[project]</code>, <code>[tool.uv]</code>. For a no-Python project, <code>pyproject.toml</code> does not exist at all — the version of record lives only in <code>.config/.release-please-manifest.json</code> and tags.</p>
+
+      <p>See the <a href="questions.html">template questions reference</a> for the full question list and what each drives.</p>
+
+      <h2 id="canonical-shapes">The four canonical shapes <a class="anchor" href="#canonical-shapes">#</a></h2>
+      <p>All four shapes are CI-verified by <code>tests/render-matrix.sh</code> against committed answer sets in <code>tests/answers/</code>. The matrix also covers edge cases: the unpublished-package variant, the Apache-license path, and a full terraform+docker+helm build.</p>
+
+      <div class="card-grid">
+        <div class="card">
+          <span class="card-eyebrow">Shape 1</span>
+          <h3>Installable package</h3>
+          <p><code>python_source=true, is_package=true</code> — <code>src/&lt;pkg&gt;</code> layout, <code>[build-system]</code>, wheel. Full distribution metadata including readme and classifiers.</p>
+        </div>
+        <div class="card">
+          <span class="card-eyebrow">Shape 2</span>
+          <h3>pyproject-only-for-pytest</h3>
+          <p><code>python_source=false</code> with pytest — no <code>src/</code>, <code>package=false</code>, flat <code>tests/</code> + <code>conftest.py</code>. Python tooling without a source package.</p>
+        </div>
+        <div class="card">
+          <span class="card-eyebrow">Shape 3</span>
+          <h3>pytest + bats (dotfiles model)</h3>
+          <p><code>python_source=false</code> with both pytest and bats selected. Python test tooling alongside shell test tooling; the project itself is not a Python package.</p>
+        </div>
+        <div class="card">
+          <span class="card-eyebrow">Shape 4</span>
+          <h3>No Python</h3>
+          <p><code>contains_python=false</code> — no <code>pyproject.toml</code> at all. Version lives in <code>.release-please-manifest.json</code> and tags only.</p>
+        </div>
+      </div>
+
+      <div class="callout note">
+        <span class="callout-title">Shape 1 variant: installed but unpublished</span>
+        <code>python_source=true, is_package=false</code> is a valid combination meaning "installed but unpublished" — the <code>uv --package</code> style. It always has <code>[build-system]</code> and <code>package=true</code> so it is importable as a development install. The <code>is_package</code> lever only toggles distribution metadata (readme, classifiers, publish config). This was an autonomous assumption confirmed with the project owner.
+      </div>
+
+      <h2 id="versioning">release-please + commitizen <a class="anchor" href="#versioning">#</a></h2>
+      <p>The versioning design deliberately splits responsibilities between two tools that each do one thing well.</p>
+
+      <p><strong>release-please owns versioning.</strong> It watches <code>main</code> for Conventional Commit messages, maintains an open Release PR that accumulates the version bump and <code>CHANGELOG.md</code> entries, and auto-merges that PR (<code>--auto --rebase</code>) once its required checks pass — enabling continuous releases. On merge it cuts the <code>vX.Y.Z</code> tag and GitHub Release. Configuration lives in <code>.config/release-please-config.json</code> (<code>release-type: simple</code>) and <code>.config/.release-please-manifest.json</code>. For Python shapes, an <code>extra-files</code> TOML updater mirrors the version into <code>pyproject.toml [project].version</code> — what a wheel build reads.</p>
+
+      <p><strong>commitizen is the commit-message linter only.</strong> It enforces Conventional Commit format locally via a pre-commit hook (<code>.cz.toml</code>, <code>cz_conventional_commits</code>) — plain Conventional Commits, no gitmoji. release-please cannot parse a leading emoji, so gitmoji is incompatible with the automation. commitizen does not touch tags, versions, or changelogs; that is release-please's job exclusively.</p>
+
+      <p><strong>Authentication uses a GitHub App.</strong> The release job authenticates as a release GitHub App (<code>CI_CLIENT_ID</code> + <code>CI_APP_PRIVATE_KEY</code>). A commit made by an App token is GitHub-verified, replacing the old GraphQL signed-commit workaround. Until a generated repo has its release App configured, the release job skips cleanly — the rest of CI is unaffected.</p>
+
+      <h2 id="key-decisions">Key decisions &amp; assumptions <a class="anchor" href="#key-decisions">#</a></h2>
+      <p>Several design decisions were made autonomously during development and later confirmed. They are documented here so the reasoning is explicit and not rediscovered.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Decision</th><th>Rationale</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>is_package</code> and <code>python_source</code> defaults track their parent lever</td>
+              <td>A skipped Copier question still resolves its default. A literal <code>true</code> default would have leaked <code>src/</code> into no-Python repos. Defaults of <code>{{ python_source }}</code> and <code>{{ has_python }}</code> mean the default is always the safe no-op value.</td>
+            </tr>
+            <tr>
+              <td><code>_tasks</code> ordering: initial commit before prek install</td>
+              <td>Auto-tasks run <code>git init → uv sync → git add → initial commit → prek install --trust</code>. The commit comes <em>before</em> <code>prek install</code> deliberately — the <code>no-commit-to-branch</code> hook would otherwise block the very first commit to <code>main</code>.</td>
+            </tr>
+            <tr>
+              <td>Author identity comes from answered questions</td>
+              <td>The initial commit uses the answered <code>author_name</code> / <code>author_email</code> values so the task works without a global <code>git config</code> — important for CI and fresh environments where no global identity is set.</td>
+            </tr>
+            <tr>
+              <td><code>check-hooks-apply</code> is dropped</td>
+              <td>A freshly-scaffolded repo legitimately has hygiene hooks (e.g. <code>check-json</code>) that match zero files. That meta-hook fails on this condition. Dropping it keeps the gate green on arrival.</td>
+            </tr>
+            <tr>
+              <td>Branch protection is lighter than the dotfiles model</td>
+              <td>The full dotfiles branch rulesets assume a release GitHub App and bypass actors that don't exist on a fresh repo. Those rulesets would block automated merges for any generated repo without the App. Generated repo protection just requires the <code>ci</code> check and a PR. Production rulesets are a post-setup step once the App is configured.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="local-vs-ci">Local gate vs CI <a class="anchor" href="#local-vs-ci">#</a></h2>
+      <p>A single principle governs where each check lives: <strong>the local gate is deterministic and offline; network-dependent and heavy checks go to CI.</strong> This already governed zizmor (offline AST audits locally; online checks requiring a GitHub token in CI). Applied consistently across all modules:</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Check</th><th>Where</th><th>Why</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>yamllint, terraform fmt/validate/tflint, helm lint, trivy config (Dockerfile misconfig)</td>
+              <td><span class="badge ok">Local gate</span></td>
+              <td>Run fully offline with the right flags; instant feedback without network</td>
+            </tr>
+            <tr>
+              <td>zizmor AST audits (template-injection, permissions, artipacked, blanket App token)</td>
+              <td><span class="badge ok">Local gate</span> (<code>--offline</code>)</td>
+              <td>AST-only audits need no network; token-required audits run online in CI</td>
+            </tr>
+            <tr>
+              <td>trivy image (container layer CVE scan)</td>
+              <td><span class="badge">CI only</span></td>
+              <td>Requires a built image — <code>docker build</code> then <code>trivy image</code>; not a local-hook candidate</td>
+            </tr>
+            <tr>
+              <td>kubeconform (Helm manifest schema validation)</td>
+              <td><span class="badge">CI only</span></td>
+              <td>Validates rendered manifests against upstream Kubernetes schemas — a network fetch not worth vendoring</td>
+            </tr>
+            <tr>
+              <td>lychee (dead-link checking)</td>
+              <td><span class="badge">CI only</span> — own <code>link-check.yml</code> workflow</td>
+              <td>Inherently network-flaky; kept advisory, separate from the required <code>ci</code> gate</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-title">CVE scans are time-varying and network-dependent</span>
+        <p>A newly-published advisory in a (dev-only) dependency can turn a green gate red with no code change — that is inherent to CVE scanning. The flip side: <code>uv audit</code> / <code>osv-scanner</code> hit remote advisory APIs and <code>trivy config</code> pulls its check bundle from a registry, so a registry or API outage also fails the gate with zero advisory changes. copier-everything has no runtime dependencies, so only dev-tool deps are audited.</p>
+        <p>Also note: <code>uv audit</code> is an experimental command as of uv 0.11.x. An experimental CLI surface is the most likely thing to rename or remove a flag and break a hook — watch uv release notes when the <code>audit</code> command stabilizes.</p>
+      </div>
+
+      <h2 id="supply-chain">Supply-chain hardening <a class="anchor" href="#supply-chain">#</a></h2>
+      <p>Two layers of supply-chain hardening address different attack surfaces.</p>
+
+      <h3 id="sha-pinned-actions">SHA-pinned Actions</h3>
+      <p>Every third-party GitHub Actions <code>uses:</code> is pinned to a full commit-SHA digest with a <code># vX.Y.Z</code> comment so the version stays human-readable. Renovate maintains the digests via the native <code>github-actions</code> manager. Inside <code>template/**/*.jinja</code> files the same pinning pattern is used, but Renovate's native managers don't parse <code>.jinja</code> — a <code>customManagers</code> regex entry covers those separately.</p>
+
+      <h3 id="checksum-ci-binaries">Checksum-verified CI binaries</h3>
+      <p>Five release binaries CI installs by hand — trivy, osv-scanner, hawkeye, taplo, and kubeconform — were previously pinned by version but fetched over streaming pipes (<code>curl | tar</code>) with no integrity check. A tampered or MITM'd asset would have executed in CI with no detection.</p>
+      <p>Each is now verified against a committed SHA256 that fails the step closed on mismatch. The download pattern changed to download-to-file, <code>sha256sum -c</code>, then extract — a bad byte never reaches <code>tar</code> or the executable. Every step runs <code>set -euo pipefail</code>. All five normalize to a <code># renovate:</code>-annotated <code>*_VERSION</code> + adjacent <code>*_SHA256</code> env-var pair, covered by a single <code>customManager</code>.</p>
+
+      <h3 id="keeping-hashes-fresh">Keeping hashes fresh</h3>
+      <p>Renovate's <code>github-releases</code> datasource has no concept of asset digests, so it can bump <code>*_VERSION</code> but cannot update <code>*_SHA256</code>. A version bump with a stale hash would fail CI on the mismatch. <code>scripts/refresh-binary-checksums.sh</code> recomputes each SHA from its pinned version — reading the upstream checksum file for trivy, osv-scanner, hawkeye, and kubeconform; hashing the asset directly for taplo, which publishes no checksum file. The <code>refresh-binary-checksums</code> workflow runs the script on <code>renovate/**</code> pushes and commits the result back as the release App so the push re-triggers CI. Without the App configured the job skips and the fail-closed mismatch stands — re-pin by hand with the script.</p>
+
+      <div class="callout warn">
+        <span class="callout-title">taplo's pin is weaker — by necessity</span>
+        The other four binaries read an upstream-published checksum file, providing an independent attestation at pin time. taplo publishes no checksum file, so the script hashes whatever it downloads — trust-on-first-use. It still detects tampering <em>after</em> the pin is set (every CI run re-verifies), but it cannot give an independent guarantee at the moment of pinning. There is no fix until taplo ships checksums upstream. The asymmetry is explicit here so it is not silent.
+      </div>
+
+      <h2 id="open-followups">Open follow-ups <a class="anchor" href="#open-followups">#</a></h2>
+
+      <div class="callout note">
+        <span class="callout-title">Not blocking — recorded for honesty</span>
+        <p>The template is production-usable today. The following are known gaps and future work from the design record.</p>
+        <ul>
+          <li><strong>Release App setup is a manual post-generation step.</strong> Each generated repo needs a release GitHub App (Contents + Pull requests: read/write) plus a <code>CI_CLIENT_ID</code> variable, <code>CI_APP_PRIVATE_KEY</code> secret, and a ruleset bypass before releases activate. The release job skips cleanly until then. Production branch rulesets should be applied once the App is in place.</li>
+          <li><strong>Rust module.</strong> The lever architecture supports a Rust module but it is unbuilt.</li>
+          <li><strong>Docs module.</strong> An mkdocs (or equivalent) module is architecturally possible but not yet implemented.</li>
+          <li><strong>Terraform, Docker, and Helm are minimal stubs.</strong> All three modules are gate-clean and CI-covered, but they remain thin starting points — a single example resource, a generic image, a bare Deployment/Service. Flesh them out per project needs.</li>
+          <li><strong><code>python_version</code> defaults to <code>3.13</code>.</strong> Bump to <code>3.14</code> to match the dotfiles default if wanted.</li>
+          <li><strong>CI-only checks have a first-run coverage gap.</strong> <code>render-matrix.sh</code> does not exercise lychee, <code>trivy image</code>, or kubeconform — they need a Docker daemon or network access. Their first real run happens when a generated repo's CI runs.</li>
+        </ul>
+      </div>
+
+      <footer class="page-footer">
+        <span>copier-everything — MIT licensed.</span>
+        <span><a href="https://github.com/nivintw/copier-everything">github.com/nivintw/copier-everything</a></span>
+      </footer>
+    </div>
+  </main>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
