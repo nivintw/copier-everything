@@ -25,3 +25,6 @@ __pycache__/
 
 ### macOS ###
 .DS_Store
+
+# ship progress files (dev-kit:ship)
+.ship/

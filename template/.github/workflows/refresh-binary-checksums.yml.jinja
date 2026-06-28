@@ -1,0 +1,58 @@
+# SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
+# SPDX-License-Identifier: {{ license }}
+
+# Keep each CI binary's pinned *_SHA256 in sync with its *_VERSION on Renovate PRs.
+# Renovate bumps the version env vars but can't update a github-release asset's SHA256
+# (github-releases has no asset-digest datasource), so CI would fail closed on the now-stale
+# hash. This recomputes the hashes (scripts/refresh-binary-checksums.sh) and pushes the fix
+# back to the Renovate branch AS THE RELEASE APP, so the push re-triggers CI (a push made
+# with the default GITHUB_TOKEN would not). When the App isn't configured the job skips and
+# the fail-closed mismatch stands — re-pin by hand with the script, then commit.
+
+name: refresh-binary-checksums
+
+on:
+  push:
+    branches: ["renovate/**"]
+    paths:
+      - ".github/workflows/**"
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    # Skips cleanly when the release App isn't set up (falls back to fail-closed pins).
+    if: vars.CI_CLIENT_ID != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mint a token for the release App (so the push re-triggers CI)
+        id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2.2.2
+        with:
+          app-id: ${{ '{{' }} vars.CI_CLIENT_ID {{ '}}' }}
+          private-key: ${{ '{{' }} secrets.CI_APP_PRIVATE_KEY {{ '}}' }}
+          permission-contents: write
+
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          ref: ${{ '{{' }} github.ref_name {{ '}}' }}
+          token: ${{ '{{' }} steps.app-token.outputs.token {{ '}}' }}
+
+      - name: Refresh pinned checksums to match the bumped versions
+        run: scripts/refresh-binary-checksums.sh
+
+      - name: Commit + push any checksum updates
+        env:
+          APP_SLUG: ${{ '{{' }} steps.app-token.outputs.app-slug {{ '}}' }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "Checksums already current — nothing to push."
+            exit 0
+          fi
+          git config user.name "${APP_SLUG}[bot]"
+          git config user.email "${APP_SLUG}[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore(deps): refresh pinned binary checksums"
+          git push
