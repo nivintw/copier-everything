@@ -5,7 +5,8 @@
 
 
 // copier-everything docs — vanilla JS, no build step. Theme toggle, client-side search over
-// search-index.json, mobile sidebar, and active-link highlighting. Loaded as a classic
+// the search-index.js global (window.SEARCH_INDEX), mobile sidebar, and active-link
+// highlighting. Loaded as a classic
 // <script src="app.js"> with a relative path so it works from file:// and GitHub Pages alike.
 
 (function () {
