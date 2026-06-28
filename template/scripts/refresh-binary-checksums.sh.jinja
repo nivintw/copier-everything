@@ -115,10 +115,12 @@ for file in "${targets[@]}"; do
     [ -n "$version" ] || continue
     old_sha="$(pinned_value "${tool}_SHA256" "$file")"
     [ -n "$old_sha" ] || continue
+    old_sha="${old_sha,,}"
     processed=$((processed + 1))
 
     new_sha=""
     cached_sha "$tool" "$version" new_sha
+    new_sha="${new_sha,,}" # normalize: compare/store lowercase even if an upstream emits uppercase hex
     if [[ ! "$new_sha" =~ ^[0-9a-f]{64}$ ]]; then
       echo "ERROR: ${tool} ${version}: upstream did not yield a SHA256 (got '${new_sha}')" >&2
       exit 1
@@ -136,7 +138,7 @@ for file in "${targets[@]}"; do
 
     if [ "$new_sha" != "$old_sha" ]; then
       tmp="$(mktemp)"
-      sed -E "s|(${tool}_SHA256: \")[0-9a-f]*(\")|\1${new_sha}\2|g" "$file" >"$tmp"
+      sed -E "s|(${tool}_SHA256: \")[0-9a-fA-F]*(\")|\1${new_sha}\2|g" "$file" >"$tmp"
       if ! grep -q "${tool}_SHA256: \"${new_sha}\"" "$tmp"; then
         rm -f "$tmp"
         echo "ERROR: failed to rewrite ${tool}_SHA256 in ${file}" >&2
