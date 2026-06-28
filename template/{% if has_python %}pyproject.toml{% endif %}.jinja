@@ -27,7 +27,8 @@ dependencies = []
 
 [dependency-groups]
 # One line keeps it green-on-arrival under taplo, which collapses short arrays after render.
-dev = ["ruff>=0.8", "ty>=0.0.1"{% if 'pytest' in test_frameworks %}, "pytest>=8"{% if python_source %}, "pytest-cov>=5"{% endif %}{% endif %}]
+# The ruff floor must support the rendered `target-version = "py{{ python_version.split('.')[0] }}{{ python_version.split('.')[1] }}"`: py314 needs ruff>=0.12. Bump this floor when raising python_version past what the current floor supports.
+dev = ["ruff>=0.12", "ty>=0.0.1"{% if 'pytest' in test_frameworks %}, "pytest>=8"{% if python_source %}, "pytest-cov>=5"{% endif %}{% endif %}]
 
 [tool.uv]
 package = {{ 'true' if python_source else 'false' }}
