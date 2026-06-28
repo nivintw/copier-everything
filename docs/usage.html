@@ -1,0 +1,464 @@
+<!--
+
+    SPDX-FileCopyrightText: © 2026 Tyler Nivin
+    SPDX-License-Identifier: MIT
+
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Usage &amp; adoption — copier-everything</title>
+  <meta name="description" content="How to generate a new project, pull template updates, choose a canonical shape, and adopt copier-everything into an existing repo.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="logo">cE</span>
+      <a href="index.html">copier-everything</a>
+    </div>
+    <div class="search">
+      <input type="search" placeholder="Search docs…  (press /)" aria-label="Search documentation">
+      <div class="search-results" role="listbox"></div>
+    </div>
+    <nav class="toc">
+      <div class="group">
+        <p class="group-title">Overview</p>
+        <a href="index.html">Home</a>
+        <a href="index.html#quick-start">Quick start</a>
+        <a href="index.html#the-model">The model</a>
+      </div>
+      <div class="group">
+        <p class="group-title">Reference</p>
+        <a href="questions.html">Template questions</a>
+        <a href="modules.html">Modules &amp; levers</a>
+        <a href="baseline.html">Quality baseline</a>
+      </div>
+      <div class="group">
+        <p class="group-title">Guides</p>
+        <a href="usage.html" class="current">Usage &amp; adoption</a>
+        <a href="design.html">Design model</a>
+      </div>
+      <div class="group">
+        <p class="group-title">Links</p>
+        <a href="https://github.com/nivintw/copier-everything">GitHub repo ↗</a>
+      </div>
+    </nav>
+  </aside>
+  <div class="scrim"></div>
+
+  <main class="content">
+    <div class="content-inner">
+      <div class="topbar">
+        <button class="icon-btn menu-toggle" data-menu-toggle aria-label="Toggle navigation">☰</button>
+        <button class="icon-btn" data-theme-toggle aria-label="Toggle light/dark theme" title="Toggle theme">◑</button>
+      </div>
+
+      <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <a href="index.html">Home</a>
+        <span class="sep">›</span>
+        <span>Usage &amp; adoption</span>
+      </nav>
+
+      <h1>Usage &amp; adoption</h1>
+      <p class="lead">Generate a new project, pull template improvements into an existing one,
+        pick the right canonical shape, and — when you already have a repo — adopt the template
+        without losing your history.</p>
+
+      <h2 id="prerequisites">Prerequisites <a class="anchor" href="#prerequisites">#</a></h2>
+      <p>You need <a href="https://docs.astral.sh/uv/">uv</a>, which ships the <code>uvx</code>
+        runner. No global Copier install is required — <code>uvx</code> fetches and caches Copier
+        on demand.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Tool</th><th>Install</th><th>Why</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><code>uv</code> / <code>uvx</code></td>
+              <td><a href="https://docs.astral.sh/uv/getting-started/installation/">astral.sh/uv</a></td>
+              <td>Runs Copier via <code>uvx</code>; also manages the generated project's Python env.</td>
+            </tr>
+            <tr>
+              <td><code>git</code></td>
+              <td>System package or <a href="https://git-scm.com/">git-scm.com</a></td>
+              <td>Required for the post-copy <code>git init</code> / scaffold commit tasks and for
+                <code>copier update</code>.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="generate">Generate a new project <a class="anchor" href="#generate">#</a></h2>
+      <p class="code-label">Interactive — prompts for every answer</p>
+<pre><code>uvx copier copy --trust gh:nivintw/copier-everything path/to/new-project</code></pre>
+
+      <p>Copier asks the <a href="questions.html">template questions</a>, renders the project tree,
+        then runs the post-copy tasks (because you passed <code>--trust</code>).</p>
+
+      <h3 id="post-copy-tasks">What the post-copy tasks do</h3>
+      <p>The <code>_tasks</code> block in <code>copier.yml</code> runs automatically with
+        <code>--trust</code>. Each task is gated and only fires during the initial
+        <code>copy</code> operation:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Task</th><th>Gate</th><th>What it does</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><code>git init</code></td>
+              <td><code>initialize_repository = true</code></td>
+              <td>Creates a fresh git repo in the destination directory.</td>
+            </tr>
+            <tr>
+              <td><code>uv sync</code></td>
+              <td>Project contains Python (<code>has_python</code>)</td>
+              <td>Creates the virtual env and installs all dev dependencies.</td>
+            </tr>
+            <tr>
+              <td><code>git add -A</code> + scaffold commit</td>
+              <td><code>initialize_repository = true</code></td>
+              <td>Stages everything and commits <code>chore: scaffold &lt;slug&gt;</code> using the
+                author identity from your answers. The commit runs <em>before</em> hook install so
+                the <code>no-commit-to-branch</code> hook cannot block the first commit to main.</td>
+            </tr>
+            <tr>
+              <td><code>uvx prek install</code></td>
+              <td>Always on copy; no-ops gracefully if no <code>.git</code> present</td>
+              <td>Wires up the pre-commit and commit-msg hooks so the quality gate runs locally
+                on every subsequent commit.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-title">Skipping --trust</span>
+        Without <code>--trust</code> the tasks are skipped. The post-copy message prints the
+        exact manual steps: <code>git init</code>, <code>uv sync</code>,
+        <code>git add -A &amp;&amp; git commit</code>, then <code>uvx prek install</code> — run
+        them in that order (commit before installing hooks).
+      </div>
+
+      <h3 id="non-interactive">Non-interactive use</h3>
+      <p>Two flags make <code>copier copy</code> fully non-interactive, useful in CI or scripting:</p>
+      <p class="code-label">Use all template defaults (no prompts)</p>
+<pre><code>uvx copier copy --trust --defaults gh:nivintw/copier-everything path/to/new-project</code></pre>
+
+      <p class="code-label">Pre-fill answers from a YAML file</p>
+<pre><code>uvx copier copy --trust --data-file my-answers.yml gh:nivintw/copier-everything path/to/new-project</code></pre>
+
+      <p>A data file is a plain YAML mapping of question name to value — the same format as the
+        <a href="#shapes">canonical shape files</a> in <code>tests/answers/</code>. Unspecified
+        questions fall back to their template defaults.</p>
+
+      <h2 id="pin">Pin a release <a class="anchor" href="#pin">#</a></h2>
+      <p>By default <code>copier copy</code> uses the latest template revision (HEAD of the
+        default branch). To pin to a specific release:</p>
+      <p class="code-label">Generate from a tagged release</p>
+<pre><code>uvx copier copy --trust --vcs-ref v1.2.0 gh:nivintw/copier-everything path/to/new-project</code></pre>
+
+      <p>The pinned ref is stored in <code>.copier-answers.yml</code> and becomes the baseline
+        for future <code>copier update</code> runs. See
+        <a href="https://github.com/nivintw/copier-everything/releases">GitHub Releases</a> for
+        the available tags.</p>
+
+      <h2 id="update">Update an existing generated project <a class="anchor" href="#update">#</a></h2>
+      <p class="code-label">Pull template improvements into a project you already generated</p>
+<pre><code>cd path/to/your-project
+uvx copier update</code></pre>
+
+      <p>Copier reads your answers from <code>.copier-answers.yml</code> (committed at generation
+        time), fetches the latest template revision (or the pinned <code>_commit</code> if you
+        used <code>--vcs-ref</code>), re-renders the template with your answers, and three-way
+        merges the diff into your working tree.</p>
+
+      <h3 id="answers-file">The <code>.copier-answers.yml</code> file</h3>
+      <p>This file is generated at copy time, committed into your repo, and read back on every
+        subsequent <code>copier update</code>. It records every answer and the template ref used,
+        so updates are reproducible without re-prompting. Treat it like any other committed
+        config — do not delete it.</p>
+
+      <h3 id="conflict-handling">Conflict handling</h3>
+      <p>When the template has changed a file you also edited, Copier writes the merged result
+        and leaves standard <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code> / <code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code>
+        conflict markers for you to resolve. The update never auto-commits, so you review and
+        stage the result yourself before committing.</p>
+
+      <div class="callout note">
+        <span class="callout-title">Run the gate after updating</span>
+        After resolving conflicts, run <code>uvx prek run --all-files</code> to verify the
+        merged tree is clean before you commit.
+      </div>
+
+      <h2 id="shapes">Canonical project shapes <a class="anchor" href="#shapes">#</a></h2>
+      <p>Every shape in the table below is a CI-verified answer set under
+        <code>tests/answers/</code>. The test matrix renders each shape and runs the full quality
+        gate against it on every PR, so these are not aspirational examples — they are live
+        fixtures. Copy the answers that match your use case as a starting point for
+        <code>--data-file</code> or for answering the interactive prompts.</p>
+      <p>The key <a href="questions.html">template questions</a> that differentiate shapes are:
+        <code>test_frameworks</code>, <code>contains_python</code>, <code>python_source</code>,
+        <code>is_package</code>, and the opt-in module flags. See
+        <a href="modules.html">Modules &amp; levers</a> for the full list.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Shape</th>
+              <th>Key answers</th>
+              <th>What it exercises</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>baseline-only</code></td>
+              <td>
+                <code>test_frameworks: []</code><br>
+                <code>contains_python: false</code>
+              </td>
+              <td>The bare language-agnostic baseline — no Python, no tests, no
+                <code>pyproject.toml</code>. The right starting point for a docs, config, or
+                infrastructure-only repo.</td>
+            </tr>
+            <tr>
+              <td><code>baseline-frontmatter</code></td>
+              <td>
+                <code>test_frameworks: []</code><br>
+                <code>contains_python: false</code><br>
+                <code>markdown_has_frontmatter: true</code>
+              </td>
+              <td>Bare baseline where Markdown files carry YAML frontmatter on line 1 (e.g.
+                Claude Code skills, Jekyll/Hugo). Licenses Markdown via <code>REUSE.toml</code>
+                instead of inline SPDX headers so frontmatter is never broken.</td>
+            </tr>
+            <tr>
+              <td><code>shell-bats</code></td>
+              <td>
+                <code>test_frameworks: [bats]</code><br>
+                <code>contains_python: false</code>
+              </td>
+              <td>Pure-shell repo with bats tests. No <code>pyproject.toml</code>, no Python
+                toolchain. The minimal shape for shell scripts, dotfiles helpers, or CLI wrappers
+                that need a test suite.</td>
+            </tr>
+            <tr>
+              <td><code>app-pytest</code></td>
+              <td>
+                <code>test_frameworks: [pytest]</code><br>
+                <code>python_source: false</code>
+              </td>
+              <td>Non-package repo where <code>pyproject.toml</code> exists only to host pytest
+                and tooling (ruff, ty) — no <code>src/</code> layout. Typical for a scripts repo
+                or a config-driven project that uses Python tests.</td>
+            </tr>
+            <tr>
+              <td><code>app-pytest-bats</code></td>
+              <td>
+                <code>test_frameworks: [pytest, bats]</code><br>
+                <code>python_source: false</code>
+              </td>
+              <td>pytest + bats together, non-package — the dotfiles model. Mixed-language project
+                with both a Python tooling layer and shell tests; no installable
+                <code>src/</code>.</td>
+            </tr>
+            <tr>
+              <td><code>pkg-unpublished</code></td>
+              <td>
+                <code>test_frameworks: [pytest]</code><br>
+                <code>python_source: true</code><br>
+                <code>is_package: false</code>
+              </td>
+              <td>Python source in a <code>src/</code> layout that is installed locally (editable
+                install) but not built as a distributable package — no dist metadata, no
+                <code>publish.yml</code>. The <code>uv --package</code> style.</td>
+            </tr>
+            <tr>
+              <td><code>pkg</code></td>
+              <td>
+                <code>test_frameworks: [pytest]</code><br>
+                <code>python_source: true</code><br>
+                <code>is_package: true</code><br>
+                <code>publish_to_pypi: true</code> (default)<br>
+                <code>repo_name: demo-repo</code>
+              </td>
+              <td>Installable package with <code>src/</code> layout + pytest. The default
+                <code>publish_to_pypi=true</code> emits a <code>publish.yml</code> workflow (OIDC
+                Trusted Publishing to PyPI). Also exercises <code>repo_name ≠ project_slug</code>
+                so GitHub URLs are built from the repo name while the distribution name stays
+                independent.</td>
+            </tr>
+            <tr>
+              <td><code>apache-pkg</code></td>
+              <td>
+                <code>license: Apache-2.0</code><br>
+                <code>test_frameworks: [pytest, bats]</code><br>
+                <code>python_source: true</code><br>
+                <code>is_package: true</code><br>
+                <code>publish_to_pypi: false</code>
+              </td>
+              <td>Installable package under Apache-2.0 (the non-default license path) + pytest +
+                bats. With <code>publish_to_pypi=false</code> no <code>publish.yml</code> is
+                emitted — the package is distributable but the CI publish step is omitted.</td>
+            </tr>
+            <tr>
+              <td><code>docker-shell</code></td>
+              <td>
+                <code>test_frameworks: [bats]</code><br>
+                <code>contains_python: false</code><br>
+                <code>include_docker: true</code>
+              </td>
+              <td>Docker on the bare baseline with no Python. Exercises the alpine/non-root
+                Dockerfile branch, <code>hadolint</code> hook, and <code>trivy config</code>
+                scan. Distinct from <code>full-modules</code> which uses the Python Dockerfile
+                branch.</td>
+            </tr>
+            <tr>
+              <td><code>sql</code></td>
+              <td>
+                <code>test_frameworks: []</code><br>
+                <code>contains_python: false</code><br>
+                <code>include_sql: true</code><br>
+                <code>sql_dialect: sqlite</code><br>
+                <code>include_devcontainer: true</code>
+              </td>
+              <td>SQL module on the bare baseline (no Python). Exercises the dialect-aware
+                <code>.sqlfluff</code>, <code>sqlfluff</code> lint/fix hooks, REUSE compliance
+                on <code>.sqlfluff</code>, and the no-Python devcontainer branch.</td>
+            </tr>
+            <tr>
+              <td><code>sql-dbt</code></td>
+              <td>
+                <code>test_frameworks: []</code><br>
+                <code>contains_python: false</code><br>
+                <code>include_sql: true</code><br>
+                <code>sql_dialect: snowflake</code><br>
+                <code>sql_use_dbt: true</code>
+              </td>
+              <td>SQL module with the dbt templater. Renders <code>templater = dbt</code> into
+                <code>.sqlfluff</code> and adds <code>sqlfluff-templater-dbt</code> as an
+                additional dependency. Bring your own dbt project and models — this shape guards
+                the render; the dbt templater itself is not exercised without <code>.sql</code>
+                files.</td>
+            </tr>
+            <tr>
+              <td><code>full-modules</code></td>
+              <td>
+                <code>python_source: true</code><br>
+                <code>is_package: true</code><br>
+                <code>include_terraform: true</code><br>
+                <code>include_docker: true</code><br>
+                <code>include_helm: true</code><br>
+                <code>include_sql: true</code><br>
+                <code>include_devcontainer: true</code>
+              </td>
+              <td>An installable Python package with every module enabled. Exercises module
+                scaffolding REUSE compliance, the Helm <code>check-yaml</code> exclusion, and the
+                Python Dockerfile branch. This shape runs first in the test matrix to warm the
+                shared prek and uv caches.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="adoption">Adopting into an existing repo <a class="anchor" href="#adoption">#</a></h2>
+      <p>The template is optimized for greenfield generation: <code>copier copy</code> onto an
+        empty directory, tasks run <code>git init</code>, stage everything, and make the first
+        commit. Adopting it into a repo that <strong>already exists</strong> — one with its own
+        git history, real <code>pyproject.toml</code>, source, and tests — is a deliberate manual
+        reconcile, not an automatic merge.</p>
+
+      <div class="callout warn">
+        <span class="callout-title">Answer NO to <code>initialize_repository</code></span>
+        When adopting, the most important answer is <code>initialize_repository: false</code>. This
+        skips the <code>git init</code>, <code>git add -A</code>, and scaffold-commit tasks so
+        your existing git history is left untouched. It is also stored in
+        <code>.copier-answers.yml</code>, so future <code>copier update</code> runs stay in
+        adoption mode.
+      </div>
+
+      <h3 id="adoption-step-1">Step 1 — Generate with tasks off</h3>
+      <p>Invoke <code>copier copy</code> with <code>--skip-tasks --overwrite</code> and pass
+        <code>initialize_repository=false</code> explicitly:</p>
+<pre><code>copier copy --skip-tasks --overwrite \
+  --data initialize_repository=false \
+  gh:nivintw/copier-everything .</code></pre>
+
+      <p><code>--overwrite</code> lets Copier write scaffold files over your tree without
+        prompting per-file — you'll reconcile the real-content files in the next step.
+        <code>--skip-tasks</code> ensures no tasks run even if you forgot <code>--trust</code>,
+        as an extra safeguard.</p>
+
+      <div class="callout note">
+        <span class="callout-title">Proof repo</span>
+        <a href="https://github.com/nivintw/ddns"><code>nivintw/ddns</code></a> was the first
+        adoption and surfaced every step in this guide. See
+        <a href="https://github.com/nivintw/ddns/pull/17">ddns PR #17</a> for the real adoption
+        diff.
+      </div>
+
+      <h3 id="adoption-step-2">Step 2 — Reconcile real-content files by hand</h3>
+      <p><code>copier copy</code> overwrites these with scaffold stubs. Diff each against what
+        you had (your VCS has the pre-adoption version) and merge your real content back in:</p>
+      <ul>
+        <li><strong><code>pyproject.toml</code></strong> — restore your real dependencies, scripts,
+          and version; keep the template's tool config (ruff, ty, pytest, build-system) where it
+          is an upgrade. Keep the distribution <code>name</code> equal to your
+          <code>project_slug</code> answer: the emitted <code>__init__.py</code> reads
+          <code>__version__</code> via
+          <code>importlib.metadata.version("&lt;project_slug&gt;")</code>, so if the two drift
+          the installed package reports <code>0.0.0+unknown</code> silently.</li>
+        <li><strong><code>README.md</code></strong>, <strong><code>CHANGELOG.md</code></strong> —
+          keep your real content; take the template's structure only where you want it.</li>
+        <li><strong><code>src/&lt;pkg&gt;/__init__.py</code></strong> — if you are an installable
+          package, the template derives <code>__version__</code> from installed metadata rather
+          than a stale literal; keep your real module body.</li>
+        <li><strong><code>.copier-answers.yml</code></strong> — commit this file; it is what makes
+          <code>copier update</code> work going forward.</li>
+      </ul>
+
+      <div class="callout note">
+        <span class="callout-title">Prefer answers over hand-edits</span>
+        Anything an adopter must customize should be a copier answer, not a post-render hand-edit
+        — an edit <code>copier update</code> would re-clobber on every run. If you find yourself
+        patching a generated value repeatedly (e.g. a repo URL), that is a missing question. Repo
+        URLs already come from <code>repo_name</code>, decoupled from the distribution name.
+      </div>
+
+      <h3 id="adoption-step-3">Step 3 — Expect a lint/type fix pass</h3>
+      <p>The template's defaults are strict by design: ruff with broad rule selection and ty,
+        with test files only lightly exempted. Pointed at an existing suite this will surface
+        findings — the first adoption of <code>ddns</code> produced hundreds on first run. Plan
+        for one of:</p>
+      <ul>
+        <li>A real <strong>fix pass</strong>: <code>uv run ruff check --fix</code>, then resolve
+          what remains by hand.</li>
+        <li>A <strong>baseline</strong> if you would rather adopt incrementally (ruff and ty both
+          support per-file ignores and inline suppressions as a bridge).</li>
+      </ul>
+      <p>Run your tests (<code>uv run pytest</code>) before and after the lint pass so the churn
+        does not change behavior.</p>
+
+      <h3 id="adoption-step-4">Step 4 — Commit on your own branch</h3>
+      <p>With <code>initialize_repository=false</code> nothing was committed for you. Stage your
+        reconciled tree and commit on a feature branch, then wire up the hooks:</p>
+<pre><code>uv sync                       # dev toolchain (idempotent; safe to re-run)
+uvx prek run --all-files      # the same gate CI runs
+uvx prek install              # install the pre-commit hooks
+git add -A &amp;&amp; git commit -m "chore: adopt copier-everything"</code></pre>
+
+      <p>Open it as a PR like any other change — adoption is a reviewed diff against your real
+        history, not a fresh scaffold.</p>
+
+      <footer class="page-footer">
+        <span>copier-everything — MIT licensed.</span>
+        <span><a href="https://github.com/nivintw/copier-everything">github.com/nivintw/copier-everything</a></span>
+      </footer>
+    </div>
+  </main>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

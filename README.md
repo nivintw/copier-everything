@@ -17,6 +17,9 @@ and Helm.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
+📖 **[Full documentation →](https://nivintw.github.io/copier-everything/)** — template
+questions, modules, the quality baseline, usage, and the design model.
+
 </div>
 
 ---
@@ -52,7 +55,7 @@ The cross-cutting quality infrastructure, lifted from
 | --- | --- |
 | **prek hooks** (`.pre-commit-config.yaml`) | Git hygiene, secret scanning (gitleaks), spelling (typos), markdown (rumdl), YAML style (yamllint), license headers, shell lint + format (shellcheck, shfmt), and workflow lint + security-audit (actionlint, zizmor) — run identically locally and in CI. |
 | **REUSE licensing** (`.config/licenserc.toml`, `REUSE.toml`, `LICENSES/`) | Every file carries an SPDX header; `hawkeye` maintains them, `reuse` verifies. |
-| **CI** (`.github/workflows/`) | Each generated repo gets a reusable `ci.yml` gate called by `pr.yml` (every PR) and `main.yml` (push to main → release-please). Every action is SHA-pinned with a version comment. The template itself uses the same shape — a reusable root `ci.yml` called by `pr.yml` and `main.yml` (which also runs release-please) (see `tests/`). |
+| **CI** (`.github/workflows/`) | Each generated repo gets a reusable `ci.yml` gate called by `pr.yml` (every PR) and `main.yml` (push to main → release-please). Every action is SHA-pinned with a version comment, and each hand-installed release binary (trivy, osv-scanner, hawkeye, taplo, kubeconform) is pinned **and SHA256-verified** before use (`refresh-binary-checksums.yml` keeps the hashes in sync on Renovate bumps). The template itself uses the same shape — a reusable root `ci.yml` called by `pr.yml` and `main.yml` (which also runs release-please) (see `tests/`). |
 | **Renovate** (`.github/renovate.json`) | Automates the pins (pre-commit hook revs + action digests) and groups `ruff` bumps so a new lint rule lands as a reviewable PR, not a surprise red. |
 | **Security scanning** | Dependency-CVE scanning (`uv audit`, `osv-scanner`), Terraform IaC misconfig (`checkov`, `trivy`), Dockerfile lint + misconfig (`hadolint`, `trivy config`) and image-layer CVEs (`trivy image`, in CI) — wired wherever the matching shape/module is present. |
 | **Link checking** (`link-check.yml`) | `lychee` checks the Markdown docs for dead links. A separate CI workflow (not the deterministic gate) since it's a network operation — make `ci` required in branch protection, leave `link-check` advisory. |
@@ -93,6 +96,9 @@ releases, CI) is language-agnostic and ships with every shape. See
 - **`tests/`** — copier-everything's own test suite: `render-matrix.sh` renders every
   `answers/*.yml` shape and runs the full gate. Wired into CI.
 - **`REVIEW.md`** — the design model, decisions/assumptions, and open follow-ups.
+- **`docs/`** — the published documentation site (served at
+  [nivintw.github.io/copier-everything](https://nivintw.github.io/copier-everything/) via
+  GitHub Pages), generated with `/dev-kit:generate-docs`.
 
 ## 🛠️ Developing this template
 
@@ -107,7 +113,8 @@ uvx prek run --all-files    # run the gate on demand
 > both locally before running the gate — those hooks fail without them. `taplo`
 > (`brew install taplo` / `cargo install taplo-cli`) and `hawkeye`
 > (`brew install korandoru/tap/hawkeye` / [release binary](https://github.com/korandoru/hawkeye/releases)).
-> Every other hook self-bootstraps. (CI installs both as their own steps.)
+> Every other hook self-bootstraps. (CI installs both as their own steps — pinned and
+> SHA256-verified.)
 
 Commits use plain Conventional Commits (no gitmoji — release-please can't parse a leading
 emoji). The template repo itself is versioned by `main.yml` (release-please): push to `main`
