@@ -63,6 +63,18 @@ fetch_sha() { # <TOOL> <version> -> bare hex digest on stdout
   esac
 }
 
+# Memoize on tool|version: the same version often appears in several files (this repo
+# refreshes both its own ci.yml AND the template's ci.yml.jinja), so this avoids
+# re-downloading an identical checksum file — or, for taplo, the whole asset — per file.
+declare -A SHA_CACHE=()
+cached_sha() { # <TOOL> <version> -> bare hex digest (fetched at most once per tool|version)
+  local key="$1|$2"
+  if [ -z "${SHA_CACHE[$key]+set}" ]; then
+    SHA_CACHE[$key]="$(fetch_sha "$1" "$2")"
+  fi
+  printf '%s' "${SHA_CACHE[$key]}"
+}
+
 # extract the quoted value of an env-var assignment (first occurrence) from a file
 pinned_value() { # <VAR> <file> -> value or empty (empty + exit 0 when absent)
   grep -oE "$1: \"[^\"]+\"" "$2" 2>/dev/null | head -n1 | sed -E 's/.*"([^"]+)".*/\1/' || true
@@ -85,7 +97,7 @@ for file in "${targets[@]}"; do
     # Only files that carry a *_SHA256 pin for this tool are candidates.
     old_sha="$(pinned_value "${tool}_SHA256" "$file")"
     [ -n "$old_sha" ] || continue
-    new_sha="$(fetch_sha "$tool" "$version")" ||
+    new_sha="$(cached_sha "$tool" "$version")" ||
       {
         echo "ERROR: could not resolve SHA256 for ${tool} ${version}" >&2
         exit 1

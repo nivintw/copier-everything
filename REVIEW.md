@@ -185,6 +185,12 @@ against a committed **SHA256** that fails the step closed on mismatch:
   push wouldn't). Without the App configured the job skips and the fail-closed mismatch stands —
   re-pin by hand with the script. So: automated when the App exists, safe-by-default when it
   doesn't.
+- **taplo's pin is weaker — by necessity.** The other four read an *upstream-published*
+  checksum, so their pin is an independent attestation. taplo publishes none, so the script
+  hashes whatever asset it downloads (trust-on-first-use): it still detects tampering/MITM
+  *after* the pin is set (every CI run re-verifies), but offers no independent guarantee *at
+  pin time*. There's no fix until taplo ships checksums upstream — noted so the asymmetry is
+  explicit, not silent.
 - **Scope.** zizmor (pip/uvx) and the SHA-pinned `uses:` actions already have integrity
   (PyPI / action-digest pinning); this issue is specifically the hand-installed `language:
   system` binaries.
