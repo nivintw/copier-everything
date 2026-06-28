@@ -49,10 +49,14 @@ _tasks:
   # works even without a global git config. The `git diff --cached --quiet ||` guard makes
   # the task idempotent: copying into an EXISTING repo where nothing ended up staged (e.g.
   # a re-run) would otherwise make `git commit` exit non-zero and fail the whole task.
-  # A string command (not a list) so the shell evaluates the `||`.
+  # A string command (not a list) so the shell evaluates the `||`. author_name/email land
+  # inside a double-quoted shell word, so escape backslash then double-quote (in that order)
+  # to stay robust to identities like `Jane "JJ" Doe`; project_slug is already validated to
+  # dashes/lowercase, so it needs none.
   - command: >-
       git diff --cached --quiet ||
-      git -c user.name="{{ author_name }}" -c user.email="{{ author_email }}"
+      git -c user.name="{{ author_name | replace('\\', '\\\\') | replace('"', '\\"') }}"
+      -c user.email="{{ author_email | replace('\\', '\\\\') | replace('"', '\\"') }}"
       commit -q -m "chore: scaffold {{ project_slug }}"
     when: "{{ _copier_operation == 'copy' and initialize_repository }}"
   # Guarded on git presence: greenfield has just run `git init`, and an adopted repo already
