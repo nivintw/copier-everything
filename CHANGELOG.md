@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.3.0](https://github.com/nivintw/copier-everything/compare/v1.2.0...v1.3.0) (2026-06-28)
+
+
+### Features
+
+* Checksum-verify CI release binaries ([#58](https://github.com/nivintw/copier-everything/issues/58)) ([2f020e1](https://github.com/nivintw/copier-everything/commit/2f020e17cf240baf999d0f4215c7a6ffc1bce742))
+
+
+### Bug Fixes
+
+* Address Copilot review (hex case, App preflight, comment) ([3d6fb03](https://github.com/nivintw/copier-everything/commit/3d6fb037439fd09eebb3601380868e8c2123f6e8))
+* Harden checksum-refresh automation + docs review fixes ([2ac6fa9](https://github.com/nivintw/copier-everything/commit/2ac6fa909b37330b0be272b70a96511e1714935e))
+* Harden templated CI workflows and quality-gate configs ([66e8b9c](https://github.com/nivintw/copier-everything/commit/66e8b9cc562fdcfb21e8451b4057fcfed9aa98b0)), closes [#64](https://github.com/nivintw/copier-everything/issues/64) [#57](https://github.com/nivintw/copier-everything/issues/57) [#63](https://github.com/nivintw/copier-everything/issues/63) [#65](https://github.com/nivintw/copier-everything/issues/65) [#62](https://github.com/nivintw/copier-everything/issues/62)
+* Stop gitleaks flagging SHA256 pins + fix EOF blank line ([8ccf1e4](https://github.com/nivintw/copier-everything/commit/8ccf1e40db423f72af9053f7f2433fda414d0491))
+* Use complete Markdown glob for link-check paths filter ([3f0fb97](https://github.com/nivintw/copier-everything/commit/3f0fb9776505f0def92c2fd5b7fc954350465655))
+
 ## [1.2.0](https://github.com/nivintw/copier-everything/compare/v1.1.0...v1.2.0) (2026-06-28)
 
 
