@@ -28,14 +28,15 @@ questions, modules, the quality baseline, usage, and the design model.
 
 ```bash
 # one-off (uvx) — no install needed
-uvx copier copy gh:nivintw/copier-everything path/to/new-project
+uvx copier copy --trust gh:nivintw/copier-everything path/to/new-project
 
 # or, if you keep copier as a uv tool
-copier copy gh:nivintw/copier-everything path/to/new-project
+copier copy --trust gh:nivintw/copier-everything path/to/new-project
 ```
 
 Answer the prompts (project name, author, license, and which modules to include) and
-Copier renders a ready-to-commit project.
+Copier renders the project. `--trust` lets the post-copy tasks run (git init, `uv sync`,
+first commit, prek install); omit it and Copier prints those steps for you to run by hand.
 
 To pull template updates into a project later:
 

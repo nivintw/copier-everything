@@ -76,10 +76,11 @@
         install of Copier is required.</p>
 
       <p class="code-label">Generate a new project</p>
-<pre><code>uvx copier copy gh:nivintw/copier-everything path/to/new-project</code></pre>
-      <p>Copier asks the <a href="questions.html">template questions</a>, renders the project, and (unless you
-        opt out) initializes a git repo, runs <code>uv sync</code>, makes the first commit, and installs the
-        prek hooks.</p>
+<pre><code>uvx copier copy --trust gh:nivintw/copier-everything path/to/new-project</code></pre>
+      <p>Copier asks the <a href="questions.html">template questions</a>, renders the project, and — because
+        <code>--trust</code> lets the post-copy tasks run (and unless you opt out) — initializes a git repo,
+        runs <code>uv sync</code>, makes the first commit, and installs the prek hooks. (Omit
+        <code>--trust</code> and Copier just prints those steps for you to run by hand.)</p>
 
       <p class="code-label">Later, pull template improvements into that project</p>
 <pre><code>cd path/to/new-project
