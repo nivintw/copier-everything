@@ -305,11 +305,17 @@ def test_link_check_workflow(template_dir: Path, generated_project_dir: Path) ->
     root = _yaml(template_dir / ".github/workflows/link-check.yml")
     render = _yaml(generated_project_dir / ".github/workflows/link-check.yml")
 
+    def lychee_step(doc: dict) -> dict:
+        # Locate the step by its action (not a hard-coded index) so reordering/inserting steps
+        # doesn't break the test when the workflow is still correct.
+        steps = doc["jobs"]["lychee"]["steps"]
+        return next(s for s in steps if "lycheeverse/lychee-action" in s.get("uses", ""))
+
     def get_args(doc: dict) -> str:
-        return doc["jobs"]["lychee"]["steps"][1]["with"]["args"]
+        return lychee_step(doc)["with"]["args"]
 
     def set_args(doc: dict, value: str) -> None:
-        doc["jobs"]["lychee"]["steps"][1]["with"]["args"] = value
+        lychee_step(doc)["with"]["args"] = value
 
     # The #87 fix must be synced on both sides: excludes sourced from the config file, no inline
     # --exclude (which would reintroduce lychee's CLI-vs-config merge ambiguity).
