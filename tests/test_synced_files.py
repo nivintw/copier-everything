@@ -28,6 +28,7 @@ not the tree is clean.
 
 from __future__ import annotations
 
+import re
 import tomllib
 from typing import TYPE_CHECKING
 
@@ -339,9 +340,16 @@ def test_link_check_workflow(template_dir: Path, generated_project_dir: Path) ->
         assert "--config .config/lychee.toml" in args, f"{name} link-check must use --config!"
         assert "--exclude" not in args, f"{name} link-check must not pass inline --exclude!"
 
-    # Deviation: the template tunes retries/timeout; the root omits them. Strip ONLY those tokens
-    # so the shared args (--no-progress, --config, the Markdown glob) stay under comparison.
-    set_args(render, get_args(render).replace("--max-retries 5 --timeout 30 ", ""))
+    # Deviation: the template tunes --max-retries/--timeout; the root omits them. Strip those
+    # flags + their values from BOTH sides (value- and order-agnostic) so everything else in the
+    # args (--no-progress, --config, the Markdown glob) still gets compared.
+    def strip_tuning(args: str) -> str:
+        for flag in ("--max-retries", "--timeout"):
+            args = re.sub(rf"\s*{flag}\s+\S+", "", args)
+        return args
+
+    set_args(root, strip_tuning(get_args(root)))
+    set_args(render, strip_tuning(get_args(render)))
     # Deviation: the root triggers on every PR; the template path-filters to Markdown.
     _drop_triggers(root)
     _drop_triggers(render)
