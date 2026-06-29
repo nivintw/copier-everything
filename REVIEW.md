@@ -195,11 +195,14 @@ against a committed **SHA256** that fails the step closed on mismatch:
   Left there, a version bump would fail CI on the stale hash. `scripts/refresh-binary-checksums.sh`
   recomputes each SHA from its pinned version (reading the upstream checksum file for
   trivy/osv-scanner/hawkeye/kubeconform; **hashing the asset for taplo, which publishes no
-  checksum file**). The `refresh-binary-checksums` workflow runs it on `renovate/**` pushes and
-  commits the result back **as the release App** so the push re-triggers CI (a `GITHUB_TOKEN`
-  push wouldn't). Without the App configured the job skips and the fail-closed mismatch stands —
-  re-pin by hand with the script. So: automated when the App exists, safe-by-default when it
-  doesn't.
+  checksum file**). Renovate runs it as a `postUpgradeTask` (`executionMode: branch`), so the
+  refreshed hash folds into Renovate's **own** commit — no separate bot pushing onto Renovate's
+  branch, which is precisely what previously caused the self-re-trigger (#83) and the
+  `branchIsModified` rebase-halt (#84). The central self-hosted runner (see
+  [`nivintw/repo-management#42`](https://github.com/nivintw/repo-management/issues/42)) executes
+  the task; its `allowedCommands` authorizes the script. Without that authorization the hash
+  stays stale and the fail-closed mismatch stands — re-pin by hand with the script. So:
+  automated through Renovate's own run, safe-by-default when it can't run.
 - **taplo's pin is weaker — by necessity.** The other four read an *upstream-published*
   checksum, so their pin is an independent attestation. taplo publishes none, so the script
   hashes whatever asset it downloads (trust-on-first-use): it still detects tampering/MITM

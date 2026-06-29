@@ -58,7 +58,7 @@ jobs:
           # renovate: datasource=github-releases depName=aquasecurity/trivy
           TRIVY_VERSION: "0.71.2"
           # SHA256 of trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz — refreshed with the version
-          # by scripts/refresh-binary-checksums.sh (see the refresh-binary-checksums workflow).
+          # by scripts/refresh-binary-checksums.sh (run as a Renovate postUpgradeTask).
           TRIVY_SHA256: "0510e71e2fd39bf863856d499c8dc19feb4e7336546394c502a8f5cc7ab27460"  # gitleaks:allow
         run: |
           set -euo pipefail

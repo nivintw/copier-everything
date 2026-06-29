@@ -57,7 +57,6 @@ STRUCTURALLY_TESTED = {
     ".vscode/settings.json",  # test_vscode_settings
     ".vscode/extensions.json",  # test_vscode_extensions
     ".github/workflows/pr.yml",  # test_pr_workflow
-    ".github/workflows/refresh-binary-checksums.yml",  # test_refresh_binary_checksums_workflow
     ".github/workflows/link-check.yml",  # test_link_check_workflow
     ".editorconfig",  # test_editorconfig (rules identical; only a dogfooding comment differs)
 }
@@ -126,15 +125,6 @@ def _json5(path: Path) -> dict:
 
 def _yaml(path: Path) -> dict:
     return yaml.safe_load(path.read_text())
-
-
-def _triggers(doc: dict) -> dict:
-    """Return a workflow's ``on:`` mapping under either key representation.
-
-    PyYAML (YAML 1.1) coerces the bare ``on:`` key to the boolean ``True``; a YAML 1.2 loader
-    keeps it as the string ``"on"``. Accept either so the test isn't tied to the loader.
-    """
-    return doc[True] if True in doc else doc["on"]
 
 
 def _drop_triggers(doc: dict) -> None:
@@ -293,27 +283,6 @@ def test_pr_workflow(template_dir: Path, generated_project_dir: Path) -> None:
     assert _yaml(template_dir / ".github/workflows/pr.yml") == _yaml(
         generated_project_dir / ".github/workflows/pr.yml"
     ), ".github/workflows/pr.yml is not synced!"
-
-
-def test_refresh_binary_checksums_workflow(template_dir: Path, generated_project_dir: Path) -> None:
-    """Refresh-binary-checksums workflow: synced except the root also watches the template tree."""
-    root = _yaml(template_dir / ".github/workflows/refresh-binary-checksums.yml")
-    render = _yaml(generated_project_dir / ".github/workflows/refresh-binary-checksums.yml")
-
-    root_paths = _triggers(root)["push"]["paths"]
-    render_paths = _triggers(render)["push"]["paths"]
-    # Deviation: the root additionally refreshes the template's own pinned workflows.
-    assert "template/.github/workflows/**" in root_paths, (
-        "root refresh workflow should also watch template/.github/workflows/**!"
-    )
-    assert [p for p in root_paths if p != "template/.github/workflows/**"] == render_paths, (
-        "refresh-binary-checksums.yml trigger paths are not synced (beyond the template watch)!"
-    )
-
-    # The rest of the workflow (the job that runs the script) must match.
-    _drop_triggers(root)
-    _drop_triggers(render)
-    assert root == render, "refresh-binary-checksums.yml job is not synced!"
 
 
 def test_link_check_workflow(template_dir: Path, generated_project_dir: Path) -> None:

@@ -5,8 +5,9 @@
 # Refresh the pinned SHA256 of each CI-installed release binary to match its current
 # *_VERSION. Renovate bumps the version env vars (see .github/renovate.json5), but the
 # github-releases datasource has no asset-digest concept, so the adjacent *_SHA256 must be
-# recomputed from the published asset. The refresh-binary-checksums workflow runs this on
-# Renovate PRs; run it by hand after a manual version bump.
+# recomputed from the published asset. Renovate runs this as a postUpgradeTask on its bump
+# PRs (so the refreshed hash lands in Renovate's own commit); run it by hand after a manual
+# version bump.
 #
 # Usage: scripts/refresh-binary-checksums.sh [file ...]
 #   With no args it updates every workflow that carries these pins:
