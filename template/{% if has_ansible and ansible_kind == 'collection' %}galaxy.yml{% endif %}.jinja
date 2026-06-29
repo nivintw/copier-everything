@@ -1,0 +1,26 @@
+# SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
+# SPDX-License-Identifier: {{ license }}
+
+---
+# Ansible collection manifest (https://docs.ansible.com/ansible/latest/dev_guide/collections_galaxy_meta.html).
+# `version` starts at 0.0.0 and is bumped by release-please (see .config/release-please-config.json).
+namespace: {{ ansible_namespace }}
+name: {{ ansible_name }}
+version: 0.0.0
+readme: README.md
+authors:
+  - {{ author_name }}{% if author_email %} <{{ author_email }}>{% endif +%}
+description: {% if project_description %}{{ project_description }}{% else %}{{ project_name }} Ansible collection{% endif +%}
+license:
+  - {{ license }}
+tags:
+  # Must be from ansible-lint's allowed set (application, cloud, database, infrastructure,
+  # linux, monitoring, networking, security, storage, tools, …); replace with what fits.
+  - tools
+repository: https://github.com/{{ repo_owner }}/{{ repo_name }}
+# Keep dev-only trees out of the built artifact.
+build_ignore:
+  - .ansible
+  - .github
+  - molecule
+  - tests

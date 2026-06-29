@@ -100,6 +100,16 @@ jobs:
       - name: Set up Helm (backs the helm-lint prek hook + the kubeconform step below)
         if: inputs.skip-quality-gate != true
         uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+{% endif %}{% if has_ansible %}
+      - name: Install Galaxy content (so ansible-lint resolves collections in the prek gate)
+        if: inputs.skip-quality-gate != true
+        # ansible-lint (a prek hook) resolves Galaxy collections from Ansible's default path;
+        # install the project's requirements.yml there before the gate runs. uvx pulls a pinned
+        # ansible-core on demand — no pyproject/venv. Renovate bumps the pin.
+        env:
+          # renovate: datasource=pypi depName=ansible-core
+          ANSIBLE_CORE_VERSION: "2.21.1"
+        run: uvx --from "ansible-core==${ANSIBLE_CORE_VERSION}" ansible-galaxy install -r requirements.yml
 {% endif %}
       - name: Run prek hooks (same as local)
         if: inputs.skip-quality-gate != true
@@ -201,4 +211,25 @@ jobs:
           echo "${KUBECONFORM_SHA256}  $RUNNER_TEMP/kubeconform.tar.gz" | sha256sum -c -
           tar -xz -C "$RUNNER_TEMP" -f "$RUNNER_TEMP/kubeconform.tar.gz" kubeconform
           helm template helm/{{ project_slug }} | "$RUNNER_TEMP/kubeconform" -strict -ignore-missing-schemas -summary
+{% endif %}{% if ansible_role_based %}
+      - name: Molecule test (converge · idempotence · verify)
+        if: inputs.skip-quality-gate != true
+        # ansible-lint + syntax-check run in the prek gate above; Molecule is the integration
+        # layer (the pytest analog): it spins a container via the docker driver (Docker is
+        # preinstalled on ubuntu-latest) and runs the default scenario — converge, then
+        # idempotence, then verify. uvx pulls pinned molecule + the docker driver + ansible-core
+        # on demand (no pyproject/venv); the scenario's requirements.yml brings community.docker
+        # for the driver. Renovate bumps each pin via the `# renovate:` annotations.
+        env:
+          # renovate: datasource=pypi depName=molecule
+          MOLECULE_VERSION: "26.4.0"
+          # renovate: datasource=pypi depName=molecule-plugins
+          MOLECULE_PLUGINS_VERSION: "25.8.12"
+          # renovate: datasource=pypi depName=ansible-core
+          ANSIBLE_CORE_VERSION: "2.21.1"
+        run: >-
+          uvx --from "molecule==${MOLECULE_VERSION}"
+          --with "molecule-plugins[docker]==${MOLECULE_PLUGINS_VERSION}"
+          --with "ansible-core==${ANSIBLE_CORE_VERSION}"
+          molecule test
 {% endif %}

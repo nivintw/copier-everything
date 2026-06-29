@@ -42,6 +42,10 @@ _tasks:
     when: "{{ _copier_operation == 'copy' and initialize_repository }}"
   - command: ["uv", "sync"]
     when: "{{ _copier_operation == 'copy' and has_python }}"
+  # No Ansible Galaxy install runs here on purpose: the scaffolded requirements.yml ships empty,
+  # so `ansible-galaxy install` would only pull ansible-core to do nothing. Run it yourself once
+  # you add collections/roles (README's Ansible section has the command); CI installs them
+  # before the lint gate.
   - command: ["git", "add", "-A"]
     when: "{{ _copier_operation == 'copy' and initialize_repository }}"
   # The initial commit runs BEFORE prek install on purpose: the no-commit-to-branch hook
@@ -245,6 +249,84 @@ python_version:
        or not (python_version.split('.')[0].isdigit() and python_version.split('.')[1].isdigit()) %}
     python_version must be MAJOR.MINOR, e.g. 3.14.
     {% endif %}
+
+# ----------------------------------------------------------------------------- #
+#  Ansible — a first-class cascade, orthogonal to Python (both can be true)
+#    contains_ansible  →  has_ansible (hidden guard everything Ansible gates on)
+#    ansible_kind      →  collection | role | playbooks (the scaffold shape)
+#    publish_to_galaxy →  Galaxy publish workflow (collection/role only)
+#  Mirrors the Python cascade above: a hidden computed guard, then the shape, then
+#  the publish lever — so the gating is one stable flag and downstream answers collapse
+#  cleanly when contains_ansible is no.
+# ----------------------------------------------------------------------------- #
+contains_ansible:
+  type: bool
+  help: Does this project contain Ansible content (playbooks, a role, or a collection)?
+  default: false
+
+# Hidden, computed guard: true if Ansible is present. Everything Ansible in the template
+# gates on this (the has_python analog), so a single flag drives all the path/section gates.
+has_ansible:
+  type: bool
+  when: false
+  default: "{{ contains_ansible }}"
+
+ansible_kind:
+  type: str
+  help: "Ansible content shape — drives the scaffold, testing, and publish path"
+  choices:
+    collection — galaxy.yml + roles/ + plugins/, publishable to Galaxy: collection
+    role — standalone role (tasks/defaults/handlers/meta), publishable to Galaxy: role
+    playbooks — operational project (ansible.cfg + inventory/ + playbooks/), not published: playbooks
+  default: collection
+  when: "{{ has_ansible }}"
+
+# Hidden computed guard for the role-based kinds (collection or role, NOT playbooks). These two
+# share a profile — a Galaxy namespace/name, a Molecule scenario, and a Galaxy publish path — so
+# every one of those gates reads this single flag instead of repeating the kind check (the same
+# move as has_python). Resolves false when Ansible is absent (ansible_kind's skipped default is
+# harmless because this is anded with has_ansible).
+ansible_role_based:
+  type: bool
+  when: false
+  default: "{{ has_ansible and ansible_kind in ['collection', 'role'] }}"
+
+ansible_namespace:
+  type: str
+  # Galaxy namespaces/collection names are lowercase, start with a letter, and allow only
+  # letters, digits, and underscores (no dashes) — validated below in the project_slug style.
+  help: Ansible Galaxy namespace (lowercase; underscores, not dashes)
+  default: "{{ repo_owner | lower | replace('-', '_') }}"
+  when: "{{ ansible_role_based }}"
+  validator: >-
+    {% if not ansible_namespace %}ansible_namespace cannot be empty.
+    {% elif not (ansible_namespace | regex_search('^[a-z][a-z0-9_]*$')) %}
+    ansible_namespace must be lowercase ASCII: start with a letter, then only letters, digits, or
+    underscores (no dashes, dots, spaces — Galaxy's namespace rules).
+    {% endif %}
+
+ansible_name:
+  type: str
+  help: "Ansible collection/role name (lowercase; underscores, not dashes)"
+  default: "{{ project_slug | replace('-', '_') }}"
+  when: "{{ ansible_role_based }}"
+  validator: >-
+    {% if not ansible_name %}ansible_name cannot be empty.
+    {% elif not (ansible_name | regex_search('^[a-z][a-z0-9_]*$')) %}
+    ansible_name must be lowercase ASCII: start with a letter, then only letters, digits, or
+    underscores (no dashes, dots, spaces — Galaxy's collection/role name rules).
+    {% endif %}
+
+publish_to_galaxy:
+  type: bool
+  # Galaxy has no OIDC Trusted Publishing (unlike PyPI), so the publish workflow needs an
+  # ANSIBLE_GALAXY_API_KEY repo secret — see the generated publish-galaxy.yml + README.
+  help: Emit a Galaxy publish workflow (fires on each GitHub Release; needs an ANSIBLE_GALAXY_API_KEY secret)?
+  # Track the guard like publish_to_pypi tracks is_package: a skipped question still resolves its
+  # default, so this MUST be false when there's no publishable Ansible content (else
+  # publish-galaxy.yml, gated on publish_to_galaxy, would render into a non-Ansible project).
+  default: "{{ ansible_role_based }}"
+  when: "{{ ansible_role_based }}"
 
 # ----------------------------------------------------------------------------- #
 #  Includable modules — toggle the orthogonal scaffolding you want

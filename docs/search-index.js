@@ -597,5 +597,59 @@ window.SEARCH_INDEX = [
 "text": "Design model",
 "page": "Design model",
 "url": "design.html#open-followups"
+},
+{
+"title": "Ansible",
+"text": "Modules & levers",
+"page": "Modules & levers",
+"url": "modules.html#ansible"
+},
+{
+"title": "Generated files",
+"text": "Modules & levers",
+"page": "Modules & levers",
+"url": "modules.html#ansible-files"
+},
+{
+"title": "Hooks & CI steps",
+"text": "Modules & levers",
+"page": "Modules & levers",
+"url": "modules.html#ansible-hooks"
+},
+{
+"title": "Ansible shape",
+"text": "Template questions",
+"page": "Template questions",
+"url": "questions.html#ansible"
+},
+{
+"title": "Ansible levers",
+"text": "Design model",
+"page": "Design model",
+"url": "design.html#ansible-levers"
+},
+{
+"title": "Ansible archetypes",
+"text": "Design model",
+"page": "Design model",
+"url": "design.html#ansible-archetypes"
+},
+{
+"title": "Ansible projects",
+"text": "Usage & adoption",
+"page": "Usage & adoption",
+"url": "usage.html#ansible"
+},
+{
+"title": "Testing Ansible (Molecule)",
+"text": "Usage & adoption",
+"page": "Usage & adoption",
+"url": "usage.html#ansible-testing"
+},
+{
+"title": "Publishing to Ansible Galaxy",
+"text": "Usage & adoption",
+"page": "Usage & adoption",
+"url": "usage.html#ansible-publishing"
 }
 ];

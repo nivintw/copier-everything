@@ -113,6 +113,47 @@
 
       <p>See the <a href="questions.html">template questions reference</a> for the full question list and what each drives.</p>
 
+      <h3 id="ansible-levers">The Ansible levers</h3>
+      <p>The Ansible module is a first-class cascade orthogonal to Python — both can coexist. A repo can be an Ansible collection that also has Python tests, or a pure Ansible playbook repo with no Python at all. The lever chain mirrors Python's exactly:</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Question</th>
+              <th>Type</th>
+              <th>Drives</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>contains_ansible</code></td>
+              <td>bool</td>
+              <td>ansible-lint pre-commit hook, <code>yamllint</code> as the single YAML owner, Ansible <code>.gitignore</code> additions</td>
+            </tr>
+            <tr>
+              <td><code>ansible_kind</code></td>
+              <td>choice (<code>collection</code> / <code>role</code> / <code>playbooks</code>)</td>
+              <td>Only asked when Ansible is present; determines the repo archetype and directory layout</td>
+            </tr>
+            <tr>
+              <td><code>ansible_namespace</code> / <code>ansible_name</code></td>
+              <td>str (only asked when <code>ansible_role_based</code>)</td>
+              <td>The Galaxy FQCN (<code>namespace.name</code>) used in <code>galaxy.yml</code> and CI publish targets</td>
+            </tr>
+            <tr>
+              <td><code>publish_to_galaxy</code></td>
+              <td>bool (only asked when <code>ansible_role_based</code>)</td>
+              <td>Adds a Galaxy publish job to CI; requires an <code>ANSIBLE_GALAXY_API_KEY</code> secret (Galaxy has no OIDC trusted publishing, unlike PyPI)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p><code>has_ansible</code> is a <strong>hidden computed flag</strong> (<code>contains_ansible</code>). Everything Ansible-specific gates on it. <code>ansible_role_based</code> is a second hidden computed flag, true when <code>ansible_kind</code> is <code>collection</code> or <code>role</code> — it gates the namespace, name, and Galaxy publish questions exactly as <code>is_package</code> gates Python's distribution metadata. A playbooks repo triggers neither flag and gets no Galaxy plumbing.</p>
+
+      <p>Deliberately, an Ansible-only repo gets <strong>no <code>pyproject.toml</code></strong> — not even a stub. Linting is the official <code>ansible-lint</code> pre-commit hook (no venv required). Molecule (collection/role testing) and Galaxy publish run via <code>uvx</code>-pinned tools in CI. <code>yamllint</code> becomes the single YAML owner (replacing any Python-centric YAML linting). This is a deliberate contrast with the Python path, which is uv/pyproject-centric.</p>
+
       <h2 id="canonical-shapes">The four canonical shapes <a class="anchor" href="#canonical-shapes">#</a></h2>
       <p>All four shapes are CI-verified by <code>tests/render-matrix.sh</code> against committed answer sets in <code>tests/answers/</code>. The matrix also covers edge cases: the unpublished-package variant, the Apache-license path, and a full terraform+docker+helm build.</p>
 
@@ -142,6 +183,27 @@
       <div class="callout note">
         <span class="callout-title">Shape 1 variant: installed but unpublished</span>
         <code>python_source=true, is_package=false</code> is a valid combination meaning "installed but unpublished" — the <code>uv --package</code> style. It always has <code>[build-system]</code> and <code>package=true</code> so it is importable as a development install. The <code>is_package</code> lever only toggles distribution metadata (readme, classifiers, publish config). This was an autonomous assumption confirmed with the project owner.
+      </div>
+
+      <h2 id="ansible-archetypes">The three Ansible archetypes <a class="anchor" href="#ansible-archetypes">#</a></h2>
+      <p>When <code>contains_ansible</code> is true, <code>ansible_kind</code> selects one of three archetypes. All three receive the language-agnostic baseline; only the Ansible-specific scaffolding differs.</p>
+
+      <div class="card-grid">
+        <div class="card">
+          <span class="card-eyebrow">Archetype 1</span>
+          <h3>Collection</h3>
+          <p><code>ansible_kind=collection</code> — standard <code>galaxy.yml</code>, <code>plugins/</code>, <code>roles/</code>, and Molecule. <code>ansible_role_based=true</code> so namespace, name, and optional Galaxy publish are enabled.</p>
+        </div>
+        <div class="card">
+          <span class="card-eyebrow">Archetype 2</span>
+          <h3>Role</h3>
+          <p><code>ansible_kind=role</code> — single-role layout with <code>meta/main.yml</code> and Molecule. Also <code>ansible_role_based=true</code>; Galaxy publish targets the role directly.</p>
+        </div>
+        <div class="card">
+          <span class="card-eyebrow">Archetype 3</span>
+          <h3>Playbooks</h3>
+          <p><code>ansible_kind=playbooks</code> — operational repo: <code>site.yml</code>, <code>inventory/</code>, <code>group_vars/</code>. <code>ansible_role_based=false</code>; no namespace, no Galaxy publish, no Molecule.</p>
+        </div>
       </div>
 
       <h2 id="versioning">release-please + commitizen <a class="anchor" href="#versioning">#</a></h2>
@@ -181,6 +243,18 @@
             <tr>
               <td>Branch protection is lighter than the dotfiles model</td>
               <td>The full dotfiles branch rulesets assume a release GitHub App and bypass actors that don't exist on a fresh repo. Those rulesets would block automated merges for any generated repo without the App. Generated repo protection just requires the <code>ci</code> check and a PR. Production rulesets are a post-setup step once the App is configured.</td>
+            </tr>
+            <tr>
+              <td><code>ansible_kind</code> and <code>publish_to_galaxy</code> defaults track their parent lever</td>
+              <td>Mirrors the Python <code>is_package</code>/<code>python_source</code> pattern. A skipped Copier question still resolves its default. Defaults of <code>{{ ansible_kind }}</code> and <code>{{ ansible_role_based }}</code> collapse cleanly for non-Ansible repos so no Ansible scaffolding leaks into unrelated projects.</td>
+            </tr>
+            <tr>
+              <td>Ansible toolchain is deliberately pyproject-free</td>
+              <td>An Ansible-only repo has no <code>pyproject.toml</code>, <code>uv.lock</code>, or <code>.venv</code>. <code>ansible-lint</code> runs as the official pre-commit hook (no venv). Molecule and Galaxy publish use <code>uvx</code>-pinned tools in CI. This keeps the Python and Ansible tool-chains cleanly separated — a repo that is both gets both, not a merged hybrid. <code>yamllint</code> becomes the single YAML owner regardless of whether Python is also present.</td>
+            </tr>
+            <tr>
+              <td>Galaxy publish requires <code>ANSIBLE_GALAXY_API_KEY</code></td>
+              <td>Ansible Galaxy has no OIDC trusted publishing equivalent (unlike PyPI's trusted publishers). An API key secret is the only supported authentication path. Generated repos must add the secret manually before the publish job can succeed — analogous to PyPI's legacy API-token path, not its OIDC path.</td>
             </tr>
           </tbody>
         </table>

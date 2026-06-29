@@ -40,6 +40,10 @@
     // Kubernetes / Helm
     "ms-kubernetes-tools.vscode-kubernetes-tools", // k8s manifests & Helm charts
 {%- endif %}
+{%- if has_ansible %}
+    // Ansible
+    "redhat.ansible", // Ansible language server + ansible-lint integration
+{%- endif %}
   ],
   "unwantedRecommendations": []
 }

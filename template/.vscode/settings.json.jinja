@@ -23,4 +23,14 @@
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
 {%- endif %}
+{%- if has_ansible %}
+  // Ansible: associate playbook/role/molecule YAML with the Ansible language so the
+  // redhat.ansible extension (and its ansible-lint integration) activates on them.
+  "files.associations": {
+    "**/playbooks/*.yml": "ansible",
+    "**/molecule/*/*.yml": "ansible",
+    "**/tasks/*.yml": "ansible",
+    "**/handlers/*.yml": "ansible"
+  },
+{%- endif %}
 }

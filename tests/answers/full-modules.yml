@@ -1,8 +1,10 @@
 # SPDX-FileCopyrightText: © 2026 Tyler Nivin
 # SPDX-License-Identifier: MIT
 
-# Shape: a package with every module enabled (terraform + docker + helm + sql) — exercises
-# the module scaffolding's REUSE/header compliance and the helm check-yaml exclusion.
+# Shape: a package with every module enabled (terraform + docker + helm + sql + ansible) —
+# exercises the module scaffolding's REUSE/header compliance, the helm check-yaml exclusion,
+# and the Python + Ansible-collection combination (release-please bumps both pyproject and
+# galaxy.yml; ansible-lint runs alongside the Python gate).
 project_name: Full Modules
 project_description: every module enabled
 test_frameworks: [pytest]
@@ -16,3 +18,5 @@ include_sql: true
 sql_dialect: postgres
 sql_use_dbt: false
 include_devcontainer: true
+contains_ansible: true
+ansible_kind: collection

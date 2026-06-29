@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
+# SPDX-License-Identifier: {{ license }}
+
+---
+- name: Converge
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Include the role under test
+      ansible.builtin.include_role:
+{%- if ansible_kind == 'collection' %}
+        name: example
+{%- else %}
+        # The standalone role is the project directory; include it by basename (ANSIBLE_ROLES_PATH
+        # in molecule.yml points at the parent), so this works whatever the checkout is named.
+        name: "{{ '{{' }} lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | basename {{ '}}' }}"
+{%- endif %}

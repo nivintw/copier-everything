@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: © 2026 Tyler Nivin
+# SPDX-License-Identifier: MIT
+
+# Shape: an Ansible collection, no Python — exercises ansible-lint (production profile) + the
+# Galaxy publish workflow, and proves the pyproject-free toolchain (no pyproject.toml/uv.lock).
+project_name: Ansible Collection
+project_description: ansible collection shape
+test_frameworks: []
+contains_python: false
+contains_ansible: true
+ansible_kind: collection

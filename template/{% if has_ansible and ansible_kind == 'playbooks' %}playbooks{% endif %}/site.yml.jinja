@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
+# SPDX-License-Identifier: {{ license }}
+
+---
+# Entry-point playbook. Run with:  ansible-playbook playbooks/site.yml
+# Add roles under ./roles and include them here, or write tasks inline — using
+# fully-qualified `ansible.builtin.*` module names and naming every play and task.
+- name: Configure all hosts
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Confirm connectivity
+      ansible.builtin.ping:

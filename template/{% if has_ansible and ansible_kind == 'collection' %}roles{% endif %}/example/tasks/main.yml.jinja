@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
+# SPDX-License-Identifier: {{ license }}
+
+---
+# Sample role inside the {{ ansible_namespace }}.{{ ansible_name }} collection. Replace these
+# tasks with the role's real work; use fully-qualified `ansible.builtin.*` (or other FQCN)
+# module names so ansible-lint's production profile stays green.
+- name: Announce that the example role ran
+  ansible.builtin.debug:
+    msg: "The {{ ansible_namespace }}.{{ ansible_name }}.example role ran."
+  when: example_enabled

@@ -10,7 +10,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Modules &amp; levers — copier-everything</title>
-  <meta name="description" content="Reference for every opt-in module and Python lever in the copier-everything template: Terraform, Docker, Helm, SQL, devcontainer, and the full Python source/package/publish chain.">
+  <meta name="description" content="Reference for every opt-in module and Python lever in the copier-everything template: Ansible, Terraform, Docker, Helm, SQL, devcontainer, and the full Python source/package/publish chain.">
   <link rel="stylesheet" href="style.css">
   <link rel="icon" href="data:,">
 </head>
@@ -65,7 +65,7 @@
       </nav>
 
       <h1>Modules &amp; levers</h1>
-      <p class="lead">Six decoupled opt-in modules sit on top of the
+      <p class="lead">Seven decoupled opt-in modules sit on top of the
         <a href="baseline.html">always-on quality baseline</a>. Each is gated behind a single
         <code>copier.yml</code> question — answer yes and you get the files, hooks, and CI steps;
         answer no and none of that baggage enters your repo.</p>
@@ -109,6 +109,13 @@
           <h3>SQL</h3>
           <p>A <code>sql/</code> directory with sqlfluff fix + lint hooks, a dialect selector,
             and an optional dbt templater.</p>
+        </a>
+        <a class="card" href="#ansible">
+          <span class="card-eyebrow">Automation</span>
+          <h3>Ansible</h3>
+          <p>A first-class <code>contains_ansible</code> cascade — three archetypes
+            (<code>collection</code>, <code>role</code>, <code>playbooks</code>), ansible-lint,
+            and Molecule CI — orthogonal to Python.</p>
         </a>
         <a class="card" href="#devcontainer">
           <span class="card-eyebrow">DX</span>
@@ -659,6 +666,163 @@ contains_python ─────────────────────�
         sqlfluff's dbt templater needs a reachable dbt project and models to lint — without them
         it errors rather than passes. The module is green-on-arrival without that file; add your
         dbt project structure and models when you're ready.
+      </div>
+
+      <!-- ------------------------------------------------------------------ -->
+      <h2 id="ansible">Ansible <a class="anchor" href="#ansible">#</a></h2>
+
+      <p>Gating question: <a href="questions.html#contains_ansible"><code>contains_ansible</code></a>
+        <span class="badge type-bool">bool</span> — default <code>false</code>.</p>
+
+      <p>Ansible is a first-class cascade — orthogonal to Python and modelled in the same
+        <code>contains_ansible</code> pattern as <code>contains_python</code>. Both can coexist
+        in the same repo. A follow-up question selects the archetype:</p>
+      <ul>
+        <li><strong><code>ansible_kind</code></strong> — <span class="badge type-str">str</span>
+          (<code>collection</code> | <code>role</code> | <code>playbooks</code>), asked when
+          <code>contains_ansible</code> is true. Determines the directory layout, Galaxy metadata
+          files, and whether Molecule is included.</li>
+      </ul>
+
+      <div class="callout note">
+        <span class="callout-title">Deliberately pyproject-free</span>
+        The Ansible toolchain carries no <code>pyproject.toml</code>. ansible-lint runs as an
+        official prek hook — no venv required. Molecule is invoked in CI via
+        <code>uvx</code>-pinned commands. Both are Renovate-bumped without a Python lockfile.
+        YAML style is owned by the standalone <code>yamllint</code> hook; ansible-lint defers
+        its yaml rule to avoid duplication.
+      </div>
+
+      <h3 id="ansible-files">Generated files <a class="anchor" href="#ansible-files">#</a></h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>File</th><th>Condition</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><code>ansible.cfg</code></td>
+              <td>all kinds</td>
+              <td>Ansible config (roles path + defaults). Galaxy dependencies install to
+                Ansible's default path, where <code>ansible-lint</code>, Molecule, and
+                <code>ansible-playbook</code> all resolve them.</td>
+            </tr>
+            <tr>
+              <td><code>requirements.yml</code></td>
+              <td>all kinds</td>
+              <td>Declares Galaxy collection and role dependencies. Installed by CI before
+                the prek gate runs.</td>
+            </tr>
+            <tr>
+              <td><code>.config/ansible-lint.yml</code></td>
+              <td>all kinds</td>
+              <td>ansible-lint configuration (production profile). The yaml rule is disabled
+                here — YAML style is owned by the standalone <code>yamllint</code> hook.</td>
+            </tr>
+            <tr>
+              <td><code>galaxy.yml</code></td>
+              <td><code>collection</code></td>
+              <td>Collection manifest (namespace, name, version, description). release-please
+                bumps this file's <code>version</code> field. Publishable to Ansible Galaxy.</td>
+            </tr>
+            <tr>
+              <td><code>meta/runtime.yml</code></td>
+              <td><code>collection</code></td>
+              <td>Declares the minimum <code>requires_ansible</code> version.</td>
+            </tr>
+            <tr>
+              <td><code>roles/example/</code></td>
+              <td><code>collection</code></td>
+              <td>Starter role inside the collection
+                (<code>tasks/main.yml</code>, <code>defaults/main.yml</code>).</td>
+            </tr>
+            <tr>
+              <td><code>molecule/default/</code></td>
+              <td><code>collection</code>, <code>role</code></td>
+              <td>Molecule scenario (<code>molecule.yml</code>, <code>converge.yml</code>,
+                <code>verify.yml</code>). Not generated for <code>playbooks</code> —
+                Molecule tests roles and collections, not playbooks.</td>
+            </tr>
+            <tr>
+              <td><code>meta/main.yml</code></td>
+              <td><code>role</code></td>
+              <td>Galaxy role metadata (<code>galaxy_info</code>: author, description, license,
+                platforms). Publishable to Ansible Galaxy.</td>
+            </tr>
+            <tr>
+              <td><code>meta/argument_specs.yml</code></td>
+              <td><code>role</code></td>
+              <td>Formal argument spec for the role's entry point — enables
+                <code>ansible-lint</code> argument validation.</td>
+            </tr>
+            <tr>
+              <td><code>tasks/main.yml</code>, <code>defaults/main.yml</code>,
+                <code>handlers/main.yml</code></td>
+              <td><code>role</code></td>
+              <td>Standard role directory stubs.</td>
+            </tr>
+            <tr>
+              <td><code>inventory/hosts.yml</code>,
+                <code>inventory/group_vars/all.yml</code></td>
+              <td><code>playbooks</code></td>
+              <td>Starter inventory and group variables.</td>
+            </tr>
+            <tr>
+              <td><code>playbooks/site.yml</code></td>
+              <td><code>playbooks</code></td>
+              <td>Main site playbook stub. The <code>playbooks</code> archetype is operational —
+                it is not published to Galaxy and has no Molecule.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="ansible-hooks">Hooks &amp; CI steps <a class="anchor" href="#ansible-hooks">#</a></h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Hook / step</th><th>Where</th><th>What it does</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>ansible-lint</code></td>
+              <td>prek gate (official hook)</td>
+              <td>Lints all Ansible content at the <code>production</code> profile. The official
+                hook runs in its own environment — no venv or pip extras required. Runs
+                <code>--syntax-check</code> internally. Renovate bumps the pinned hook revision.</td>
+            </tr>
+            <tr>
+              <td>Install Galaxy content (CI)</td>
+              <td>CI</td>
+              <td><code>ansible-galaxy install -r requirements.yml</code> (collections and roles)
+                before the prek gate runs, so ansible-lint can resolve the collections and modules
+                referenced in the content.</td>
+            </tr>
+            <tr>
+              <td>Molecule converge / idempotence / verify</td>
+              <td>CI — <code>collection</code> and <code>role</code> only</td>
+              <td>Runs the <code>molecule/default/</code> scenario via
+                <code>uvx --with molecule-plugins[docker] molecule test</code> (converge,
+                idempotence, then verify). Pinned via <code>uvx</code>; requires the Docker
+                daemon (the CI runner provides it). Not run for the <code>playbooks</code>
+                archetype.</td>
+            </tr>
+            <tr>
+              <td>Publish to Galaxy (<code>publish-galaxy.yml</code>)</td>
+              <td>CI — <code>collection</code> and <code>role</code> only</td>
+              <td>Fires on each GitHub Release. Publishes the built artifact to Ansible Galaxy.
+                Requires the <code>ANSIBLE_GALAXY_API_KEY</code> repository secret — Galaxy has
+                no OIDC equivalent, so a long-lived API key is unavoidable.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-title">VS Code integration</span>
+        The <code>redhat.ansible</code> extension is added to
+        <code>.devcontainer/devcontainer.json</code> when both <code>contains_ansible</code>
+        and <code>include_devcontainer</code> are true. Outside the dev container, install it
+        manually to get YAML validation, hover docs, and task autocompletion inside playbooks,
+        roles, and collections.
       </div>
 
       <!-- ------------------------------------------------------------------ -->

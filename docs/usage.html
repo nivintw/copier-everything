@@ -360,8 +360,91 @@ uvx copier update</code></pre>
                 Python Dockerfile branch. This shape runs first in the test matrix to warm the
                 shared prek and uv caches.</td>
             </tr>
+            <tr>
+              <td><code>ansible-collection</code></td>
+              <td>
+                <code>contains_python: false</code><br>
+                <code>contains_ansible: true</code><br>
+                <code>ansible_kind: collection</code>
+              </td>
+              <td>Ansible collection scaffold. No <code>pyproject.toml</code> or Python toolchain.
+                Exercises ansible-lint (production profile), the molecule skeleton, and the
+                <code>publish-galaxy.yml</code> workflow (Galaxy publish on release, gated on an
+                <code>ANSIBLE_GALAXY_API_KEY</code> repo secret).</td>
+            </tr>
+            <tr>
+              <td><code>ansible-role</code></td>
+              <td>
+                <code>contains_python: false</code><br>
+                <code>contains_ansible: true</code><br>
+                <code>ansible_kind: role</code>
+              </td>
+              <td>Standalone Ansible role. Exercises ansible-lint over
+                <code>meta/galaxy_info</code>, argument specs, and handlers, plus the molecule
+                skeleton and Galaxy publish workflow. No Python toolchain.</td>
+            </tr>
+            <tr>
+              <td><code>ansible-playbooks</code></td>
+              <td>
+                <code>contains_python: false</code><br>
+                <code>contains_ansible: true</code><br>
+                <code>ansible_kind: playbooks</code>
+              </td>
+              <td>Playbook-centric repo (no collection or role wrapper). Exercises ansible-lint
+                over <code>playbooks/</code> and <code>inventory/</code>. No molecule, no Galaxy
+                publish step, no Python toolchain.</td>
+            </tr>
           </tbody>
         </table>
+      </div>
+
+      <h2 id="ansible">Ansible projects <a class="anchor" href="#ansible">#</a></h2>
+      <p>Ansible projects (collection, role, or playbooks) carry no <code>pyproject.toml</code> and
+        no Python toolchain — <code>uv sync</code> is skipped by the post-copy tasks. The quality
+        gate runs through <a href="https://ansible.readthedocs.io/projects/lint/">ansible-lint</a>
+        (production profile) wired in via pre-commit.</p>
+
+      <h3 id="ansible-quality-gate">Quality gate</h3>
+      <p class="code-label">Wire up hooks (includes ansible-lint) — run once after generation</p>
+<pre><code>uvx prek install</code></pre>
+
+      <p class="code-label">Install Galaxy content dependencies (once you add entries to requirements.yml)</p>
+<pre><code>uvx --from ansible-core ansible-galaxy install -r requirements.yml</code></pre>
+
+      <p class="code-label">Run the full lint pass — same check CI runs</p>
+<pre><code>uvx prek run ansible-lint --all-files</code></pre>
+
+      <h3 id="ansible-testing">Testing</h3>
+      <p>The testing step depends on the kind:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Kind</th><th>Command</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>collection, role</td>
+              <td><code>uvx --from molecule --with 'molecule-plugins[docker]' molecule test</code>
+                — converge, idempotence, verify (requires Docker)</td>
+            </tr>
+            <tr>
+              <td>playbooks</td>
+              <td><code>ansible-playbook playbooks/site.yml</code> — run the play against your
+                inventory</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="ansible-publishing">Publishing to Galaxy</h3>
+      <p>Collection and role projects emit a <code>publish-galaxy.yml</code> workflow that fires on
+        each GitHub Release and publishes to
+        <a href="https://galaxy.ansible.com/">Ansible Galaxy</a>. Unlike the PyPI path there is no
+        OIDC Trusted Publishing — add an <code>ANSIBLE_GALAXY_API_KEY</code> repo secret before
+        cutting your first release.</p>
+
+      <div class="callout note">
+        <span class="callout-title">Playbooks do not publish</span>
+        The playbooks kind has no Galaxy publish step — <code>publish_to_galaxy</code> is
+        <code>false</code> and no <code>publish-galaxy.yml</code> is emitted.
       </div>
 
       <h2 id="adoption">Adopting into an existing repo <a class="anchor" href="#adoption">#</a></h2>

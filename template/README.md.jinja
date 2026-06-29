@@ -13,6 +13,9 @@ SPDX-License-Identifier: {{ license }}
 {% if has_python -%}
 uv sync                 # create the venv + install dev tooling
 {% endif -%}
+{% if has_ansible -%}
+uvx --from ansible-core ansible-galaxy install -r requirements.yml   # install Galaxy deps
+{% endif -%}
 uvx prek install        # wire up the pre-commit hooks
 {% if 'pytest' in test_frameworks %}uv run pytest           # run the Python tests
 {% endif %}{% if 'bats' in test_frameworks %}bats tests/             # run the shell tests
@@ -53,7 +56,33 @@ docker compose up --build
 helm lint helm/{{ project_slug }}
 helm template helm/{{ project_slug }}
 ```
+{% endif %}{% if has_ansible %}
+## Ansible
+
+{% if ansible_kind == 'collection' %}An Ansible **collection** (`{{ ansible_namespace }}.{{ ansible_name }}`) — `galaxy.yml` + bundled `roles/`, testable with Molecule and publishable to Ansible Galaxy.
+{% elif ansible_kind == 'role' %}An Ansible **role** (`{{ ansible_namespace }}.{{ ansible_name }}`) — `tasks/`/`defaults/`/`handlers/` + `meta/`, testable with Molecule and publishable to Ansible Galaxy.
+{% else %}An Ansible **playbook project** — `ansible.cfg` + `inventory/` + `playbooks/`. Operational, not published.
 {% endif %}
+Galaxy content dependencies live in `requirements.yml` (installed via `ansible-galaxy install`).
+Linting is **ansible-lint** (it runs `--syntax-check` internally) via the prek gate — no
+`pyproject.toml`/venv needed.
+
+```bash
+uvx --from ansible-core ansible-galaxy install -r requirements.yml   # Galaxy content deps
+uvx prek run ansible-lint --all-files                                # lint (also in the gate)
+{% if ansible_role_based -%}
+uvx --from molecule --with 'molecule-plugins[docker]' molecule test  # converge + verify (needs Docker)
+{% endif -%}
+{% if ansible_kind == 'playbooks' -%}
+ansible-playbook playbooks/site.yml                                  # run the play
+{% endif -%}
+```
+{% if publish_to_galaxy %}
+Published to **[Ansible Galaxy](https://galaxy.ansible.com)** on each GitHub Release
+(`.github/workflows/publish-galaxy.yml`). Galaxy has no OIDC trusted publishing, so set an
+**`ANSIBLE_GALAXY_API_KEY`** repository secret (from your Galaxy account → Preferences → API key)
+to enable it; until then the workflow fails loudly rather than silently skipping.
+{% endif %}{% endif %}
 ## License
 
 [{{ license }}](LICENSE) — and [REUSE](https://reuse.software)-compliant.

@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
+# SPDX-License-Identifier: {{ license }}
+
+---
+# Tasks for the {{ ansible_name }} role. Replace these with the role's real work; use
+# fully-qualified `ansible.builtin.*` (or other FQCN) module names and name every task so
+# ansible-lint's production profile stays green.
+- name: Announce that the {{ ansible_name }} role ran
+  ansible.builtin.debug:
+    msg: "The {{ ansible_name }} role ran."
+  when: {{ ansible_name }}_enabled
