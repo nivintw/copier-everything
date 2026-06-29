@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/nivintw/copier-everything/compare/v1.4.0...v1.5.0) (2026-06-29)
+
+
+### Features
+
+* Source lychee excludes from .config + sync-test infra ([b198ccd](https://github.com/nivintw/copier-everything/commit/b198ccdb61b319a6a79df0ebce6840906bc90c41))
+
 ## [1.4.0](https://github.com/nivintw/copier-everything/compare/v1.3.2...v1.4.0) (2026-06-29)
 
 
