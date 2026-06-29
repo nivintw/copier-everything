@@ -13,11 +13,13 @@
 #   With no args it updates every workflow that carries these pins:
 #     .github/workflows/*.yml, .github/workflows/*.yaml and template/.github/workflows/*.jinja (when present).
 #
-# Tamper gate (CI): set BASE_REF=<git ref> to enforce supply-chain safety. A SHA is then
-# only re-pinned when the *_VERSION actually changed vs BASE_REF. A SHA that differs from
-# upstream while the version is UNCHANGED is treated as a tampered/swapped release asset and
-# fails the run — never silently re-pinned. Without BASE_REF (a human running it locally
-# after a deliberate bump) it just recomputes every pin.
+# Tamper gate (automation): the caller sets BASE_REF=<git ref> to enforce supply-chain
+# safety. A SHA is then only re-pinned when the *_VERSION actually changed vs BASE_REF; a SHA
+# that differs from upstream while the version is UNCHANGED is treated as a tampered/swapped
+# release asset and fails the run — never silently re-pinned. The central self-hosted Renovate
+# runner must export BASE_REF (e.g. origin/<base-branch>) when it runs this as a postUpgradeTask,
+# or the gate is off. Without BASE_REF (a human running it locally after a deliberate bump) it
+# just recomputes every pin.
 #
 # Requirements: bash 4.4+, curl, sha256sum (or shasum), sed, grep, awk, mktemp, head; git when BASE_REF set.
 set -euo pipefail
