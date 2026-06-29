@@ -127,6 +127,21 @@ def _yaml(path: Path) -> dict:
     return yaml.safe_load(path.read_text())
 
 
+def _triggers(doc: dict) -> dict:
+    """Return a workflow's ``on:`` mapping under either key representation.
+
+    PyYAML (YAML 1.1) coerces the bare ``on:`` key to the boolean ``True``; a YAML 1.2 loader
+    keeps it as the string ``"on"``. Accept either so the test isn't tied to the loader.
+    """
+    return doc[True] if True in doc else doc["on"]
+
+
+def _drop_triggers(doc: dict) -> None:
+    """Remove the ``on:`` key under either representation (bool ``True`` or the string ``"on"``)."""
+    doc.pop(True, None)
+    doc.pop("on", None)
+
+
 def test_every_rendered_file_is_classified(generated_project_dir: Path) -> None:
     """Every file a render produces must be in exactly one sync bucket.
 
@@ -284,9 +299,8 @@ def test_refresh_binary_checksums_workflow(template_dir: Path, generated_project
     root = _yaml(template_dir / ".github/workflows/refresh-binary-checksums.yml")
     render = _yaml(generated_project_dir / ".github/workflows/refresh-binary-checksums.yml")
 
-    on_key = True  # YAML 1.1 parses the `on:` key as the boolean True.
-    root_paths = root[on_key]["push"]["paths"]
-    render_paths = render[on_key]["push"]["paths"]
+    root_paths = _triggers(root)["push"]["paths"]
+    render_paths = _triggers(render)["push"]["paths"]
     # Deviation: the root additionally refreshes the template's own pinned workflows.
     assert "template/.github/workflows/**" in root_paths, (
         "root refresh workflow should also watch template/.github/workflows/**!"
@@ -296,7 +310,8 @@ def test_refresh_binary_checksums_workflow(template_dir: Path, generated_project
     )
 
     # The rest of the workflow (the job that runs the script) must match.
-    del root[on_key], render[on_key]
+    _drop_triggers(root)
+    _drop_triggers(render)
     assert root == render, "refresh-binary-checksums.yml job is not synced!"
 
 
@@ -328,6 +343,6 @@ def test_link_check_workflow(template_dir: Path, generated_project_dir: Path) ->
     # so the shared args (--no-progress, --config, the Markdown glob) stay under comparison.
     set_args(render, get_args(render).replace("--max-retries 5 --timeout 30 ", ""))
     # Deviation: the root triggers on every PR; the template path-filters to Markdown.
-    on_key = True
-    del root[on_key], render[on_key]
+    _drop_triggers(root)
+    _drop_triggers(render)
     assert root == render, "link-check.yml is not synced (beyond the trigger + retry/timeout)!"
