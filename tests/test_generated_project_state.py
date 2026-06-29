@@ -17,32 +17,28 @@ from __future__ import annotations
 
 import shutil
 import subprocess
-import warnings
 from typing import TYPE_CHECKING
 
 import pytest
-from copier import run_copy
-from copier.errors import DirtyLocalWarning
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pathlib import Path
 
 
 @pytest.fixture(scope="module")
-def generated_project_dir(template_dir: Path, output_dir_module_scope: Path) -> Path:
+def generated_project_dir(
+    template_dir: Path,
+    output_dir_module_scope: Path,
+    render_template: Callable[..., Path],
+) -> Path:
     """Render the default shape WITH post-copy tasks (git init, uv sync, commit, prek install)."""
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=DirtyLocalWarning)
-        run_copy(
-            str(template_dir),
-            str(output_dir_module_scope),
-            data={"project_name": "post-copy-tasks-test"},
-            defaults=True,
-            unsafe=True,
-            vcs_ref="HEAD",
-            skip_tasks=False,
-        )
-    return output_dir_module_scope
+    return render_template(
+        template_dir,
+        output_dir_module_scope,
+        data={"project_name": "post-copy-tasks-test"},
+        skip_tasks=False,
+    )
 
 
 def test_no_dirty_local_changes(generated_project_dir: Path) -> None:

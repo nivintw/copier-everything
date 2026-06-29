@@ -6,64 +6,109 @@
 copier-everything dogfoods its own template: the repo root is meant to track what a generated
 project receives, so a tooling change lands in BOTH places. There is no automated render of the
 root (it carries deliberate divergences), so these tests are the guard — they render the
-template and compare the output against the repo's own root files. Files that legitimately
-differ are compared structurally with the deviation documented and asserted; files that differ
-substantially by design are listed in NOT-SYNCED below and intentionally not tested.
+template and compare the output against the repo's own root files.
+
+Every file a render produces is classified into exactly one of three buckets, and
+``test_every_rendered_file_is_classified`` fails if a render produces a file in none of them —
+so a newly added template file can't silently fall through the guard:
+
+- ``TRIVIALLY_EQUAL`` — must be byte-for-byte identical (``test_trivially_equal_files``).
+- ``STRUCTURALLY_TESTED`` — legitimately differs; a dedicated test below asserts the rest
+  matches after subtracting the documented deviation.
+- ``NOT_SYNCED`` — differs substantially by design, or is generated; intentionally not asserted
+  (reasons grouped inline below).
 
 The render reflects HEAD (committed state), so run these on a clean tree (as CI does) — a dirty
 working tree can produce spurious diffs.
-
-NOT SYNCED (differ substantially by design, or are generated) — intentionally untested:
-- .github/workflows/ci.yml, main.yml: root's CI is the template's own render-matrix gate
-  (and release flow), not a generated project's lint-and-test gate — fundamentally different.
-- .pre-commit-config.yaml: root's prek config is specialized for authoring the template.
-- .config/typos.toml, .config/licenserc.toml, REUSE.toml: root's spellcheck/licensing config
-  is specialized for the template tree (excludes template/**, handles json5, etc.).
-- .config/release-please-config.json, .config/.release-please-manifest.json: root carries its
-  own bootstrap-sha and real version, not a freshly-scaffolded 0.0.0 project.
-- README.md, AGENTS.md, CHANGELOG.md, CONTRIBUTING.md, SECURITY.md: prose — repo-specific or
-  release-generated.
-- .gitignore, .envrc, .python-version, .copier-answers.yml, .editorconfig, .github/CODEOWNERS,
-  .github/ISSUE_TEMPLATE/**, .github/PULL_REQUEST_TEMPLATE.md, .config/markdown-header.toml:
-  root ships its own or deliberately omits these (.editorconfig differs only in a comment).
-- tests/**: the template ships a smoke test; this repo has its own suite (you are reading it).
 """
 
 from __future__ import annotations
 
 import tomllib
-import warnings
 from typing import TYPE_CHECKING
 
 import pyjson5
 import pytest
 import yaml
-from copier import run_copy
-from copier.errors import DirtyLocalWarning
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pathlib import Path
+
+# Must be byte-for-byte identical between this repo's root and a render.
+TRIVIALLY_EQUAL = {
+    ".config/rumdl.toml",
+    ".config/yamllint.yaml",
+    ".github/workflows/label-hygiene.yml",
+    "LICENSE",
+    "LICENSES/MIT.txt",
+}
+
+# Legitimately differs; the named test subtracts the documented deviation and compares the rest.
+STRUCTURALLY_TESTED = {
+    "pyproject.toml",  # test_pyproject_toml
+    ".config/lychee.toml",  # test_lychee_toml
+    ".cz.toml",  # test_cz_toml
+    ".vscode/settings.json",  # test_vscode_settings
+    ".vscode/extensions.json",  # test_vscode_extensions
+    ".github/workflows/pr.yml",  # test_pr_workflow
+    ".github/workflows/refresh-binary-checksums.yml",  # test_refresh_binary_checksums_workflow
+    ".github/workflows/link-check.yml",  # test_link_check_workflow
+}
+
+# Differs substantially by design, or is generated — intentionally not asserted.
+NOT_SYNCED = {
+    # Root's CI is the template's own render-matrix gate + release flow, not a generated
+    # project's lint-and-test gate — fundamentally different workflows.
+    ".github/workflows/ci.yml",
+    ".github/workflows/main.yml",
+    # Root's authoring config is specialized for the template tree (excludes template/**,
+    # handles json5, carries its own version/bootstrap, etc.).
+    ".pre-commit-config.yaml",
+    ".config/typos.toml",
+    ".config/licenserc.toml",
+    "REUSE.toml",
+    ".config/release-please-config.json",
+    ".config/.release-please-manifest.json",
+    ".github/renovate.json",  # root uses renovate.json5 (json5 comments)
+    "scripts/refresh-binary-checksums.sh",  # root also refreshes template/**/*.jinja pins
+    # Prose — repo-specific or release-generated.
+    "README.md",
+    "AGENTS.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    # Root ships its own or deliberately omits these (.editorconfig differs only in a comment).
+    ".gitignore",
+    ".envrc",
+    ".python-version",
+    ".copier-answers.yml",
+    ".editorconfig",
+    ".github/CODEOWNERS",
+    ".github/ISSUE_TEMPLATE/bug_report.yml",
+    ".github/ISSUE_TEMPLATE/config.yml",
+    ".github/ISSUE_TEMPLATE/feature_request.yml",
+    ".github/PULL_REQUEST_TEMPLATE.md",
+    ".config/markdown-header.toml",
+    # The template ships a smoke test; this repo has its own suite (you are reading it).
+    "tests/conftest.py",
+    "tests/test_smoke.py",
+}
 
 
 @pytest.fixture(scope="module")
-def generated_project_dir(template_dir: Path, output_dir_module_scope: Path) -> Path:
-    """Render the template once (module scope) for the whole sync comparison.
-
-    Renders the "pytest, no python source" shape — the shape this repo's own root is — so the
-    rendered tree is the right thing to compare the root against.
-    """
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=DirtyLocalWarning)
-        run_copy(
-            str(template_dir),
-            str(output_dir_module_scope),
-            data={"project_name": "copier-everything", "python_source": False},
-            defaults=True,
-            unsafe=True,
-            vcs_ref="HEAD",
-            skip_tasks=True,
-        )
-    return output_dir_module_scope
+def generated_project_dir(
+    template_dir: Path,
+    output_dir_module_scope: Path,
+    render_template: Callable[..., Path],
+) -> Path:
+    """Render the "pytest, no python source" shape — the shape this repo's own root is."""
+    return render_template(
+        template_dir,
+        output_dir_module_scope,
+        data={"project_name": "copier-everything", "python_source": False},
+        skip_tasks=True,
+    )
 
 
 def _toml(path: Path) -> dict:
@@ -78,16 +123,34 @@ def _yaml(path: Path) -> dict:
     return yaml.safe_load(path.read_text())
 
 
+def test_every_rendered_file_is_classified(generated_project_dir: Path) -> None:
+    """Every file a render produces must be in exactly one sync bucket.
+
+    This turns the buckets into an enforced partition: add a file to the template and this fails
+    until it's classified, so the dogfooding guard can't silently stop covering a new file.
+    """
+    # The buckets must be disjoint (a file classified twice is a bookkeeping bug).
+    seen: set[str] = set()
+    for bucket in (TRIVIALLY_EQUAL, STRUCTURALLY_TESTED, NOT_SYNCED):
+        dupes = seen & bucket
+        assert not dupes, f"files classified in more than one sync bucket: {sorted(dupes)}"
+        seen |= bucket
+
+    rendered = {
+        str(path.relative_to(generated_project_dir))
+        for path in generated_project_dir.rglob("*")
+        if path.is_file() and ".git" not in path.relative_to(generated_project_dir).parts
+    }
+    unclassified = rendered - seen
+    assert not unclassified, (
+        "rendered files not classified as TRIVIALLY_EQUAL / STRUCTURALLY_TESTED / NOT_SYNCED "
+        f"in test_syncd_files.py — add each to the right bucket: {sorted(unclassified)}"
+    )
+
+
 def test_trivially_equal_files(template_dir: Path, generated_project_dir: Path) -> None:
     """Files that must be byte-for-byte identical between root and a render."""
-    trivially_equal_files = [
-        ".config/rumdl.toml",
-        ".config/yamllint.yaml",
-        ".github/workflows/label-hygiene.yml",
-        "LICENSE",
-        "LICENSES/MIT.txt",
-    ]
-    for relative_path in trivially_equal_files:
+    for relative_path in sorted(TRIVIALLY_EQUAL):
         root_text = (template_dir / relative_path).read_text()
         render_text = (generated_project_dir / relative_path).read_text()
         assert root_text == render_text, f"{relative_path} is not synced (raw content differs)!"
@@ -102,8 +165,8 @@ def test_pyproject_toml(template_dir: Path, generated_project_dir: Path) -> None
     assert set(root["project"].keys()) == set(render["project"].keys()), (
         "pyproject [project] keys are not synced!"
     )
-    # Deviation: [dependency-groups] contents differ (root adds copier/pyjson5/pytest-xdist for
-    # the template's own test suite), but the group keys must match.
+    # Deviation: [dependency-groups] contents differ (root adds copier/pyjson5 for the
+    # template's own test suite), but the group keys must match.
     assert set(root["dependency-groups"].keys()) == set(render["dependency-groups"].keys()), (
         "pyproject [dependency-groups] keys are not synced!"
     )
@@ -132,8 +195,15 @@ def test_lychee_toml(template_dir: Path, generated_project_dir: Path) -> None:
     )
 
 
+def test_cz_toml(template_dir: Path, generated_project_dir: Path) -> None:
+    """Commitizen config is identical between root and render (files differ only in comments)."""
+    assert _toml(template_dir / ".cz.toml") == _toml(generated_project_dir / ".cz.toml"), (
+        ".cz.toml commitizen config is not synced!"
+    )
+
+
 def test_vscode_settings(template_dir: Path, generated_project_dir: Path) -> None:
-    """.vscode/settings.json: shared editor settings synced; Python-package settings excepted."""
+    """VS Code settings: shared editor config synced; the Python-package settings excepted."""
     root = _json5(template_dir / ".vscode/settings.json")
     render = _json5(generated_project_dir / ".vscode/settings.json")
 
@@ -151,7 +221,7 @@ def test_vscode_settings(template_dir: Path, generated_project_dir: Path) -> Non
 
 
 def test_vscode_extensions(template_dir: Path, generated_project_dir: Path) -> None:
-    """.vscode/extensions.json: language-agnostic recommendations synced; known swaps excepted."""
+    """VS Code recommendations: language-agnostic set synced; per-language swaps excepted."""
     root = _json5(template_dir / ".vscode/extensions.json")
     render = _json5(generated_project_dir / ".vscode/extensions.json")
 
@@ -167,27 +237,19 @@ def test_vscode_extensions(template_dir: Path, generated_project_dir: Path) -> N
     )
 
 
-def test_cz_toml(template_dir: Path, generated_project_dir: Path) -> None:
-    """.cz.toml: commitizen config is identical (the files differ only in comments)."""
-    assert _toml(template_dir / ".cz.toml") == _toml(generated_project_dir / ".cz.toml"), (
-        ".cz.toml commitizen config is not synced!"
-    )
-
-
 def test_pr_workflow(template_dir: Path, generated_project_dir: Path) -> None:
-    """pr.yml: the open-PR pipeline is identical (the files differ only in comments)."""
+    """The open-PR pipeline (pr.yml) is identical (the files differ only in comments)."""
     assert _yaml(template_dir / ".github/workflows/pr.yml") == _yaml(
         generated_project_dir / ".github/workflows/pr.yml"
     ), ".github/workflows/pr.yml is not synced!"
 
 
 def test_refresh_binary_checksums_workflow(template_dir: Path, generated_project_dir: Path) -> None:
-    """refresh-binary-checksums.yml: synced except the root also watches the template tree."""
+    """Refresh-binary-checksums workflow: synced except the root also watches the template tree."""
     root = _yaml(template_dir / ".github/workflows/refresh-binary-checksums.yml")
     render = _yaml(generated_project_dir / ".github/workflows/refresh-binary-checksums.yml")
 
-    # YAML parses the `on:` key as the boolean True (YAML 1.1 truthy).
-    on_key = True
+    on_key = True  # YAML 1.1 parses the `on:` key as the boolean True.
     root_paths = root[on_key]["push"]["paths"]
     render_paths = render[on_key]["push"]["paths"]
     # Deviation: the root additionally refreshes the template's own pinned workflows.
@@ -204,24 +266,27 @@ def test_refresh_binary_checksums_workflow(template_dir: Path, generated_project
 
 
 def test_link_check_workflow(template_dir: Path, generated_project_dir: Path) -> None:
-    """link-check.yml: both source excludes from .config/lychee.toml; trigger/tuning differ."""
+    """Link-check: both source excludes from .config/lychee.toml; only trigger + tuning differ."""
     root = _yaml(template_dir / ".github/workflows/link-check.yml")
     render = _yaml(generated_project_dir / ".github/workflows/link-check.yml")
 
-    def lychee_args(doc: dict) -> str:
+    def get_args(doc: dict) -> str:
         return doc["jobs"]["lychee"]["steps"][1]["with"]["args"]
+
+    def set_args(doc: dict, value: str) -> None:
+        doc["jobs"]["lychee"]["steps"][1]["with"]["args"] = value
 
     # The #87 fix must be synced on both sides: excludes sourced from the config file, no inline
     # --exclude (which would reintroduce lychee's CLI-vs-config merge ambiguity).
     for name, doc in (("root", root), ("render", render)):
-        args = lychee_args(doc)
+        args = get_args(doc)
         assert "--config .config/lychee.toml" in args, f"{name} link-check must use --config!"
         assert "--exclude" not in args, f"{name} link-check must not pass inline --exclude!"
 
-    # Deviation: the root triggers on every PR and omits --max-retries/--timeout; the template
-    # path-filters to Markdown and tunes retries. Both differences are intentional.
+    # Deviation: the template tunes retries/timeout; the root omits them. Strip ONLY those tokens
+    # so the shared args (--no-progress, --config, the Markdown glob) stay under comparison.
+    set_args(render, get_args(render).replace("--max-retries 5 --timeout 30 ", ""))
+    # Deviation: the root triggers on every PR; the template path-filters to Markdown.
     on_key = True
     del root[on_key], render[on_key]
-    root["jobs"]["lychee"]["steps"][1]["with"]["args"] = ""
-    render["jobs"]["lychee"]["steps"][1]["with"]["args"] = ""
-    assert root == render, "link-check.yml is not synced (beyond trigger + lychee args tuning)!"
+    assert root == render, "link-check.yml is not synced (beyond the trigger + retry/timeout)!"
