@@ -37,6 +37,7 @@
         <a href="questions.html" class="current">Template questions</a>
         <a href="#project-identity">Project identity</a>
         <a href="#testing-python">Testing &amp; Python shape</a>
+        <a href="#ansible">Ansible shape</a>
         <a href="#modules">Includable modules</a>
         <a href="#meta-settings">Copier meta-settings</a>
         <a href="modules.html">Modules &amp; levers</a>
@@ -551,6 +552,206 @@
           </div>
           <p><strong>Help:</strong> Minimum Python version (e.g. 3.14)</p>
           <p><strong>Drives:</strong> The <code>requires-python = "&gt;=X.Y"</code> constraint in <code>pyproject.toml</code> and the <code>target-version = "pyXY"</code> setting in the ruff config. MAJOR.MINOR only — a patch component or comparator would produce an invalid <code>target-version</code> value in ruff's configuration.</p>
+        </div>
+      </details>
+
+      <!-- ================================================================ -->
+      <h2 id="ansible">Ansible shape <a class="anchor" href="#ansible">#</a></h2>
+
+      <p>Four levers configure the Ansible scaffold, fully orthogonal to Python — both can be true simultaneously. <code>contains_ansible</code> is the user-facing entry point. The hidden computed flag <code>has_ansible</code> is the single gate every Ansible template checks. From there: <code>ansible_kind</code> selects the scaffold shape; the hidden computed flag <code>ansible_role_based</code> gates the namespace/name and Galaxy publish path to the two role-based kinds (collection and role); and <code>publish_to_galaxy</code> emits the publish workflow.</p>
+
+      <div class="callout note">
+        <span class="callout-title">Dependency chain</span>
+        <code>contains_ansible</code> → <code>has_ansible</code> (computed, hidden) → <code>ansible_kind</code> → <code>ansible_role_based</code> (computed, hidden) → <code>ansible_namespace</code> / <code>ansible_name</code> → <code>publish_to_galaxy</code>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Question</th><th>Type</th><th>Default</th><th>When shown</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>contains_ansible</code></td>
+              <td><span class="badge type-bool">bool</span></td>
+              <td><code>false</code></td>
+              <td>Always</td>
+            </tr>
+            <tr>
+              <td><code>has_ansible</code></td>
+              <td><span class="badge type-bool">bool</span></td>
+              <td><code>{{ contains_ansible }}</code></td>
+              <td><em>Never — hidden / computed (<code>when: false</code>)</em></td>
+            </tr>
+            <tr>
+              <td><code>ansible_kind</code></td>
+              <td><span class="badge type-str">str</span></td>
+              <td><code>collection</code></td>
+              <td><code>when: {{ has_ansible }}</code></td>
+            </tr>
+            <tr>
+              <td><code>ansible_role_based</code></td>
+              <td><span class="badge type-bool">bool</span></td>
+              <td><code>{{ has_ansible and ansible_kind in ['collection', 'role'] }}</code></td>
+              <td><em>Never — hidden / computed (<code>when: false</code>)</em></td>
+            </tr>
+            <tr>
+              <td><code>ansible_namespace</code></td>
+              <td><span class="badge type-str">str</span></td>
+              <td><code>{{ repo_owner | lower | replace('-', '_') }}</code></td>
+              <td><code>when: {{ ansible_role_based }}</code></td>
+            </tr>
+            <tr>
+              <td><code>ansible_name</code></td>
+              <td><span class="badge type-str">str</span></td>
+              <td><code>{{ project_slug | replace('-', '_') }}</code></td>
+              <td><code>when: {{ ansible_role_based }}</code></td>
+            </tr>
+            <tr>
+              <td><code>publish_to_galaxy</code></td>
+              <td><span class="badge type-bool">bool</span></td>
+              <td><code>{{ ansible_role_based }}</code></td>
+              <td><code>when: {{ ansible_role_based }}</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <details class="def" id="contains_ansible">
+        <summary>
+          <span class="def-name">contains_ansible</span>
+          <span class="badge type-bool">bool</span>
+          Does this project contain Ansible content (playbooks, a role, or a collection)?
+        </summary>
+        <div class="def-body">
+          <div class="meta-row">
+            <span><span class="k">default</span> <code>false</code></span>
+          </div>
+          <p><strong>Help:</strong> Does this project contain Ansible content (playbooks, a role, or a collection)?</p>
+          <p><strong>Drives:</strong> The sole input to the <code>has_ansible</code> computed flag; the user-facing entry point to the entire Ansible cascade. Orthogonal to Python — a project can be both a Python package and an Ansible collection simultaneously. Defaults to <code>false</code> because most projects do not need Ansible scaffolding.</p>
+        </div>
+      </details>
+
+      <details class="def" id="has_ansible">
+        <summary>
+          <span class="def-name">has_ansible</span>
+          <span class="badge type-bool">bool</span>
+          <em>Hidden / computed — never shown to the user (<code>when: false</code>)</em>
+        </summary>
+        <div class="def-body">
+          <div class="meta-row">
+            <span><span class="k">when</span> <code>false</code> — never displayed at the prompt</span>
+          </div>
+          <div class="meta-row">
+            <span><span class="k">default</span> <code>{{ contains_ansible }}</code></span>
+          </div>
+          <p><strong>Drives:</strong> The single internal gate that every Ansible-specific template checks: the scaffold structure, Galaxy metadata, Molecule, and the CI lint gate. A skipped question (<code>when: false</code>) still resolves its <code>default</code> expression, so this value is always available to downstream questions and templates.</p>
+          <div class="callout note">
+            <span class="callout-title">Why a separate computed flag?</span>
+            Mirrors <code>has_python</code>: gating all Ansible templates on one computed value keeps the OR/AND logic in one place and lets every downstream question — <code>ansible_kind</code>, <code>ansible_role_based</code>, etc. — depend on it cleanly without repeating the condition.
+          </div>
+        </div>
+      </details>
+
+      <details class="def" id="ansible_kind">
+        <summary>
+          <span class="def-name">ansible_kind</span>
+          <span class="badge type-str">str</span>
+          Ansible content shape — collection, role, or playbooks
+        </summary>
+        <div class="def-body">
+          <div class="meta-row">
+            <span><span class="k">default</span> <code>collection</code></span>
+            <span><span class="k">when</span> <code>{{ has_ansible }}</code></span>
+          </div>
+          <div class="meta-row">
+            <span><span class="k">choices</span>
+              <code>collection</code> (Galaxy-publishable; scaffolds <code>galaxy.yml</code>, <code>roles/</code>, <code>plugins/</code>),
+              <code>role</code> (standalone role; scaffolds <code>tasks/</code>, <code>defaults/</code>, <code>handlers/</code>, <code>meta/</code>),
+              <code>playbooks</code> (operational project; scaffolds <code>ansible.cfg</code>, <code>inventory/</code>, <code>playbooks/</code>; not published to Galaxy)
+            </span>
+          </div>
+          <p><strong>Help:</strong> Ansible content shape — drives the scaffold, testing, and publish path</p>
+          <p><strong>Drives:</strong> The directory scaffold shape and the downstream cascade. <code>collection</code> and <code>role</code> activate <code>ansible_role_based</code>, enabling the namespace/name questions, a Molecule scenario, and the Galaxy publish workflow. <code>playbooks</code> is an operational project — no Galaxy namespace, no publish workflow. Only shown when <code>has_ansible</code> is <code>true</code>.</p>
+        </div>
+      </details>
+
+      <details class="def" id="ansible_role_based">
+        <summary>
+          <span class="def-name">ansible_role_based</span>
+          <span class="badge type-bool">bool</span>
+          <em>Hidden / computed — never shown to the user (<code>when: false</code>)</em>
+        </summary>
+        <div class="def-body">
+          <div class="meta-row">
+            <span><span class="k">when</span> <code>false</code> — never displayed at the prompt</span>
+          </div>
+          <div class="meta-row">
+            <span><span class="k">default</span> <code>{{ has_ansible and ansible_kind in ['collection', 'role'] }}</code></span>
+          </div>
+          <p><strong>Drives:</strong> The gate for the profile shared by <code>collection</code> and <code>role</code>: a Galaxy namespace/name, a Molecule scenario, and a Galaxy publish path. Every downstream question that belongs to that profile reads this single flag instead of repeating the kind check — the same pattern as <code>has_python</code>. Resolves to <code>false</code> when Ansible is absent or when <code>ansible_kind</code> is <code>playbooks</code>.</p>
+          <div class="callout note">
+            <span class="callout-title">Why a separate computed flag?</span>
+            <code>collection</code> and <code>role</code> share a Galaxy namespace/name, a Molecule scenario, and a publish path; <code>playbooks</code> does not. A single computed flag keeps that distinction in one place rather than repeating <code>ansible_kind in ['collection', 'role']</code> in every downstream question and template.
+          </div>
+        </div>
+      </details>
+
+      <details class="def" id="ansible_namespace">
+        <summary>
+          <span class="def-name">ansible_namespace</span>
+          <span class="badge type-str">str</span>
+          Ansible Galaxy namespace
+        </summary>
+        <div class="def-body">
+          <div class="meta-row">
+            <span><span class="k">default</span> <code>{{ repo_owner | lower | replace('-', '_') }}</code></span>
+            <span><span class="k">when</span> <code>{{ ansible_role_based }}</code></span>
+          </div>
+          <div class="meta-row">
+            <span><span class="k">validator</span> Must be lowercase, start with a letter, and use underscores instead of dashes or spaces.</span>
+          </div>
+          <p><strong>Help:</strong> Ansible Galaxy namespace (lowercase; underscores, not dashes)</p>
+          <p><strong>Drives:</strong> The namespace portion of the fully-qualified collection or role name (<code>&lt;namespace&gt;.&lt;name&gt;</code>). Used in <code>galaxy.yml</code>, <code>meta/main.yml</code>, and the Galaxy publish workflow. Defaults to <code>repo_owner</code> lowercased with dashes converted to underscores, following Galaxy's naming rules (lowercase, start with a letter, underscores only). Only shown when <code>ansible_role_based</code> is <code>true</code>.</p>
+        </div>
+      </details>
+
+      <details class="def" id="ansible_name">
+        <summary>
+          <span class="def-name">ansible_name</span>
+          <span class="badge type-str">str</span>
+          Ansible collection/role name
+        </summary>
+        <div class="def-body">
+          <div class="meta-row">
+            <span><span class="k">default</span> <code>{{ project_slug | replace('-', '_') }}</code></span>
+            <span><span class="k">when</span> <code>{{ ansible_role_based }}</code></span>
+          </div>
+          <div class="meta-row">
+            <span><span class="k">validator</span> Must be lowercase, start with a letter, and use underscores instead of dashes or spaces.</span>
+          </div>
+          <p><strong>Help:</strong> Ansible collection/role name (lowercase; underscores, not dashes)</p>
+          <p><strong>Drives:</strong> The name portion of the fully-qualified collection or role name (<code>&lt;namespace&gt;.&lt;name&gt;</code>). Used in <code>galaxy.yml</code>, <code>meta/main.yml</code>, the FQCN throughout templates, and the Galaxy publish workflow. Defaults to <code>project_slug</code> with dashes converted to underscores. Only shown when <code>ansible_role_based</code> is <code>true</code>.</p>
+        </div>
+      </details>
+
+      <details class="def" id="publish_to_galaxy">
+        <summary>
+          <span class="def-name">publish_to_galaxy</span>
+          <span class="badge type-bool">bool</span>
+          Emit a Galaxy publish workflow?
+        </summary>
+        <div class="def-body">
+          <div class="meta-row">
+            <span><span class="k">default</span> <code>{{ ansible_role_based }}</code></span>
+            <span><span class="k">when</span> <code>{{ ansible_role_based }}</code></span>
+          </div>
+          <p><strong>Help:</strong> Emit a Galaxy publish workflow (fires on each GitHub Release; needs an ANSIBLE_GALAXY_API_KEY secret)?</p>
+          <p><strong>Drives:</strong> Adds <code>.github/workflows/publish-galaxy.yml</code> — a GitHub Actions workflow that publishes the collection or role to Ansible Galaxy on each GitHub Release. Answer <code>false</code> for collections or roles that are not published to the public Galaxy. Only shown when <code>ansible_role_based</code> is <code>true</code>.</p>
+          <div class="callout note">
+            <span class="callout-title">No OIDC — an API key is required</span>
+            Unlike <code>publish_to_pypi</code>, which uses OIDC Trusted Publishing (no long-lived tokens), Ansible Galaxy does not support OIDC. The generated workflow reads an <code>ANSIBLE_GALAXY_API_KEY</code> secret that you must provision in your repository settings.
+          </div>
         </div>
       </details>
 

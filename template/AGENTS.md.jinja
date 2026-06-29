@@ -44,6 +44,8 @@ version, so it's not just style. `main` is protected (no direct commits); branch
 {% if include_helm %}- `helm/` — Helm chart.
 {% endif -%}
 {% if include_sql %}- `sql/` — SQL (sqlfluff-linted).
+{% endif -%}
+{% if has_ansible %}- {% if ansible_kind == 'collection' %}`galaxy.yml` + `roles/` — the Ansible collection (`{{ ansible_namespace }}.{{ ansible_name }}`).{% elif ansible_kind == 'role' %}`tasks/` / `defaults/` / `handlers/` / `meta/` — the Ansible role (`{{ ansible_namespace }}.{{ ansible_name }}`).{% else %}`playbooks/` / `inventory/` / `ansible.cfg` — the Ansible playbook project.{% endif %} Galaxy deps in `requirements.yml`.
 {% endif %}
 {% if has_python -%}
 ## Python
@@ -51,6 +53,21 @@ version, so it's not just style. `main` is protected (no direct commits); branch
 Managed with [uv](https://docs.astral.sh/uv/). `uv sync` sets up the environment; `uv run …`
 runs in it. Lint/format is **ruff**, type-checking is **ty**.{% if 'pytest' in test_frameworks %} Run tests with `uv run pytest`.{% endif %}
 The interpreter is pinned in `.python-version`.
+
+{% endif -%}
+{% if has_ansible -%}
+## Ansible
+
+{% if ansible_kind == 'collection' %}A collection (`{{ ansible_namespace }}.{{ ansible_name }}`) — `galaxy.yml` + bundled `roles/`.{% elif ansible_kind == 'role' %}A standalone role (`{{ ansible_namespace }}.{{ ansible_name }}`).{% else %}A playbook project (`ansible.cfg` + `inventory/` + `playbooks/`).{% endif %} Galaxy content
+dependencies live in `requirements.yml`, installed via `ansible-galaxy install -r requirements.yml`.
+Linting is **ansible-lint** (it runs `--syntax-check` internally) and runs in the prek gate —
+there is no `pyproject.toml`
+or venv, so run tools with `uvx`/the prek hook, not `uv run`.
+
+When you add tasks: use fully-qualified `ansible.builtin.*` module names, name every task and
+play, and write YAML the repo's yamllint accepts (`true`/`false`, not `yes`/`no`; no bare
+octals) so both yamllint and ansible-lint stay green.{% if ansible_role_based %} Integration tests use **Molecule**
+(`molecule test` — converge, idempotence, verify; needs Docker).{% endif %}
 
 {% endif -%}
 ## Licensing

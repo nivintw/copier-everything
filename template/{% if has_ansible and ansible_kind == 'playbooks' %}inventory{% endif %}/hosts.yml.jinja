@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
+# SPDX-License-Identifier: {{ license }}
+
+---
+# Static inventory (https://docs.ansible.com/ansible/latest/inventory_guide/intro_inventory.html).
+# Replace localhost with your managed hosts, or point ansible.cfg at a dynamic inventory plugin.
+all:
+  hosts:
+    localhost:
+      ansible_connection: local

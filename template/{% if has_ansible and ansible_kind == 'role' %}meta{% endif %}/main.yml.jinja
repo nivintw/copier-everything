@@ -1,0 +1,28 @@
+# SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
+# SPDX-License-Identifier: {{ license }}
+
+---
+# Role metadata for Ansible Galaxy (galaxy_info). ansible-lint's production profile requires
+# author/description/license/min_ansible_version/platforms/galaxy_tags — trim the platforms
+# list to what the role actually supports.
+galaxy_info:
+  role_name: {{ ansible_name }}
+  namespace: {{ ansible_namespace }}
+  author: {{ author_name }}
+  description: {% if project_description %}{{ project_description }}{% else %}{{ project_name }} Ansible role{% endif +%}
+  license: {{ license }}
+  min_ansible_version: "2.16"
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+    - name: Debian
+      versions:
+        - bookworm
+    - name: Ubuntu
+      versions:
+        - jammy
+        - noble
+  galaxy_tags:
+    - utility
+dependencies: []

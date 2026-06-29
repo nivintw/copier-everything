@@ -51,4 +51,12 @@ override.tf.json
 *.tgz
 charts/*.tgz
 Chart.lock
-{% endif -%}
+{% endif %}{% if has_ansible %}
+### Ansible ###
+# Local Ansible cache/artifacts and retry files.
+.ansible/
+*.retry
+{% if ansible_kind == 'collection' %}
+# Built collection tarball (ansible-galaxy collection build).
+{{ ansible_namespace }}-{{ ansible_name }}-*.tar.gz
+{% endif %}{% endif -%}

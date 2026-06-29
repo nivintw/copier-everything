@@ -1,0 +1,27 @@
+# SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
+# SPDX-License-Identifier: {{ license }}
+
+---
+# ansible-lint config — https://ansible.readthedocs.io/projects/lint/configuring/
+# `.config/ansible-lint.yml` is one of ansible-lint's natively auto-discovered locations, so it
+# sits with the other tool configs. 'production' is the strictest built-in profile. ansible-lint
+# runs `--syntax-check` internally (so no separate syntax hook), while YAML *style* is owned by
+# the standalone yamllint hook — ansible-lint's own yaml rule is deferred below to avoid
+# double-linting.
+profile: production
+
+exclude_paths:
+  # Local Ansible cache/content (anything under .ansible/) — never our code, don't lint it.
+  - .ansible/
+
+skip_list:
+  # This project versions from 0.0.0 and bumps via release-please, not a hand-set version, so
+  # the Galaxy ">= 1.0.0" floor rule doesn't apply until the first real release is cut.
+  - galaxy[version-incorrect]
+  # YAML *style* has a single owner: the standalone yamllint hook (.config/yamllint.yaml), which
+  # already lints every YAML file (including these Ansible ones) with the repo's tuned rules
+  # (line-length as a warning, etc.). Defer the whole `yaml` rule here so ansible-lint's bundled
+  # yamllint doesn't re-judge the same files with different defaults — that double-linting would
+  # otherwise flag non-Ansible YAML like .github/workflows and .copier-answers.yml. ansible-lint
+  # keeps enforcing the Ansible-semantic rules (fqcn, name, no-changed-when, …).
+  - yaml

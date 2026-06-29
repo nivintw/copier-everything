@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: © 2026 Tyler Nivin
+# SPDX-License-Identifier: MIT
+
+# Shape: an Ansible playbook project, no Python — exercises ansible-lint over playbooks/ +
+# inventory/, the no-Molecule path (playbooks kind), and the pyproject-free toolchain.
+project_name: Ansible Playbooks
+project_description: ansible playbook project shape
+test_frameworks: []
+contains_python: false
+contains_ansible: true
+ansible_kind: playbooks

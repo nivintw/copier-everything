@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: © 2026 Tyler Nivin
+# SPDX-License-Identifier: MIT
+
+# Shape: a standalone Ansible role, no Python — exercises ansible-lint (production profile) over
+# meta/galaxy_info + argument_specs + handlers, and proves the pyproject-free toolchain.
+project_name: Ansible Role
+project_description: ansible role shape
+test_frameworks: []
+contains_python: false
+contains_ansible: true
+ansible_kind: role

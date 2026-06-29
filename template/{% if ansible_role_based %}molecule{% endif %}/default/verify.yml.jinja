@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
+# SPDX-License-Identifier: {{ license }}
+
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Confirm the host is reachable
+      ansible.builtin.ping:
+      register: ping_result
+
+    - name: Assert the converge succeeded
+      ansible.builtin.assert:
+        that:
+          - ping_result.ping == "pong"
+        success_msg: Converged and reachable.
+        fail_msg: Host did not respond as expected.

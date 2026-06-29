@@ -1,0 +1,30 @@
+# SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
+# SPDX-License-Identifier: {{ license }}
+
+---
+# Molecule default scenario (https://ansible.readthedocs.io/projects/molecule/). `molecule test`
+# runs: dependency → create → converge → idempotence → verify → destroy. The docker driver
+# (molecule-plugins) uses the runner's Docker; the dependency phase installs community.docker
+# (this scenario's requirements.yml) into Ansible's default path, where the driver resolves it.
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  - name: instance
+    image: quay.io/centos/centos:stream9
+    pre_build_image: true
+provisioner:
+  name: ansible
+  env:
+    # Resolve the role-under-test regardless of the checkout directory's name (Molecule expands
+    # the path below at runtime).
+{%- if ansible_kind == 'collection' %}
+    # The collection's bundled role lives in ./roles, so converge includes it by name.
+    ANSIBLE_ROLES_PATH: ${MOLECULE_PROJECT_DIRECTORY}/roles
+{%- else %}
+    # A standalone role IS the project directory, so point at its parent and include by basename.
+    ANSIBLE_ROLES_PATH: ${MOLECULE_PROJECT_DIRECTORY}/..
+{%- endif %}
+verifier:
+  name: ansible

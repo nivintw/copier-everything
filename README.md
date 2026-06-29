@@ -12,7 +12,7 @@ SPDX-License-Identifier: MIT
 **_The starting point for every project I build — clone the baseline, add the modules you need._**
 
 A [Copier](https://copier.readthedocs.io) template that scaffolds a new repo with a
-batteries-included quality baseline, plus opt-in modules for Python, Terraform, Docker,
+batteries-included quality baseline, plus opt-in modules for Python, Ansible, Terraform, Docker,
 and Helm.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -58,7 +58,7 @@ The cross-cutting quality infrastructure, lifted from
 | **REUSE licensing** (`.config/licenserc.toml`, `REUSE.toml`, `LICENSES/`) | Every file carries an SPDX header; `hawkeye` maintains them, `reuse` verifies. |
 | **CI** (`.github/workflows/`) | Each generated repo gets a reusable `ci.yml` gate called by `pr.yml` (every PR) and `main.yml` (push to main → release-please). Every action is SHA-pinned with a version comment, and each hand-installed release binary (trivy, osv-scanner, hawkeye, taplo, kubeconform) is pinned **and SHA256-verified** before use (a Renovate `postUpgradeTask` runs `scripts/refresh-binary-checksums.sh` to keep the hashes in sync on bumps, folding the fix into Renovate's own commit). The template itself uses the same shape — a reusable root `ci.yml` called by `pr.yml` and `main.yml` (which also runs release-please) (see `tests/`). |
 | **Renovate** (`.github/renovate.json`) | Automates the pins (pre-commit hook revs + action digests) and groups `ruff` bumps so a new lint rule lands as a reviewable PR, not a surprise red. |
-| **Security scanning** | Dependency-CVE scanning (`uv audit`, `osv-scanner`), Terraform IaC misconfig (`checkov`, `trivy`), Dockerfile lint + misconfig (`hadolint`, `trivy config`) and image-layer CVEs (`trivy image`, in CI) — wired wherever the matching shape/module is present. |
+| **Security scanning** | Dependency-CVE scanning (`uv audit`, `osv-scanner`), Terraform IaC misconfig (`checkov`, `trivy`), Dockerfile lint + misconfig (`hadolint`, `trivy config`) and image-layer CVEs (`trivy image`, in CI), Ansible playbook lint (`ansible-lint`) — wired wherever the matching shape/module is present. |
 | **Link checking** (`link-check.yml`) | `lychee` checks the Markdown docs for dead links. A separate CI workflow (not the deterministic gate) since it's a network operation — make `ci` required in branch protection, leave `link-check` advisory. |
 | **Conventional Commits + release-please** (`.cz.toml`, `.config/release-please-config.json`) | Plain Conventional Commits enforced at commit-msg time (commitizen, in `.cz.toml`); release-please derives the version + `CHANGELOG.md` from commit history and publishes via an auto-merged Release PR — continuous releases once checks pass (→ `vX.Y.Z` tag + GitHub Release). Language-agnostic — present even with no Python. |
 | **Governance files** | `CODEOWNERS`, `SECURITY.md`, `CONTRIBUTING.md`, a PR template, and YAML issue forms — every repo starts with the standard hygiene/DX baseline. A `label-hygiene.yml` workflow clears `status:*` progression labels when an issue closes (self-disabling — a no-op for repos that don't use the taxonomy). |
@@ -76,6 +76,7 @@ installable package, a pyproject-only-for-pytest repo, a pytest + bats repo (the
 | `test_frameworks` (`pytest`/`bats`) | the `tests/` suites; empty ⇒ no `tests/`. `pytest` implies Python |
 | `python_source` | `src/<package>` Python source + src assumptions in `pyproject.toml` |
 | `is_package` | `[build-system]` + distribution metadata (installable/publishable) |
+| `contains_ansible` + `ansible_kind` | `ansible.cfg`, `requirements.yml`, `.config/ansible-lint.yml` + kind-specific layout (`collection` → `galaxy.yml` + `molecule/`; `role` → `meta/main.yml` + `molecule/`; `playbooks` → `inventory/` + `playbooks/`); ansible-lint prek hook (pyproject-free); Molecule for collection/role; Galaxy publish support |
 | `include_terraform` | `terraform/` with `versions.tf`, `variables.tf`, `outputs.tf`, `main.tf` + `terraform fmt`/`validate`/`tflint` and `checkov`/`trivy` IaC scanning |
 | `include_docker` | `Dockerfile` (non-root), `.dockerignore`, `compose.yaml` + `hadolint`/`trivy config` lint and a `trivy image` CVE scan in CI |
 | `include_helm` | A starter Helm chart under `helm/<slug>/` + `helm lint` and `kubeconform` manifest validation (CI) |

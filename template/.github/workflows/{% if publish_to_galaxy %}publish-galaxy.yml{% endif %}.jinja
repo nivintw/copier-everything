@@ -1,0 +1,71 @@
+# SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
+# SPDX-License-Identifier: {{ license }}
+
+# Publish to Ansible Galaxy. release-please (main.yml) cuts the `vX.Y.Z` tag + GitHub Release;
+# this job fires on that Release (event `release: published`) and publishes the {{ ansible_kind }}.
+#
+# LOAD-BEARING: this only fires because release-please in main.yml creates the Release using a
+# GitHub App token, NOT the default GITHUB_TOKEN. Releases created with GITHUB_TOKEN do not
+# trigger downstream workflows, so switching release-please back to GITHUB_TOKEN would silently
+# stop publishing.
+#
+# AUTH — an API key (Galaxy has NO OIDC Trusted Publishing, unlike PyPI). Create a key at
+# https://galaxy.ansible.com (Preferences → API key) and add it as the repository secret
+# ANSIBLE_GALAXY_API_KEY. Until it's set the job fails loudly below (no silent no-op). Forks
+# skip cleanly via the job `if`.
+
+name: publish-galaxy
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  galaxy:
+    # Skip on forks only (a fork has no Galaxy key configured) — same rationale as the PyPI
+    # publish job: gate on the event payload's `fork` flag, not a baked-in owner/repo literal,
+    # so a rename can't turn releases into silent no-ops; a real misconfig fails loudly below.
+    if: github.event.repository.fork == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Set up uv
+        # No dependency cache on a release path (a poisoned cache would taint the published
+        # artifact — zizmor cache-poisoning); setup-uv caches by default, so disable it.
+        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+        with:
+          enable-cache: false
+
+      - name: Publish to Ansible Galaxy
+        env:
+          ANSIBLE_GALAXY_API_KEY: ${{ '{{' }} secrets.ANSIBLE_GALAXY_API_KEY {{ '}}' }}
+          # renovate: datasource=pypi depName=ansible-core
+          ANSIBLE_CORE_VERSION: "2.21.1"
+        run: |
+          set -euo pipefail
+          if [ -z "${ANSIBLE_GALAXY_API_KEY:-}" ]; then
+            echo "::error::ANSIBLE_GALAXY_API_KEY secret is not set — add it (Galaxy → Preferences → API key) to publish."
+            exit 1
+          fi
+{%- if ansible_kind == 'collection' %}
+          # Build the collection tarball from galaxy.yml (release-please bumped its version),
+          # then publish it. uvx pulls a pinned ansible-core on demand — no pyproject/venv.
+          uvx --from "ansible-core==${ANSIBLE_CORE_VERSION}" \
+            ansible-galaxy collection build --output-path dist
+          uvx --from "ansible-core==${ANSIBLE_CORE_VERSION}" \
+            ansible-galaxy collection publish \
+            "dist/{{ ansible_namespace }}-{{ ansible_name }}-"*.tar.gz \
+            --api-key "$ANSIBLE_GALAXY_API_KEY"
+{%- else %}
+          # Roles publish by importing the tagged GitHub repo into Galaxy (Galaxy reads the
+          # git tags). The just-released tag is picked up automatically.
+          uvx --from "ansible-core==${ANSIBLE_CORE_VERSION}" \
+            ansible-galaxy role import --api-key "$ANSIBLE_GALAXY_API_KEY" \
+            {{ repo_owner }} {{ repo_name }}
+{%- endif %}

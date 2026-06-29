@@ -271,6 +271,19 @@ repos:
 {%- if sql_use_dbt %}
         additional_dependencies: ["sqlfluff-templater-dbt"]
 {%- endif %}
+{% endif %}{% if has_ansible %}
+  # -------------------------------- 🅰️ Ansible -------------------------------------- #
+  # ansible-lint's official hook: a self-bootstrapping pinned env whose rev Renovate's
+  # pre-commit manager bumps (like ruff/yamllint). It runs ansible's own `--syntax-check`
+  # internally, so no separate syntax-check hook is needed. Collections resolve from Ansible's
+  # default path; install the project's requirements.yml there (CI does this before the gate)
+  # via `ansible-galaxy install -r requirements.yml`. The hook is fully self-contained (no
+  # pyproject/venv), which is what keeps an Ansible-only repo Python-free.
+  - repo: https://github.com/ansible/ansible-lint
+    rev: v26.4.0
+    hooks:
+      - id: ansible-lint
+        name: "🅰️ ansible · Lint playbooks/roles with ansible-lint"
 {% endif %}{% if has_python %}
   # -------------------------------- 🐍 Python --------------------------------------- #
   - repo: https://github.com/astral-sh/ruff-pre-commit

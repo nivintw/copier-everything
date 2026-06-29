@@ -54,7 +54,7 @@ extensions = ["md"]
 {% endif %}
 # '#'-comment files hawkeye doesn't map by default.
 [mapping.SCRIPT_STYLE]
-extensions = ["txt", "fish", "bats"{% if include_terraform %}, "tf"{% endif %}]
+extensions = ["txt", "fish", "bats"{% if include_terraform %}, "tf"{% endif %}{% if has_ansible %}, "cfg"{% endif %}]
 filenames = [".gitignore", ".envrc", ".dockerignore"{% if include_helm %}, ".helmignore"{% endif %}]
 
 [properties]

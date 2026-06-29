@@ -2,7 +2,11 @@
   "name": "{{ project_name }}",
 {%- if has_python %}
   "image": "mcr.microsoft.com/devcontainers/python:{{ python_version }}",
-  "postCreateCommand": "pip install uv && uv sync",
+  "postCreateCommand": "pip install uv && uv sync{% if has_ansible %} && uvx --from ansible-core ansible-galaxy install -r requirements.yml{% endif %}",
+{%- elif has_ansible %}
+  // Ansible tooling is Python-based, so use a Python image even for an Ansible-only repo.
+  "image": "mcr.microsoft.com/devcontainers/python:3.13",
+  "postCreateCommand": "pip install uv && uv tool install ansible-lint && uvx --from ansible-core ansible-galaxy install -r requirements.yml",
 {%- else %}
   "image": "mcr.microsoft.com/devcontainers/base:debian",
 {%- endif %}
@@ -15,7 +19,8 @@
 {%- endif %}
       "extensions": [
         "charliermarsh.ruff",
-        "tamasfe.even-better-toml"
+        "tamasfe.even-better-toml"{% if has_ansible %},
+        "redhat.ansible"{% endif %}
       ]
     }
   }
