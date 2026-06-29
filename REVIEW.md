@@ -98,6 +98,20 @@ The shapes are independent, so the harness **warms the shared prek/uv caches on 
 re-invoking itself per shape — no bash-4 job control). CI additionally caches `~/.cache/prek`
 for the render job, so hook envs aren't cold-bootstrapped every run.
 
+Alongside the matrix, a **pytest suite** (`tests/`, run via `uv run pytest`; in CI by the
+`lint` job) covers what `render-matrix.sh` can't:
+
+- **`test_syncd_files.py`** guards the dogfooding invariant. This repo *is* an instantiation of
+  its own template, kept in step with it by hand (there's no `copier update` against itself).
+  The sync tests render the template and assert each root file either matches the render
+  byte-for-byte, matches structurally after subtracting a *documented* deviation (e.g. the
+  root `link-check` excludes are a superset; `renovate` is `.json5`), or is on an explicit
+  not-synced list — and `test_every_rendered_file_is_classified` fails if a *new* template
+  file falls into none of those buckets, so the guard can't silently lapse.
+- **`test_generated_project_state.py`** renders *with* `copier.yml`'s `_tasks` (which
+  `render-matrix.sh` skips via `--skip-tasks`) and asserts the post-copy outcome: a clean
+  committed tree, a `.venv` + `uv.lock` from `uv sync`, and `prek`-installed git hooks.
+
 ## CI / supply-chain hardening (issue #3)
 
 The workflow/release pipeline and dependency pins are hardened end-to-end:
