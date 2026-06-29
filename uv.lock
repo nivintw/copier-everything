@@ -54,6 +54,7 @@ dev = [
     { name = "copier" },
     { name = "pyjson5" },
     { name = "pytest" },
+    { name = "pyyaml" },
     { name = "ruff" },
     { name = "ty" },
 ]
@@ -65,6 +66,7 @@ dev = [
     { name = "copier", specifier = ">=9.11.0" },
     { name = "pyjson5", specifier = ">=2.0.0" },
     { name = "pytest", specifier = ">=8" },
+    { name = "pyyaml", specifier = ">=6" },
     { name = "ruff", specifier = ">=0.12" },
     { name = "ty", specifier = ">=0.0.1" },
 ]
