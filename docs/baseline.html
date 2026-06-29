@@ -370,7 +370,7 @@
             <tr>
               <td><code>link-check.yml</code></td>
               <td><code>on: pull_request</code> (Markdown paths only), <code>workflow_dispatch</code></td>
-              <td>Runs <a href="https://lychee.cli.rs/">lychee</a> on all <code>**/*.md</code> files to detect dead links. Kept separate from <code>ci.yml</code> because link checking is a network operation — inherently flaky and dependent on third-party uptime. Make <code>ci</code> required in branch protection; treat <code>link-check</code> as advisory.</td>
+              <td>Runs <a href="https://lychee.cli.rs/">lychee</a> on all <code>**/*.md</code> files to detect dead links. Kept separate from <code>ci.yml</code> because link checking is a network operation — inherently flaky and dependent on third-party uptime. Make <code>ci</code> required in branch protection; treat <code>link-check</code> as advisory. Excludes live in <code>.config/lychee.toml</code> (passed via <code>--config</code>), so a repo can add its own unverifiable hosts there without editing the workflow — which a <code>copier update</code> would otherwise overwrite.</td>
             </tr>
             <tr>
               <td><code>refresh-binary-checksums.yml</code></td>
