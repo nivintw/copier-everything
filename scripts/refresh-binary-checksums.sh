@@ -10,7 +10,7 @@
 #
 # Usage: scripts/refresh-binary-checksums.sh [file ...]
 #   With no args it updates every workflow that carries these pins:
-#     .github/workflows/*.yml, .github/workflows/*.yaml  and  template/.github/workflows/*.jinja  (when present).
+#     .github/workflows/*.yml, .github/workflows/*.yaml and template/.github/workflows/*.jinja (when present).
 #
 # Tamper gate (CI): set BASE_REF=<git ref> to enforce supply-chain safety. A SHA is then
 # only re-pinned when the *_VERSION actually changed vs BASE_REF. A SHA that differs from
