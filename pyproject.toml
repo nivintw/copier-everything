@@ -20,12 +20,14 @@ dependencies = []
 
 [dependency-groups]
 # Test deps for the template's own suite: copier renders the template in the tests, pyjson5
-# parses the json5/.vscode configs in the sync tests. ruff/ty/pytest mirror what a generated
-# project gets.
+# parses the json5/.vscode configs and pyyaml the workflow YAML in the sync tests. ruff/ty/pytest
+# mirror what a generated project gets. (pyyaml is declared directly — not leaned on transitively
+# via copier — so the suite's needs don't break if copier's deps change.)
 dev = [
   "copier>=9.11.0",
   "pyjson5>=2.0.0",
   "pytest>=8",
+  "pyyaml>=6",
   "ruff>=0.12",
   "ty>=0.0.1",
 ]
