@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/nivintw/copier-everything/compare/v1.5.0...v1.6.0) (2026-06-29)
+
+
+### Features
+
+* Add first-class Ansible support (collection / role / playbooks) ([5bffa72](https://github.com/nivintw/copier-everything/commit/5bffa72b2ed3b462af683d3ef8b09f0066db8bdc)), closes [#99](https://github.com/nivintw/copier-everything/issues/99)
+
 ## [1.5.0](https://github.com/nivintw/copier-everything/compare/v1.4.0...v1.5.0) (2026-06-29)
 
 
