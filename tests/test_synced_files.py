@@ -150,7 +150,7 @@ def test_every_rendered_file_is_classified(generated_project_dir: Path) -> None:
     unclassified = rendered - seen
     assert not unclassified, (
         "rendered files not classified as TRIVIALLY_EQUAL / STRUCTURALLY_TESTED / NOT_SYNCED "
-        f"in test_syncd_files.py — add each to the right bucket: {sorted(unclassified)}"
+        f"in test_synced_files.py — add each to the right bucket: {sorted(unclassified)}"
     )
 
 

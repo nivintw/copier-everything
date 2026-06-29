@@ -6,7 +6,7 @@
 # gives uv a managed dev env. `[tool.uv] package = false` keeps uv from trying to build the
 # repo. Run: uv run <tool>. Generated projects get their own pyproject (see
 # `template/{% if has_python %}pyproject.toml{% endif %}.jinja`); this file is kept in sync
-# with that render by tests/test_syncd_files.py.
+# with that render by tests/test_synced_files.py.
 [project]
 name = "copier-everything"
 version = "0.0.0"

@@ -101,7 +101,7 @@ for the render job, so hook envs aren't cold-bootstrapped every run.
 Alongside the matrix, a **pytest suite** (`tests/`, run via `uv run pytest`; in CI by the
 `lint` job) covers what `render-matrix.sh` can't:
 
-- **`test_syncd_files.py`** guards the dogfooding invariant. This repo *is* an instantiation of
+- **`test_synced_files.py`** guards the dogfooding invariant. This repo *is* an instantiation of
   its own template, kept in step with it by hand (there's no `copier update` against itself).
   The sync tests render the template and assert each root file either matches the render
   byte-for-byte, matches structurally after subtracting a *documented* deviation (e.g. the
