@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: © 2026 Tyler Nivin
+# SPDX-License-Identifier: MIT
+
+# lychee link-checker config for the copier-everything repo ITSELF. Mirrors the
+# template/.config/lychee.toml.jinja shape (generated repos get their own). Excludes live here,
+# not inline in link-check.yml, so repo-specific hosts have a clean home; the workflow passes
+# only `--config .config/lychee.toml` so all excludes share one source.
+exclude = [
+  # GitHub Pages site: the README links to it but it only goes live after a docs change merges
+  # (Pages deploys from main /docs), so checking it on the PR 404s.
+  "nivintw\\.github\\.io/copier-everything",
+  # our own /compare/ URLs: release-please's CHANGELOG links to compare/<prev>...<next>; the
+  # <next> tag isn't cut until the Release PR merges, so it 404s on every Release PR (self-heals).
+  "github\\.com/nivintw/copier-everything/compare/",
+  # nivintw/repo-management: a private repo (REVIEW.md cites it as the owner of this repo's
+  # release App + rulesets); the repo-scoped GITHUB_TOKEN can't read other private repos, so
+  # lychee 404s even though the link is correct.
+  "github\\.com/nivintw/repo-management",
+  # The REUSE badge's /info/ endpoint 404s until the repo is registered/crawled by reuse.software.
+  "api\\.reuse\\.software/info/",
+]

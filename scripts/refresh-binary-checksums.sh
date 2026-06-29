@@ -10,7 +10,7 @@
 #
 # Usage: scripts/refresh-binary-checksums.sh [file ...]
 #   With no args it updates every workflow that carries these pins:
-#     .github/workflows/*.yml  and  template/.github/workflows/*.jinja  (when present).
+#     .github/workflows/*.yml, .github/workflows/*.yaml  and  template/.github/workflows/*.jinja  (when present).
 #
 # Tamper gate (CI): set BASE_REF=<git ref> to enforce supply-chain safety. A SHA is then
 # only re-pinned when the *_VERSION actually changed vs BASE_REF. A SHA that differs from
@@ -18,7 +18,7 @@
 # fails the run — never silently re-pinned. Without BASE_REF (a human running it locally
 # after a deliberate bump) it just recomputes every pin.
 #
-# Requirements: bash 4.4+, curl, sha256sum (or shasum), sed, grep, awk; git when BASE_REF set.
+# Requirements: bash 4.4+, curl, sha256sum (or shasum), sed, grep, awk, mktemp, head; git when BASE_REF set.
 set -euo pipefail
 # Make `set -e` apply INSIDE $(...) too — without this a curl/awk failure inside fetch_sha is
 # swallowed and a partial download could be hashed and pinned.
@@ -106,7 +106,10 @@ if [ "$#" -gt 0 ]; then
   targets=("$@")
 else
   targets=()
-  for f in .github/workflows/*.yml template/.github/workflows/*.jinja; do
+  # Both extensions: renovate's customManager matches `\.ya?ml$` and the refresh trigger uses
+  # `**`, so a binary pinned in a *.yaml workflow must be refreshed too. A non-matching glob
+  # stays literal (no nullglob), so the `[ -f ]` guard drops it.
+  for f in .github/workflows/*.yml .github/workflows/*.yaml template/.github/workflows/*.jinja; do
     [ -f "$f" ] && targets+=("$f")
   done
 fi

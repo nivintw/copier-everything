@@ -32,13 +32,12 @@ jobs:
         uses: lycheeverse/lychee-action@8646ba30535128ac92d33dfc9133794bfdd9b411 # v2.8.0
         with:
           # --max-retries/--timeout keep a slow-but-valid host (a single transient TIMEOUT)
-          # from reddening the check. Self-referential links are otherwise validated (the repo
-          # exists on GitHub and GITHUB_TOKEN authenticates even a private repo's own URLs), with
-          # one exception: this repo's own /compare/ URLs. release-please's generated CHANGELOG
-          # links to compare/<prev>...<next>, but the <next> tag isn't cut until the Release PR
-          # merges, so it 404s on every Release PR until then (then self-heals) — exclude it.
-          # (lychee excludes mailto: by default.) Scope to Markdown so LICENSES/lockfiles aren't crawled.
-          args: "--no-progress --max-retries 5 --timeout 30 --exclude 'github\\.com/{{ repo_owner }}/{{ repo_name }}/compare/' '**/*.md'"
+          # from reddening the check. Excludes — this repo's own /compare/ URLs, the REUSE badge
+          # /info/ endpoint, plus any a consuming repo adds — live in .config/lychee.toml and are
+          # passed via --config; keeping ALL excludes in one source avoids lychee's CLI-vs-config
+          # merge ambiguity. (lychee excludes mailto: by default.) Scope to Markdown so
+          # LICENSES/lockfiles aren't crawled.
+          args: "--no-progress --max-retries 5 --timeout 30 --config .config/lychee.toml '**/*.md'"
           fail: true
         env:
           # Authenticated requests raise GitHub's rate limit, so github.com links don't flake.
