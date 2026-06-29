@@ -20,13 +20,12 @@ dependencies = []
 
 [dependency-groups]
 # Test deps for the template's own suite: copier renders the template in the tests, pyjson5
-# parses the json5/.vscode configs in the sync tests, pytest-xdist parallelizes. ruff/ty/pytest
-# mirror what a generated project gets.
+# parses the json5/.vscode configs in the sync tests. ruff/ty/pytest mirror what a generated
+# project gets.
 dev = [
   "copier>=9.11.0",
   "pyjson5>=2.0.0",
   "pytest>=8",
-  "pytest-xdist[psutil]>=3.8.0",
   "ruff>=0.12",
   "ty>=0.0.1",
 ]

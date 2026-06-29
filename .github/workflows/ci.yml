@@ -199,7 +199,7 @@ jobs:
           uv run ruff check .
           uv run ruff format --check .
           uv run ty check .
-          uv run pytest -n auto
+          uv run pytest
 
   # Single required status check for branch protection. repo-management requires the context
   # "ci / lint-and-test" across every managed repo — the name produced when a caller job

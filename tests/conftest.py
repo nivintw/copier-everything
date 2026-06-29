@@ -3,27 +3,30 @@
 
 """Pytest fixtures for the template-rendering tests.
 
-These render copier-everything from `tests/render`-style temp dirs and let the sync and
-generated-project-state tests assert against the output. `template_dir` is the repo root
-(where copier.yml lives); copier reads `_subdirectory: template` from there.
+`template_dir` is the repo root (where copier.yml lives); copier reads `_subdirectory:
+template` from there. `render_template` is the shared render helper both test modules use.
 """
 
-import subprocess
-from pathlib import Path
+from __future__ import annotations
+
+import warnings
+from typing import TYPE_CHECKING
 
 import pytest
+from copier import run_copy
+from copier.errors import DirtyLocalWarning
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from pathlib import Path
 
 
 @pytest.fixture(scope="session")
 def template_dir() -> Path:
     """Path to the template repo root (the directory holding copier.yml)."""
+    from pathlib import Path  # noqa: PLC0415
+
     return Path(__file__).parent.parent
-
-
-@pytest.fixture
-def output_dir(tmp_path: Path) -> Path:
-    """A fresh temporary output directory for a single test."""
-    return tmp_path / "rendered_template"
 
 
 @pytest.fixture(scope="module")
@@ -32,18 +35,27 @@ def output_dir_module_scope(tmp_path_factory: pytest.TempPathFactory) -> Path:
     return tmp_path_factory.mktemp("rendered_template_module_scope")
 
 
-@pytest.fixture
-def initialized_git_repo_output_dir(output_dir: Path) -> Path:
-    """An output directory with a git identity configured (for post-copy task tests)."""
-    output_dir.mkdir(parents=True)
-    subprocess.run(
-        ["git", "config", "user.name", "Test User"],  # noqa: S607
-        check=True,
-        cwd=output_dir,
-    )
-    subprocess.run(
-        ["git", "config", "user.email", "testuser@example.com"],  # noqa: S607
-        check=True,
-        cwd=output_dir,
-    )
-    return output_dir
+@pytest.fixture(scope="session")
+def render_template() -> Callable[..., Path]:
+    """Return a helper that renders the template into a directory and returns that directory.
+
+    Renders from HEAD (committed state) — run on a clean tree, as CI does. The
+    DirtyLocalWarning that copier emits on a dirty source tree is suppressed (not asserted),
+    so a dirty working tree doesn't error the render, it just renders the committed state.
+    """
+
+    def _render(template_dir: Path, output_dir: Path, *, data: dict, skip_tasks: bool) -> Path:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DirtyLocalWarning)
+            run_copy(
+                str(template_dir),
+                str(output_dir),
+                data=data,
+                defaults=True,
+                unsafe=True,
+                vcs_ref="HEAD",
+                skip_tasks=skip_tasks,
+            )
+        return output_dir
+
+    return _render
