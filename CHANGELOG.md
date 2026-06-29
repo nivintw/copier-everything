@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.4.0](https://github.com/nivintw/copier-everything/compare/v1.3.2...v1.4.0) (2026-06-29)
+
+
+### Features
+
+* **template:** Strip status:* labels when an issue closes ([4f6071d](https://github.com/nivintw/copier-everything/commit/4f6071d8aec4458f261024d3df1b47572796dc92)), closes [#77](https://github.com/nivintw/copier-everything/issues/77)
+
+
+### Bug Fixes
+
+* **ci:** Retry checksum-refresh binary downloads ([1ac54cf](https://github.com/nivintw/copier-everything/commit/1ac54cfdd0ccc8536bb43b77e05a78538d892fa7)), closes [#76](https://github.com/nivintw/copier-everything/issues/76)
+* **ci:** Retry pinned-binary downloads on transient errors ([a2948c3](https://github.com/nivintw/copier-everything/commit/a2948c3bd5f76a92e5d3e8a8641c78d871d92918)), closes [#76](https://github.com/nivintw/copier-everything/issues/76)
+
 ## [1.3.2](https://github.com/nivintw/copier-everything/compare/v1.3.1...v1.3.2) (2026-06-28)
 
 
