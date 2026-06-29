@@ -39,9 +39,12 @@ def output_dir_module_scope(tmp_path_factory: pytest.TempPathFactory) -> Path:
 def render_template() -> Callable[..., Path]:
     """Return a helper that renders the template into a directory and returns that directory.
 
-    Renders from HEAD (committed state) — run on a clean tree, as CI does. The
-    DirtyLocalWarning that copier emits on a dirty source tree is suppressed (not asserted),
-    so a dirty working tree doesn't error the render, it just renders the committed state.
+    With ``vcs_ref="HEAD"`` against a dirty local checkout, copier renders the current
+    **working-tree** state (uncommitted and untracked template changes included) and emits a
+    DirtyLocalWarning saying so; the warning is suppressed (not asserted). Because the sync
+    tests read the root side off the working tree too, both sides reflect the working tree and
+    stay consistent whether or not it's clean. (On a clean checkout — e.g. CI — working tree
+    and HEAD coincide.)
     """
 
     def _render(template_dir: Path, output_dir: Path, *, data: dict, skip_tasks: bool) -> Path:

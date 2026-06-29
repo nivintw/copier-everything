@@ -8,9 +8,11 @@ project receives, so a tooling change lands in BOTH places. There is no automate
 root (it carries deliberate divergences), so these tests are the guard — they render the
 template and compare the output against the repo's own root files.
 
-Every file a render produces is classified into exactly one of three buckets, and
-``test_every_rendered_file_is_classified`` fails if a render produces a file in none of them —
-so a newly added template file can't silently fall through the guard:
+Every file the render produces (for the shape this repo is) is classified into exactly one of
+three buckets, and ``test_every_rendered_file_is_classified`` fails if the render produces a
+file in none of them — so a newly added template file that renders into this shape can't
+silently fall through the guard (files gated behind other answers — ``src/``, Docker, the
+publish workflow — aren't rendered here, and are correctly absent from this repo's root):
 
 - ``TRIVIALLY_EQUAL`` — must be byte-for-byte identical (``test_trivially_equal_files``).
 - ``STRUCTURALLY_TESTED`` — legitimately differs; a dedicated test below asserts the rest
@@ -18,8 +20,10 @@ so a newly added template file can't silently fall through the guard:
 - ``NOT_SYNCED`` — differs substantially by design, or is generated; intentionally not asserted
   (reasons grouped inline below).
 
-The render reflects HEAD (committed state), so run these on a clean tree (as CI does) — a dirty
-working tree can produce spurious diffs.
+copier renders the template's current **working-tree** state (uncommitted changes included; it
+emits a DirtyLocalWarning, which the render helper suppresses), and the root side is read off
+disk too — so both sides are the working tree and the comparison is self-consistent whether or
+not the tree is clean.
 """
 
 from __future__ import annotations
@@ -54,6 +58,7 @@ STRUCTURALLY_TESTED = {
     ".github/workflows/pr.yml",  # test_pr_workflow
     ".github/workflows/refresh-binary-checksums.yml",  # test_refresh_binary_checksums_workflow
     ".github/workflows/link-check.yml",  # test_link_check_workflow
+    ".editorconfig",  # test_editorconfig (rules identical; only a dogfooding comment differs)
 }
 
 # Differs substantially by design, or is generated — intentionally not asserted.
@@ -78,12 +83,11 @@ NOT_SYNCED = {
     "CHANGELOG.md",
     "CONTRIBUTING.md",
     "SECURITY.md",
-    # Root ships its own or deliberately omits these (.editorconfig differs only in a comment).
+    # Root ships its own or deliberately omits these.
     ".gitignore",
     ".envrc",
     ".python-version",
     ".copier-answers.yml",
-    ".editorconfig",
     ".github/CODEOWNERS",
     ".github/ISSUE_TEMPLATE/bug_report.yml",
     ".github/ISSUE_TEMPLATE/config.yml",
@@ -141,6 +145,8 @@ def test_every_rendered_file_is_classified(generated_project_dir: Path) -> None:
         for path in generated_project_dir.rglob("*")
         if path.is_file() and ".git" not in path.relative_to(generated_project_dir).parts
     }
+    # Guard against a vacuous pass (empty render → empty difference → green inspecting nothing).
+    assert {"pyproject.toml", "LICENSE"} <= rendered, "render produced no/too few files"
     unclassified = rendered - seen
     assert not unclassified, (
         "rendered files not classified as TRIVIALLY_EQUAL / STRUCTURALLY_TESTED / NOT_SYNCED "
@@ -156,19 +162,48 @@ def test_trivially_equal_files(template_dir: Path, generated_project_dir: Path) 
         assert root_text == render_text, f"{relative_path} is not synced (raw content differs)!"
 
 
+def test_editorconfig(template_dir: Path, generated_project_dir: Path) -> None:
+    """.editorconfig: the indent/charset rules are identical; only a dogfooding comment differs."""
+
+    def rules(path: Path) -> list[str]:
+        # .editorconfig isn't cleanly INI/TOML-parseable (`root = true` precedes any section),
+        # so compare the meaningful lines — everything that isn't a comment or blank.
+        return [
+            line.strip()
+            for line in path.read_text().splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        ]
+
+    assert rules(template_dir / ".editorconfig") == rules(
+        generated_project_dir / ".editorconfig"
+    ), ".editorconfig rules are not synced (beyond the dogfooding comment)!"
+
+
 def test_pyproject_toml(template_dir: Path, generated_project_dir: Path) -> None:
     """pyproject.toml: tooling config (ruff/pytest/uv) synced; metadata + deps may differ."""
     root = _toml(template_dir / "pyproject.toml")
     render = _toml(generated_project_dir / "pyproject.toml")
 
-    # Deviation: [project] values differ (description, etc.), but the keys must match.
+    # Deviation: only the project IDENTITY differs (name/description/authors). Every other
+    # [project] field is a shared contract and must match by VALUE — notably requires-python,
+    # which is the same Python-floor contract as ruff's target-version in [tool.ruff].
+    identity_keys = {"name", "description", "authors"}
     assert set(root["project"].keys()) == set(render["project"].keys()), (
         "pyproject [project] keys are not synced!"
     )
-    # Deviation: [dependency-groups] contents differ (root adds copier/pyjson5 for the
-    # template's own test suite), but the group keys must match.
+    root_project = {k: v for k, v in root["project"].items() if k not in identity_keys}
+    render_project = {k: v for k, v in render["project"].items() if k not in identity_keys}
+    assert root_project == render_project, (
+        "pyproject [project] shared fields (requires-python, version, license, classifiers, "
+        "dependencies) are not synced!"
+    )
+    # Deviation: the root's dev group is a superset (adds copier/pyjson5 for the template's own
+    # test suite), but every dependency floor the template ships must be present in the root's.
     assert set(root["dependency-groups"].keys()) == set(render["dependency-groups"].keys()), (
         "pyproject [dependency-groups] keys are not synced!"
+    )
+    assert set(render["dependency-groups"]["dev"]) <= set(root["dependency-groups"]["dev"]), (
+        "pyproject dev dependency floors are not synced (template has a dep the root lacks)!"
     )
 
     # Everything else (the [tool.*] tables that actually configure the shared tooling) must match.
