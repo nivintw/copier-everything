@@ -370,12 +370,7 @@
             <tr>
               <td><code>link-check.yml</code></td>
               <td><code>on: pull_request</code> (Markdown paths only), <code>workflow_dispatch</code></td>
-              <td>Runs <a href="https://lychee.cli.rs/">lychee</a> on all <code>**/*.md</code> files to detect dead links. Kept separate from <code>ci.yml</code> because link checking is a network operation — inherently flaky and dependent on third-party uptime. Make <code>ci</code> required in branch protection; treat <code>link-check</code> as advisory.</td>
-            </tr>
-            <tr>
-              <td><code>refresh-binary-checksums.yml</code></td>
-              <td><code>on: push</code> to <code>renovate/**</code> branches when workflow files change</td>
-              <td>Re-computes the pinned SHA256 for each CI binary after Renovate bumps its version, then commits the updated hashes back to the Renovate branch as the release App (so the push re-triggers CI). See <a href="#checksums">checksum-verified binaries</a>.</td>
+              <td>Runs <a href="https://lychee.cli.rs/">lychee</a> on all <code>**/*.md</code> files to detect dead links. Kept separate from <code>ci.yml</code> because link checking is a network operation — inherently flaky and dependent on third-party uptime. Make <code>ci</code> required in branch protection; treat <code>link-check</code> as advisory. Excludes live in <code>.config/lychee.toml</code> (passed via <code>--config</code>), so a repo can add its own unverifiable hosts there without editing the workflow — which a <code>copier update</code> would otherwise overwrite.</td>
             </tr>
             <tr>
               <td><code>label-hygiene.yml</code></td>
@@ -440,12 +435,12 @@
 HAWKEYE_VERSION: "6.5.1"
 HAWKEYE_SHA256: "d6eb0505…"</code></pre>
 
-      <p>Renovate's custom regex manager reads the <code># renovate:</code> annotation and bumps <code>*_VERSION</code>. Because the <code>github-releases</code> datasource has no asset-digest concept, it cannot update <code>*_SHA256</code> — a stale hash would fail CI closed. The <code>refresh-binary-checksums</code> workflow closes this gap.</p>
+      <p>Renovate's custom regex manager reads the <code># renovate:</code> annotation and bumps <code>*_VERSION</code>. Because the <code>github-releases</code> datasource has no asset-digest concept, it cannot update <code>*_SHA256</code> — a stale hash would fail CI closed. A Renovate <code>postUpgradeTask</code> closes this gap.</p>
 
       <div class="callout note">
         <span class="callout-title">Keeping hashes current automatically</span>
-        <p><code>scripts/refresh-binary-checksums.sh</code> recomputes each SHA256 from its pinned version — reading the upstream-published checksum file for trivy, osv-scanner, hawkeye, and kubeconform; hashing the asset directly for taplo (which publishes none). The <code>refresh-binary-checksums</code> workflow runs this script on <code>renovate/**</code> branches when workflow files change and commits the result back as the release App, so the push re-triggers CI with fresh hashes.</p>
-        <p>Without the App configured, the workflow job skips cleanly and the fail-closed mismatch stands. Re-pin by hand with the script, then commit.</p>
+        <p><code>scripts/refresh-binary-checksums.sh</code> recomputes each SHA256 from its pinned version — reading the upstream-published checksum file for trivy, osv-scanner, hawkeye, and kubeconform; hashing the asset directly for taplo (which publishes none). <code>renovate.json</code> wires the script as a <code>postUpgradeTask</code> (<code>executionMode: branch</code>), so the central self-hosted Renovate runner runs it during the upgrade and folds the refreshed hash into Renovate's <strong>own</strong> commit — no separate bot pushing onto the Renovate branch.</p>
+        <p>The runner must authorize the script in its <code>allowedCommands</code>; absent that, the hash stays stale and the fail-closed mismatch stands — re-pin by hand with the script, then commit.</p>
       </div>
 
       <h2 id="renovate">Renovate <a class="anchor" href="#renovate">#</a></h2>
@@ -478,7 +473,7 @@ HAWKEYE_SHA256: "d6eb0505…"</code></pre>
         </table>
       </div>
 
-      <p>After Renovate bumps a binary version, <code>refresh-binary-checksums.yml</code> automatically updates the adjacent SHA256 so CI stays green — see <a href="#checksums">checksum-verified binaries</a>.</p>
+      <p>After Renovate bumps a binary version, a <code>postUpgradeTask</code> automatically updates the adjacent SHA256 in the same commit so CI stays green — see <a href="#checksums">checksum-verified binaries</a>.</p>
 
       <h2 id="security">Security scanning <a class="anchor" href="#security">#</a></h2>
 

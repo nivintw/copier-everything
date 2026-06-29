@@ -42,7 +42,7 @@
     },
     {
       "customType": "regex",
-      "description": "Release binaries pinned by a `# renovate:`-annotated *_VERSION env var (trivy, osv-scanner, hawkeye, taplo, kubeconform) — own + generated workflows. Renovate bumps the version; the adjacent *_SHA256 is refreshed by scripts/refresh-binary-checksums.sh (the refresh-binary-checksums workflow runs it on Renovate PRs), since github-releases has no asset-digest datasource.",
+      "description": "Release binaries pinned by a `# renovate:`-annotated *_VERSION env var (trivy, osv-scanner, hawkeye, taplo, kubeconform) — own + generated workflows. Renovate bumps the version; the adjacent *_SHA256 is refreshed by scripts/refresh-binary-checksums.sh, run as a postUpgradeTask (below) so the fix lands in Renovate's own commit, since github-releases has no asset-digest datasource.",
       "managerFilePatterns": [
         "/^\\.github/workflows/.+\\.ya?ml$/",
         "/^template/\\.github/workflows/.+\\.jinja$/",
@@ -61,4 +61,18 @@
       "datasourceTemplate": "docker",
     },
   ],
+  // Refresh the *_SHA256 next to each bumped *_VERSION in Renovate's own commit. The central
+  // self-hosted runner executes this (its allowedCommands authorizes the script). fileFilters
+  // also covers template/.github/workflows/** because this repo's script refreshes the pins
+  // inside the generated workflow .jinja files too.
+  //
+  // The runner must also export BASE_REF=origin/<base-branch> so the script's supply-chain
+  // tamper gate stays active (it refuses to re-pin a SHA whose *_VERSION did NOT change vs
+  // BASE_REF — a swapped asset on a fixed tag). Run bare (no BASE_REF), the gate is off and
+  // every pin is recomputed. Wiring this into the runner is a repo-management follow-up.
+  "postUpgradeTasks": {
+    "commands": ["scripts/refresh-binary-checksums.sh"],
+    "fileFilters": [".github/workflows/**", "template/.github/workflows/**"],
+    "executionMode": "branch",
+  },
 }

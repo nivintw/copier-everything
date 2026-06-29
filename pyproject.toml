@@ -1,0 +1,56 @@
+# SPDX-FileCopyrightText: © 2026 Tyler Nivin
+# SPDX-License-Identifier: MIT
+
+# copier-everything's OWN dev env — not an installable package. This pyproject hosts the
+# Python tooling config (ruff, ty, pytest) for the template repo's test suite (tests/) and
+# gives uv a managed dev env. `[tool.uv] package = false` keeps uv from trying to build the
+# repo. Run: uv run <tool>. Generated projects get their own pyproject (see
+# `template/{% if has_python %}pyproject.toml{% endif %}.jinja`); this file is kept in sync
+# with that render by tests/test_synced_files.py.
+[project]
+name = "copier-everything"
+version = "0.0.0"
+requires-python = ">=3.14"
+description = "Copier template for opinionated, multi-language project scaffolding."
+authors = [{ name = "Tyler Nivin", email = "tyler@nivin.tech" }]
+license = "MIT"
+license-files = ["LICENSE", "LICENSES/*"]
+classifiers = ["Programming Language :: Python :: 3"]
+dependencies = []
+
+[dependency-groups]
+# Test deps for the template's own suite: copier renders the template in the tests, pyjson5
+# parses the json5/.vscode configs and pyyaml the workflow YAML in the sync tests. ruff/ty/pytest
+# mirror what a generated project gets. (pyyaml is declared directly — not leaned on transitively
+# via copier — so the suite's needs don't break if copier's deps change.)
+dev = [
+  "copier>=9.11.0",
+  "pyjson5>=2.0.0",
+  "pytest>=8",
+  "pyyaml>=6",
+  "ruff>=0.12",
+  "ty>=0.0.1",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ruff.lint]
+extend-select = ["ALL"]
+ignore = ["D203", "D212", "D401", "COM812", "ISC001"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "INP001"] # tests use assert; not an importable package

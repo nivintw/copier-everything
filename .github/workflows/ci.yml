@@ -121,6 +121,8 @@ jobs:
   # render-matrix. This is the dogfood gate for this repo.
   # actionlint + zizmor (offline) run as prek hooks; the online zizmor step adds the network
   # audits (known-vulnerable-actions, ref-confusion) that the offline hook can't do.
+  # Finally it runs this repo's OWN Python suite (ruff/ty/pytest): the sync tests that keep the
+  # root in step with the template, and the post-copy-task tests render-matrix.sh can't cover.
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -188,6 +190,16 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: uvx zizmor@1.26.1 --no-progress .github/workflows
+
+      # This repo's own Python suite. `uv run` provisions the dev env (copier, pyjson5, pytest)
+      # from uv.lock; ruff/ty/pytest use the locked versions. The sync tests render the template
+      # (vcs_ref=HEAD) and compare against this repo's root, so they need the full checkout.
+      - name: Lint, type-check + run the template's own test suite
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+          uv run ty check .
+          uv run pytest
 
   # Single required status check for branch protection. repo-management requires the context
   # "ci / lint-and-test" across every managed repo — the name produced when a caller job

@@ -98,6 +98,20 @@ The shapes are independent, so the harness **warms the shared prek/uv caches on 
 re-invoking itself per shape — no bash-4 job control). CI additionally caches `~/.cache/prek`
 for the render job, so hook envs aren't cold-bootstrapped every run.
 
+Alongside the matrix, a **pytest suite** (`tests/`, run via `uv run pytest`; in CI by the
+`lint` job) covers what `render-matrix.sh` can't:
+
+- **`test_synced_files.py`** guards the dogfooding invariant. This repo *is* an instantiation of
+  its own template, kept in step with it by hand (there's no `copier update` against itself).
+  The sync tests render the template and assert each root file either matches the render
+  byte-for-byte, matches structurally after subtracting a *documented* deviation (e.g. the
+  root `link-check` excludes are a superset; `renovate` is `.json5`), or is on an explicit
+  not-synced list — and `test_every_rendered_file_is_classified` fails if a *new* template
+  file falls into none of those buckets, so the guard can't silently lapse.
+- **`test_generated_project_state.py`** renders *with* `copier.yml`'s `_tasks` (which
+  `render-matrix.sh` skips via `--skip-tasks`) and asserts the post-copy outcome: a clean
+  committed tree, a `.venv` + `uv.lock` from `uv sync`, and `prek`-installed git hooks.
+
 ## CI / supply-chain hardening (issue #3)
 
 The workflow/release pipeline and dependency pins are hardened end-to-end:
@@ -181,11 +195,14 @@ against a committed **SHA256** that fails the step closed on mismatch:
   Left there, a version bump would fail CI on the stale hash. `scripts/refresh-binary-checksums.sh`
   recomputes each SHA from its pinned version (reading the upstream checksum file for
   trivy/osv-scanner/hawkeye/kubeconform; **hashing the asset for taplo, which publishes no
-  checksum file**). The `refresh-binary-checksums` workflow runs it on `renovate/**` pushes and
-  commits the result back **as the release App** so the push re-triggers CI (a `GITHUB_TOKEN`
-  push wouldn't). Without the App configured the job skips and the fail-closed mismatch stands —
-  re-pin by hand with the script. So: automated when the App exists, safe-by-default when it
-  doesn't.
+  checksum file**). Renovate runs it as a `postUpgradeTask` (`executionMode: branch`), so the
+  refreshed hash folds into Renovate's **own** commit — no separate bot pushing onto Renovate's
+  branch, which is precisely what previously caused the self-re-trigger (#83) and the
+  `branchIsModified` rebase-halt (#84). The central self-hosted runner (see
+  [`nivintw/repo-management#42`](https://github.com/nivintw/repo-management/issues/42)) executes
+  the task; its `allowedCommands` authorizes the script. Without that authorization the hash
+  stays stale and the fail-closed mismatch stands — re-pin by hand with the script. So:
+  automated through Renovate's own run, safe-by-default when it can't run.
 - **taplo's pin is weaker — by necessity.** The other four read an *upstream-published*
   checksum, so their pin is an independent attestation. taplo publishes none, so the script
   hashes whatever asset it downloads (trust-on-first-use): it still detects tampering/MITM
