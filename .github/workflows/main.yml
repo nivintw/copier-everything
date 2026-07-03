@@ -25,10 +25,12 @@
 #   - "Allow auto-merge" enabled, and "Allow rebase merging" (this repo's only merge method;
 #     the auto-merge step uses `--rebase` to match).
 #   - The App (Contents + Pull requests: read/write) in the bypass list of the ruleset
-#     protecting main. That ruleset must gate releases on REQUIRED STATUS CHECKS, not a human
-#     approving review: the App authored the Release PR and GitHub forbids approving your own
-#     PR, so a required review would deadlock auto-merge. `--auto` also needs at least one
-#     required check to exist, or it errors.
+#     protecting main. That ruleset must gate releases on REQUIRED STATUS CHECKS; `--auto`
+#     also needs at least one required check to exist, or it errors. A required approving
+#     review works only with approve-bot-prs.yml configured (its CI_APP_SLUG variable + the
+#     "create and approve pull requests" Actions setting): the App authored the Release PR
+#     and GitHub forbids approving your own PR, so without that workflow a required review
+#     deadlocks auto-merge.
 
 name: main
 
