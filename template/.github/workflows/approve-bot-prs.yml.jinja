@@ -5,12 +5,15 @@
 # dependency PRs from the central runner, release-please Release PRs), so those flows keep
 # landing unattended if the branch ruleset ever starts requiring approving reviews.
 #
-# APPROVAL, NOT MERGE: merging stays with GitHub's native auto-merge (Renovate's
-# platformAutomerge; main.yml's `gh pr merge --auto`), which fires only when EVERY ruleset
+# APPROVAL, NOT MERGE: merging stays with GitHub's native auto-merge (Renovate automerge —
+# configured in the central Renovate runner's global config, not this repo's renovate
+# config — and main.yml's `gh pr merge --auto`), which fires only when EVERY ruleset
 # requirement is satisfied and never exercises bypass privileges. With zero required
 # approvals this stamp changes nothing; the moment required_approving_review_count is
 # bumped, bot PRs keep flowing while human PRs start needing a reviewer. Required status
-# checks still gate every merge either way. (The one review rule this can't satisfy is
+# checks still gate every merge either way. Enable the Actions setting below BEFORE
+# requiring approvals, and expect already-open bot PRs to be stamped on their next push —
+# there is no backfill event. (The one review rule this can't satisfy is
 # require_code_owner_review — neither an App nor github-actions can be a CODEOWNER.)
 #
 # WHY GITHUB_TOKEN APPROVES: GitHub forbids approving your own PR and the App authors
@@ -19,14 +22,25 @@
 # create and approve pull requests"; the approve step tolerates exactly that setting being
 # off (clean warning, green run) and stays loud on every other failure.
 #
-# TRUST ANCHOR: the PR author must BE the App whose credentials this repo holds (the same
-# CI_CLIENT_ID / CI_APP_PRIVATE_KEY pair main.yml releases with). The App's bot login is
-# derived at run time from those credentials (the token mint reports the app slug), never
-# assumed from a hardcoded name — and only same-repo heads qualify, so a fork or any other
-# bot never gets approved.
+# TRUST ANCHOR: the CI_APP_SLUG repository VARIABLE names the App's slug — the name in its
+# https://github.com/apps/<slug> URL; the App's bot login is <slug>[bot]. It must be a
+# variable, not a secret: a secret is invisible to the job-level `if:` and would silently
+# disable this workflow. Both the PR's AUTHOR and the event's SENDER must be that login —
+# the author check pins the PR to the App, and the sender check stops a write-access actor
+# from piggybacking (pushing their own commits onto an open bot branch and collecting a
+# fresh approval from the synchronize event). Only same-repo heads qualify, so a fork is
+# never approved. A wrong or stale slug fails CLOSED: the job simply never runs — if
+# approvals stop appearing, check the variable against the App slug first.
 #
-# Re-approves on synchronize: the ruleset dismisses stale reviews on push, so every
-# Renovate rebase discards the previous approval and it must be re-issued.
+# DELIBERATELY INERT: this workflow holds no secrets and runs no third-party actions.
+# pull_request events execute the PR's own merge-ref workflow definition, so keeping
+# credentials and bump-able `uses:` pins out of this file means a bot PR (e.g. a Renovate
+# action-digest bump) can never make it run new, unreviewed code holding anything
+# sensitive.
+#
+# Re-approves on synchronize: paired with required approvals, rulesets usually dismiss
+# stale reviews on push, so every Renovate rebase discards the previous approval and it
+# must be re-issued; where dismissal is off, the extra approval is a harmless duplicate.
 
 name: approve-bot-prs
 
@@ -46,45 +60,17 @@ concurrency:
 
 jobs:
   approve:
-    # Cheap event-payload gate before booting a runner: Bot-authored, same-repo head, on a
-    # repo where the CI App is configured at all. WHICH bot is verified below against the
-    # App credentials — this gate only filters the obvious non-candidates for free.
+    # The whole trust gate (see TRUST ANCHOR above), evaluated from the event payload and
+    # repo variables before a runner ever boots. Unconfigured repos self-disable on the
+    # first clause.
     if: >-
-      github.event.pull_request.user.type == 'Bot' &&
+      vars.CI_APP_SLUG != '' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
-      vars.CI_CLIENT_ID != ''
+      github.event.pull_request.user.login == format('{0}[bot]', vars.CI_APP_SLUG) &&
+      github.event.sender.login == format('{0}[bot]', vars.CI_APP_SLUG)
     runs-on: ubuntu-latest
     steps:
-      # A secret can't be read in a job-level `if:` — if the private key is missing, skip
-      # cleanly (green run) instead of failing at token mint. Matches main.yml's release
-      # preflight.
-      - name: Preflight — App fully configured?
-        id: preflight
-        env:
-          CI_APP_PRIVATE_KEY: ${{ secrets.CI_APP_PRIVATE_KEY }}
-        run: |
-          if [ -n "$CI_APP_PRIVATE_KEY" ]; then
-            echo "enabled=true" >>"$GITHUB_OUTPUT"
-          else
-            echo "enabled=false" >>"$GITHUB_OUTPUT"
-            echo "::notice::approve-bot-prs skipped — CI_CLIENT_ID is set but CI_APP_PRIVATE_KEY is missing."
-          fi
-
-      # Minted ONLY to learn the configured App's bot login (the app-slug output); the
-      # token itself is never used — scoped to metadata:read and auto-revoked at job end.
-      - name: Resolve the CI App's identity
-        id: app
-        if: steps.preflight.outputs.enabled == 'true'
-        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2.2.2
-        with:
-          app-id: ${{ vars.CI_CLIENT_ID }}
-          private-key: ${{ secrets.CI_APP_PRIVATE_KEY }}
-          permission-metadata: read
-
       - name: Approve the PR
-        if: >-
-          steps.app.outcome == 'success' &&
-          github.event.pull_request.user.login == format('{0}[bot]', steps.app.outputs.app-slug)
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -92,12 +78,15 @@ jobs:
         run: |
           set -euo pipefail
           # Tolerate ONLY the documented setup gap; everything else stays loud under
-          # set -e. GitHub words that error "GitHub Actions is not permitted to create or
-          # approve pull requests" (one joint setting), hence the (create or )? match.
+          # set -e. GitHub gates create and approve behind one joint setting and words the
+          # error "GitHub Actions is not permitted to create or approve pull requests" —
+          # `(create or )?` also tolerates an approve-only variant. The captured output is
+          # printed on every path so the real API message is never lost.
           if out="$(gh pr review "$PR" --approve --body "Auto-approved: authored by this repo's CI App. Required status checks still gate the merge." 2>&1)"; then
             printf '%s\n' "$out"
-          elif printf '%s' "$out" | grep -qiE "not permitted to (create or )?approve"; then
-            echo "::warning::approve-bot-prs skipped — enable 'Allow GitHub Actions to create and approve pull requests' (Settings → Actions → General)."
+          elif printf '%s' "$out" | grep -qiE "GitHub Actions is not permitted to (create or )?approve"; then
+            printf '%s\n' "$out"
+            echo "::warning::approve-bot-prs skipped — enable 'Allow GitHub Actions to create and approve pull requests' (Settings → Actions → General; it may be enforced at the org level)."
           else
             printf '%s\n' "$out" >&2
             exit 1
