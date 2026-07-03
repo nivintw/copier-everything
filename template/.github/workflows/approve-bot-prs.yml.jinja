@@ -70,10 +70,8 @@ jobs:
             echo "::notice::approve-bot-prs skipped — CI_CLIENT_ID is set but CI_APP_PRIVATE_KEY is missing."
           fi
 
-      # Minted ONLY to learn the configured App's bot login (the mint reports the app
-      # slug): this is what pins "trusted bot" to the App this repo actually holds keys
-      # for, with no hardcoded name to drift. The token itself is never used — scoped to
-      # metadata:read and auto-revoked at job end.
+      # Minted ONLY to learn the configured App's bot login (the app-slug output); the
+      # token itself is never used — scoped to metadata:read and auto-revoked at job end.
       - name: Resolve the CI App's identity
         id: app
         if: steps.preflight.outputs.enabled == 'true'
@@ -85,7 +83,7 @@ jobs:
 
       - name: Approve the PR
         if: >-
-          steps.preflight.outputs.enabled == 'true' &&
+          steps.app.outcome == 'success' &&
           github.event.pull_request.user.login == format('{0}[bot]', steps.app.outputs.app-slug)
         env:
           GH_TOKEN: ${{ github.token }}
@@ -93,12 +91,12 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
-          # Tolerate ONLY the documented setup gap — "Allow GitHub Actions to create and
-          # approve pull requests" is off — with a visible warning on a green run; any
-          # other failure (API 5xx, bad auth) stays loud under set -e.
+          # Tolerate ONLY the documented setup gap; everything else stays loud under
+          # set -e. GitHub words that error "GitHub Actions is not permitted to create or
+          # approve pull requests" (one joint setting), hence the (create or )? match.
           if out="$(gh pr review "$PR" --approve --body "Auto-approved: authored by this repo's CI App. Required status checks still gate the merge." 2>&1)"; then
             printf '%s\n' "$out"
-          elif printf '%s' "$out" | grep -qi "not permitted to approve"; then
+          elif printf '%s' "$out" | grep -qiE "not permitted to (create or )?approve"; then
             echo "::warning::approve-bot-prs skipped — enable 'Allow GitHub Actions to create and approve pull requests' (Settings → Actions → General)."
           else
             printf '%s\n' "$out" >&2
