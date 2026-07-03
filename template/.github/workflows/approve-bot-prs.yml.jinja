@@ -1,0 +1,107 @@
+# SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
+# SPDX-License-Identifier: {{ license }}
+{% raw %}
+# approve-bot-prs — auto-approve PRs authored by this repo's own CI GitHub App (Renovate
+# dependency PRs from the central runner, release-please Release PRs), so those flows keep
+# landing unattended if the branch ruleset ever starts requiring approving reviews.
+#
+# APPROVAL, NOT MERGE: merging stays with GitHub's native auto-merge (Renovate's
+# platformAutomerge; main.yml's `gh pr merge --auto`), which fires only when EVERY ruleset
+# requirement is satisfied and never exercises bypass privileges. With zero required
+# approvals this stamp changes nothing; the moment required_approving_review_count is
+# bumped, bot PRs keep flowing while human PRs start needing a reviewer. Required status
+# checks still gate every merge either way. (The one review rule this can't satisfy is
+# require_code_owner_review — neither an App nor github-actions can be a CODEOWNER.)
+#
+# WHY GITHUB_TOKEN APPROVES: GitHub forbids approving your own PR and the App authors
+# these, so the approval must come from a different actor — the workflow token
+# (github-actions[bot]). That requires the repo Actions setting "Allow GitHub Actions to
+# create and approve pull requests"; the approve step tolerates exactly that setting being
+# off (clean warning, green run) and stays loud on every other failure.
+#
+# TRUST ANCHOR: the PR author must BE the App whose credentials this repo holds (the same
+# CI_CLIENT_ID / CI_APP_PRIVATE_KEY pair main.yml releases with). The App's bot login is
+# derived at run time from those credentials (the token mint reports the app slug), never
+# assumed from a hardcoded name — and only same-repo heads qualify, so a fork or any other
+# bot never gets approved.
+#
+# Re-approves on synchronize: the ruleset dismisses stale reviews on push, so every
+# Renovate rebase discards the previous approval and it must be re-issued.
+
+name: approve-bot-prs
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+# Approving needs pull-requests:write; every other scope stays none. There is no checkout.
+permissions:
+  pull-requests: write
+
+# One pass per PR at a time, newest event wins — a Renovate rebase burst doesn't need N
+# overlapping approvals of already-superseded heads.
+concurrency:
+  group: approve-bot-prs-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  approve:
+    # Cheap event-payload gate before booting a runner: Bot-authored, same-repo head, on a
+    # repo where the CI App is configured at all. WHICH bot is verified below against the
+    # App credentials — this gate only filters the obvious non-candidates for free.
+    if: >-
+      github.event.pull_request.user.type == 'Bot' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      vars.CI_CLIENT_ID != ''
+    runs-on: ubuntu-latest
+    steps:
+      # A secret can't be read in a job-level `if:` — if the private key is missing, skip
+      # cleanly (green run) instead of failing at token mint. Matches main.yml's release
+      # preflight.
+      - name: Preflight — App fully configured?
+        id: preflight
+        env:
+          CI_APP_PRIVATE_KEY: ${{ secrets.CI_APP_PRIVATE_KEY }}
+        run: |
+          if [ -n "$CI_APP_PRIVATE_KEY" ]; then
+            echo "enabled=true" >>"$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >>"$GITHUB_OUTPUT"
+            echo "::notice::approve-bot-prs skipped — CI_CLIENT_ID is set but CI_APP_PRIVATE_KEY is missing."
+          fi
+
+      # Minted ONLY to learn the configured App's bot login (the mint reports the app
+      # slug): this is what pins "trusted bot" to the App this repo actually holds keys
+      # for, with no hardcoded name to drift. The token itself is never used — scoped to
+      # metadata:read and auto-revoked at job end.
+      - name: Resolve the CI App's identity
+        id: app
+        if: steps.preflight.outputs.enabled == 'true'
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2.2.2
+        with:
+          app-id: ${{ vars.CI_CLIENT_ID }}
+          private-key: ${{ secrets.CI_APP_PRIVATE_KEY }}
+          permission-metadata: read
+
+      - name: Approve the PR
+        if: >-
+          steps.preflight.outputs.enabled == 'true' &&
+          github.event.pull_request.user.login == format('{0}[bot]', steps.app.outputs.app-slug)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          # Tolerate ONLY the documented setup gap — "Allow GitHub Actions to create and
+          # approve pull requests" is off — with a visible warning on a green run; any
+          # other failure (API 5xx, bad auth) stays loud under set -e.
+          if out="$(gh pr review "$PR" --approve --body "Auto-approved: authored by this repo's CI App. Required status checks still gate the merge." 2>&1)"; then
+            printf '%s\n' "$out"
+          elif printf '%s' "$out" | grep -qi "not permitted to approve"; then
+            echo "::warning::approve-bot-prs skipped — enable 'Allow GitHub Actions to create and approve pull requests' (Settings → Actions → General)."
+          else
+            printf '%s\n' "$out" >&2
+            exit 1
+          fi
+{% endraw %}
