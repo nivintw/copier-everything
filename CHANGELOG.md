@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.0](https://github.com/nivintw/copier-everything/compare/v1.6.0...v1.7.0) (2026-07-03)
+
+
+### Features
+
+* Add approve-bot-prs workflow (root + template) ([74c42d7](https://github.com/nivintw/copier-everything/commit/74c42d7e3b64325249403db854bb18ea87112ca2)), closes [#108](https://github.com/nivintw/copier-everything/issues/108)
+
 ## [1.6.0](https://github.com/nivintw/copier-everything/compare/v1.5.0...v1.6.0) (2026-06-29)
 
 
