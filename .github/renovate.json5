@@ -20,6 +20,28 @@
       "matchPackageNames": ["astral-sh/ruff-pre-commit"],
       "groupName": "ruff",
     },
+    {
+      // Refresh the *_SHA256 next to each bumped *_VERSION in Renovate's own commit. The
+      // central self-hosted runner executes this (its allowedCommands authorizes the
+      // script). fileFilters also covers template/.github/workflows/** because this repo's
+      // script refreshes the pins inside the generated workflow .jinja files too. Scoped to
+      // these 5 packages (matching the customManager below) so an unrelated update — a
+      // ruff-pre-commit bump, an actions/checkout digest bump, etc. — doesn't also shell out
+      // to 5 external release hosts.
+      //
+      // The runner must also export BASE_REF=origin/<base-branch> so the script's
+      // supply-chain tamper gate stays active (it refuses to re-pin a SHA whose *_VERSION did
+      // NOT change vs BASE_REF — a swapped asset on a fixed tag). Run bare (no BASE_REF), the
+      // gate is off and every pin is recomputed. Wiring this into the runner is a
+      // repo-management follow-up.
+      "description": "Only re-run the checksum refresh when one of the 5 checksum-relevant pins actually changed.",
+      "matchPackageNames": ["aquasecurity/trivy", "google/osv-scanner", "korandoru/hawkeye", "tamasfe/taplo", "yannh/kubeconform"],
+      "postUpgradeTasks": {
+        "commands": ["scripts/refresh-binary-checksums.sh"],
+        "fileFilters": [".github/workflows/**", "template/.github/workflows/**"],
+        "executionMode": "branch",
+      },
+    },
   ],
   "customManagers": [
     {
@@ -61,18 +83,4 @@
       "datasourceTemplate": "docker",
     },
   ],
-  // Refresh the *_SHA256 next to each bumped *_VERSION in Renovate's own commit. The central
-  // self-hosted runner executes this (its allowedCommands authorizes the script). fileFilters
-  // also covers template/.github/workflows/** because this repo's script refreshes the pins
-  // inside the generated workflow .jinja files too.
-  //
-  // The runner must also export BASE_REF=origin/<base-branch> so the script's supply-chain
-  // tamper gate stays active (it refuses to re-pin a SHA whose *_VERSION did NOT change vs
-  // BASE_REF — a swapped asset on a fixed tag). Run bare (no BASE_REF), the gate is off and
-  // every pin is recomputed. Wiring this into the runner is a repo-management follow-up.
-  "postUpgradeTasks": {
-    "commands": ["scripts/refresh-binary-checksums.sh"],
-    "fileFilters": [".github/workflows/**", "template/.github/workflows/**"],
-    "executionMode": "branch",
-  },
 }

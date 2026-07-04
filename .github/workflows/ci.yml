@@ -21,6 +21,27 @@ on:
 permissions:
   contents: read
 
+# Distinct group prefix from the real callers' own (pr-/release-) so an identical github.ref
+# never collides with a caller's group — colliding names would cancel the caller mid-flight.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # hawkeye + taplo are installed via the composite actions below (.github/actions/) in both
+  # jobs; the version/checksum pins stay HERE (not in the composite actions) because
+  # Renovate's regex customManager only scans .github/workflows/*.yml and
+  # template/.github/workflows/*.jinja for the `# renovate:`-annotated pins — moving them into
+  # .github/actions/** would silently stop tracking them. SHAs are kept current with the
+  # versions by scripts/refresh-binary-checksums.sh.
+  # renovate: datasource=github-releases depName=korandoru/hawkeye
+  HAWKEYE_VERSION: "6.5.1"
+  HAWKEYE_SHA256: "d6eb0505a45a15244f4f789158aafe5e3f1a7dc86c9dc1d7651f3cb1e1b321e0"  # gitleaks:allow
+  # renovate: datasource=github-releases depName=tamasfe/taplo
+  TAPLO_VERSION: "0.10.0"
+  # taplo ships no upstream checksum file; this SHA is computed from the asset.
+  TAPLO_SHA256: "8fe196b894ccf9072f98d4e1013a180306e17d244830b03986ee5e8eabeb6156"  # gitleaks:allow
+
 jobs:
   render-matrix:
     runs-on: ubuntu-latest
@@ -67,29 +88,17 @@ jobs:
           terraform_wrapper: false
       - uses: terraform-linters/setup-tflint@b480b8fcdaa6f2c577f8e4fa799e89e756bb7c93 # v6.2.2
 
-      - name: Install hawkeye + taplo (pinned + checksum-verified, matching the template's CI)
-        env:
-          # renovate: datasource=github-releases depName=korandoru/hawkeye
-          HAWKEYE_VERSION: "6.5.1"
-          HAWKEYE_SHA256: "d6eb0505a45a15244f4f789158aafe5e3f1a7dc86c9dc1d7651f3cb1e1b321e0"  # gitleaks:allow
-          # renovate: datasource=github-releases depName=tamasfe/taplo
-          TAPLO_VERSION: "0.10.0"
-          # taplo ships no upstream checksum file; this SHA is computed from the asset.
-          TAPLO_SHA256: "8fe196b894ccf9072f98d4e1013a180306e17d244830b03986ee5e8eabeb6156"  # gitleaks:allow
-        run: |
-          set -euo pipefail
-          # Download the published asset, verify its SHA256, THEN extract (a tampered/MITM'd
-          # or truncated download fails closed instead of executing). SHAs are kept current
-          # with the versions by scripts/refresh-binary-checksums.sh.
-          curl -fsSL "https://github.com/korandoru/hawkeye/releases/download/v${HAWKEYE_VERSION}/hawkeye-x86_64-unknown-linux-gnu.tar.xz" \
-            -o "$RUNNER_TEMP/hawkeye.tar.xz"
-          echo "${HAWKEYE_SHA256}  $RUNNER_TEMP/hawkeye.tar.xz" | sha256sum -c -
-          tar -xJ --strip-components=1 -C "$HOME/.local/bin" -f "$RUNNER_TEMP/hawkeye.tar.xz" hawkeye-x86_64-unknown-linux-gnu/hawkeye
-          curl -fsSL "https://github.com/tamasfe/taplo/releases/download/${TAPLO_VERSION}/taplo-linux-x86_64.gz" \
-            -o "$RUNNER_TEMP/taplo.gz"
-          echo "${TAPLO_SHA256}  $RUNNER_TEMP/taplo.gz" | sha256sum -c -
-          gunzip -c "$RUNNER_TEMP/taplo.gz" >"$HOME/.local/bin/taplo"
-          chmod +x "$HOME/.local/bin/hawkeye" "$HOME/.local/bin/taplo"
+      - name: Install hawkeye (pinned + checksum-verified, matching the template's CI)
+        uses: ./.github/actions/install-hawkeye
+        with:
+          version: ${{ env.HAWKEYE_VERSION }}
+          sha256: ${{ env.HAWKEYE_SHA256 }}
+
+      - name: Install taplo (pinned + checksum-verified, matching the template's CI)
+        uses: ./.github/actions/install-taplo
+        with:
+          version: ${{ env.TAPLO_VERSION }}
+          sha256: ${{ env.TAPLO_SHA256 }}
 
       - name: Install trivy + osv-scanner (terraform IaC + dependency CVE scans)
         env:
@@ -145,20 +154,10 @@ jobs:
             prek-
 
       - name: Install taplo (pinned + checksum-verified; the taplo hook is language:system)
-        env:
-          # renovate: datasource=github-releases depName=tamasfe/taplo
-          TAPLO_VERSION: "0.10.0"
-          # taplo ships no upstream checksum file; this SHA is computed from the asset.
-          TAPLO_SHA256: "8fe196b894ccf9072f98d4e1013a180306e17d244830b03986ee5e8eabeb6156"  # gitleaks:allow
-        run: |
-          set -euo pipefail
-          mkdir -p "$HOME/.local/bin"
-          curl -fsSL "https://github.com/tamasfe/taplo/releases/download/${TAPLO_VERSION}/taplo-linux-x86_64.gz" \
-            -o "$RUNNER_TEMP/taplo.gz"
-          echo "${TAPLO_SHA256}  $RUNNER_TEMP/taplo.gz" | sha256sum -c -
-          gunzip -c "$RUNNER_TEMP/taplo.gz" >"$HOME/.local/bin/taplo"
-          chmod +x "$HOME/.local/bin/taplo"
-          echo "$HOME/.local/bin" >>"$GITHUB_PATH"
+        uses: ./.github/actions/install-taplo
+        with:
+          version: ${{ env.TAPLO_VERSION }}
+          sha256: ${{ env.TAPLO_SHA256 }}
 
       - name: Run prek hooks (same as local; taplo + hawkeye + zizmor run as their own steps below)
         env:
@@ -167,29 +166,24 @@ jobs:
           # superset of the hook's offline pass); no-commit-to-branch is a local-only guard.
           # (reuse stays in the prek run — it's check-only.)
           SKIP: taplo,hawkeye-format,zizmor,no-commit-to-branch
-        run: uvx prek run --all-files
+        run: uvx prek@0.4.8 run --all-files
 
       - name: Check TOML formatting (taplo)
         run: taplo fmt --check --diff
 
+      - name: Install hawkeye (pinned + checksum-verified)
+        uses: ./.github/actions/install-hawkeye
+        with:
+          version: ${{ env.HAWKEYE_VERSION }}
+          sha256: ${{ env.HAWKEYE_SHA256 }}
+
       - name: Check SPDX license headers (hawkeye)
-        env:
-          # renovate: datasource=github-releases depName=korandoru/hawkeye
-          HAWKEYE_VERSION: "6.5.1"
-          HAWKEYE_SHA256: "d6eb0505a45a15244f4f789158aafe5e3f1a7dc86c9dc1d7651f3cb1e1b321e0"  # gitleaks:allow
-        run: |
-          set -euo pipefail
-          curl -fsSL "https://github.com/korandoru/hawkeye/releases/download/v${HAWKEYE_VERSION}/hawkeye-x86_64-unknown-linux-gnu.tar.xz" \
-            -o "$RUNNER_TEMP/hawkeye.tar.xz"
-          echo "${HAWKEYE_SHA256}  $RUNNER_TEMP/hawkeye.tar.xz" | sha256sum -c -
-          tar -xJ --strip-components=1 -C "$RUNNER_TEMP" -f "$RUNNER_TEMP/hawkeye.tar.xz" hawkeye-x86_64-unknown-linux-gnu/hawkeye
-          chmod +x "$RUNNER_TEMP/hawkeye"
-          "$RUNNER_TEMP/hawkeye" check --config .config/licenserc.toml
+        run: hawkeye check --config .config/licenserc.toml
 
       - name: Audit workflows (zizmor — online, full coverage)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: uvx zizmor@1.26.1 --no-progress .github/workflows
+        run: uvx zizmor@1.26.1 --no-progress .github/workflows .github/actions
 
       # This repo's own Python suite. `uv run` provisions the dev env (copier, pyjson5, pytest)
       # from uv.lock; ruff/ty/pytest use the locked versions. The sync tests render the template

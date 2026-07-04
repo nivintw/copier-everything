@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
 # SPDX-License-Identifier: {{ license }}
-
+{% raw %}
 # Open-PR pipeline: run the shared quality gate on every pull request. No write
 # access, nothing released — just the checks. Require "ci / lint-and-test" in branch
 # protection / the ruleset.
@@ -13,6 +13,12 @@ on:
 permissions:
   contents: read
 
+# Newest push to a PR wins — a superseded run of the full render-matrix gate is wasted cost.
+concurrency:
+  group: pr-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   ci:
     uses: ./.github/workflows/ci.yml
+{% endraw %}

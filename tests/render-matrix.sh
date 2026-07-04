@@ -110,7 +110,10 @@ if [ "${1:-}" = "--one" ]; then
     run "bats tests/" bats tests/
   fi
 
-  # helm lint, only if the render produced a chart and helm is available.
+  # helm lint, only if the render produced a chart and helm is available. The orchestrator's
+  # hard prerequisite check below already guarantees helm exists on the documented invocation
+  # path; this guard exists purely so a `--one` worker invoked directly (bypassing the
+  # orchestrator, e.g. for a manual out-of-band render) degrades gracefully instead of erroring.
   if command -v helm >/dev/null 2>&1; then
     for chart in "$out"/helm/*/; do
       [ -f "$chart/Chart.yaml" ] && run "helm lint $(basename "$chart")" helm lint "$chart"
@@ -149,6 +152,27 @@ if [ "${#shapes[@]}" -eq 0 ]; then
   exit 1
 fi
 
+# Tripwire for the cache-warming invariant below: it's safe only because exactly one shape
+# sets sql_use_dbt:true. A second one would silently reintroduce the parallel-bootstrap race
+# the comment below describes — fail loudly here instead of letting it happen unnoticed.
+# No 2>/dev/null: every path in $shapes is a just-globbed, guaranteed-existing file, so a grep
+# error here is a real I/O problem worth seeing, not expected noise. grep runs alone (no pipe)
+# so its exit status reaches $? directly — PIPESTATUS doesn't survive a $(...) substitution.
+sql_dbt_matches="$(grep -l '^sql_use_dbt: *true' "${shapes[@]}")"
+grep_status=$?
+if [ "$grep_status" -gt 1 ]; then
+  echo "ERROR: grep failed (exit ${grep_status}) while scanning $ANSWERS_DIR for sql_use_dbt fixtures" >&2
+  exit 1
+fi
+sql_dbt_shapes=0
+[ -n "$sql_dbt_matches" ] && sql_dbt_shapes=$(wc -l <<<"$sql_dbt_matches")
+if [ "$sql_dbt_shapes" -gt 1 ]; then
+  echo "ERROR: ${sql_dbt_shapes} fixtures set sql_use_dbt: true, but the cache-warming step" >&2
+  echo "  below only warms ONE dbt-templater hook env. Warm an additional shape too, or the" >&2
+  echo "  unwarmed shapes race to bootstrap the same env concurrently." >&2
+  exit 1
+fi
+
 # Warm the shared caches with one shape BEFORE fanning out, so the parallel workers don't
 # each cold-bootstrap the same prek/uv hook envs at once. full-modules enables every module,
 # so it pulls the superset of hook environments; fall back to the first shape if it's gone.
@@ -156,8 +180,8 @@ fi
 # INVARIANT this relies on: no two shapes share a hook env that full-modules does NOT warm.
 # Today the only un-warmed env is sqlfluff's dbt-templater variant (full-modules sets
 # sql_use_dbt:false), needed by exactly one shape (sql-dbt) — so it bootstraps alone, no
-# race. If you add a SECOND sql_use_dbt:true shape, warm that variant too (or accept relying
-# on prek's install-time locking for the concurrent same-env bootstrap).
+# race. The tripwire above catches a second sql_use_dbt:true shape; if you add one, warm that
+# variant too (or accept relying on prek's install-time locking for the concurrent bootstrap).
 warm="$ANSWERS_DIR/full-modules.yml"
 [ -f "$warm" ] || warm="${shapes[0]}"
 "$0" --one "$warm" "$SRC" "$WORK" || true

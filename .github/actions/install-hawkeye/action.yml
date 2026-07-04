@@ -1,0 +1,37 @@
+# SPDX-FileCopyrightText: © 2026 Tyler Nivin
+# SPDX-License-Identifier: MIT
+
+name: Install hawkeye
+description: >-
+  Download, SHA256-verify, and install the pinned hawkeye release binary. Version and
+  checksum are the caller's inputs (not owned here) so Renovate's regex customManager, which
+  only scans .github/workflows/*.yml and template/.github/workflows/*.jinja, keeps tracking
+  the # renovate:-annotated pin.
+inputs:
+  version:
+    description: hawkeye version to install, without the leading "v"
+    required: true
+  sha256:
+    description: expected SHA256 checksum of the downloaded release asset
+    required: true
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        # Routed through env (not interpolated into the script) per zizmor's
+        # template-injection guidance.
+        VERSION: ${{ inputs.version }}
+        SHA256: ${{ inputs.sha256 }}
+      run: | # zizmor: ignore[github-env] the point of this action is putting the binary on PATH
+        set -euo pipefail
+        mkdir -p "$HOME/.local/bin"
+        # Download the published asset, verify its SHA256, THEN extract (a tampered/MITM'd
+        # or truncated download fails closed instead of executing). SHAs are kept current
+        # with the version by scripts/refresh-binary-checksums.sh.
+        curl -fsSL "https://github.com/korandoru/hawkeye/releases/download/v${VERSION}/hawkeye-x86_64-unknown-linux-gnu.tar.xz" \
+          -o "$RUNNER_TEMP/hawkeye.tar.xz"
+        echo "${SHA256}  $RUNNER_TEMP/hawkeye.tar.xz" | sha256sum -c -
+        tar -xJ --strip-components=1 -C "$HOME/.local/bin" -f "$RUNNER_TEMP/hawkeye.tar.xz" hawkeye-x86_64-unknown-linux-gnu/hawkeye
+        chmod +x "$HOME/.local/bin/hawkeye"
+        echo "$HOME/.local/bin" >>"$GITHUB_PATH"
