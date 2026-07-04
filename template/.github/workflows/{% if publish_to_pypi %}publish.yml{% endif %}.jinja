@@ -149,25 +149,19 @@ jobs:
           enable-cache: false
 
       - name: Confirm TestPyPI visibility, then import the built wheel
-        # The index can lag a fresh upload by a few seconds, so the visibility check
-        # polls briefly; --max-time keeps a stalled connection from hanging the job past
-        # the loop's timing. The install happens exactly once, so a genuinely broken
-        # artifact fails immediately and unambiguously.
+        # The index can lag a fresh upload by a few seconds; `-f` turns TestPyPI's
+        # pre-visibility 404 into a curl error, so --retry-all-errors polls until it's
+        # live — the same retry idiom ci.yml.jinja uses for flaky/eventually-consistent
+        # fetches. --max-time bounds each attempt so a stalled connection can't hang the
+        # job past the retry budget. The install happens exactly once, so a genuinely
+        # broken artifact fails immediately and unambiguously.
         env:
           VERSION: ${{ '{{' }} needs.build.outputs.version {{ '}}' }}
         run: |
-          for attempt in 1 2 3 4 5; do
-            if curl -fsSL --max-time 10 --output /dev/null \
-                "https://test.pypi.org/pypi/{{ project_slug }}/${VERSION}/json"; then
-              break
-            fi
-            if [ "$attempt" -eq 5 ]; then
-              echo "::error::{{ project_slug }}==${VERSION} never appeared on TestPyPI"
-              exit 1
-            fi
-            echo "attempt ${attempt}: {{ project_slug }}==${VERSION} not on TestPyPI yet; retrying in 15s"
-            sleep 15
-          done
+          curl -fsSL --max-time 10 --retry 5 --retry-all-errors --retry-delay 15 \
+              --output /dev/null \
+              "https://test.pypi.org/pypi/{{ project_slug }}/${VERSION}/json" \
+            || { echo "::error::{{ project_slug }}==${VERSION} never appeared on TestPyPI"; exit 1; }
           # --python matches requires-python in pyproject.toml (the runner's system Python
           # may be older; uv fetches its managed interpreter).
           uv run --isolated --no-project --python {{ python_version }} \
