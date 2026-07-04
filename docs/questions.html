@@ -531,6 +531,9 @@
             <span><span class="k">default</span> <code>{{ project_slug | replace('-', '_') }}</code></span>
             <span><span class="k">when</span> <code>{{ python_source }}</code></span>
           </div>
+          <div class="meta-row">
+            <span><span class="k">validator</span> Must be a valid Python identifier — start with a letter or underscore, then only letters, digits, or underscores (no dashes, dots, or spaces) — and must not be a Python reserved keyword (e.g. <code>class</code>, <code>import</code>). An empty value is also rejected. This isn't just cosmetic: the value is spliced unquoted into <code>import &lt;pkg&gt;</code> (e.g. the <code>publish.yml</code> smoke job), so an invalid identifier is a guaranteed <code>SyntaxError</code> on every run.</span>
+          </div>
           <p><strong>Help:</strong> Python import package name</p>
           <p><strong>Drives:</strong> The <code>src/&lt;python_package&gt;/</code> directory name and the importable package name referenced in <code>pyproject.toml</code> <code>[tool.setuptools.packages]</code> or equivalent metadata. Defaults to <code>project_slug</code> with dashes replaced by underscores, following the Python convention (PEP 8 — package names use underscores, not dashes).</p>
         </div>

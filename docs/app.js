@@ -79,7 +79,7 @@
     var scored = [];
     for (var i = 0; i < index.length; i++) {
       var it = index[i];
-      var hay = (it.title + " " + (it.text || "") + " " + (it.page || "")).toLowerCase();
+      var hay = (it.title + " " + (it.page || "")).toLowerCase();
       var ok = true, score = 0;
       for (var t = 0; t < terms.length; t++) {
         var pos = hay.indexOf(terms[t]);

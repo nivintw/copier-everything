@@ -198,7 +198,9 @@ uvx copier update</code></pre>
         <code>tests/answers/</code>. The test matrix renders each shape and runs the full quality
         gate against it on every PR, so these are not aspirational examples — they are live
         fixtures. Copy the answers that match your use case as a starting point for
-        <code>--data-file</code> or for answering the interactive prompts.</p>
+        <code>--data-file</code> or for answering the interactive prompts. (For just the
+        Python/testing shapes with a deeper design rationale, see
+        <a href="design.html#canonical-shapes">The four canonical Python shapes</a>.)</p>
       <p>The key <a href="questions.html">template questions</a> that differentiate shapes are:
         <code>test_frameworks</code>, <code>contains_python</code>, <code>python_source</code>,
         <code>is_package</code>, and the opt-in module flags. See
@@ -317,6 +319,30 @@ uvx copier update</code></pre>
                 branch.</td>
             </tr>
             <tr>
+              <td><code>terraform</code></td>
+              <td>
+                <code>test_frameworks: []</code><br>
+                <code>contains_python: false</code><br>
+                <code>include_terraform: true</code>
+              </td>
+              <td>Terraform module on the bare baseline with no Python. Exercises the
+                <code>antonbabenko/pre-commit-terraform</code> fmt/validate/tflint hooks in
+                isolation, unlike <code>full-modules</code> which only covers Terraform
+                bundled with everything else.</td>
+            </tr>
+            <tr>
+              <td><code>helm</code></td>
+              <td>
+                <code>test_frameworks: []</code><br>
+                <code>contains_python: false</code><br>
+                <code>include_helm: true</code>
+              </td>
+              <td>Helm module on the bare baseline with no Python. Exercises <code>helm lint</code>
+                and the <code>check-yaml</code>/<code>yamllint</code> Go-template exclusions in
+                isolation, unlike <code>full-modules</code> which only covers Helm bundled with
+                everything else.</td>
+            </tr>
+            <tr>
               <td><code>sql</code></td>
               <td>
                 <code>test_frameworks: []</code><br>
@@ -377,11 +403,15 @@ uvx copier update</code></pre>
               <td>
                 <code>contains_python: false</code><br>
                 <code>contains_ansible: true</code><br>
-                <code>ansible_kind: role</code>
+                <code>ansible_kind: role</code><br>
+                <code>publish_to_galaxy: false</code>
               </td>
               <td>Standalone Ansible role. Exercises ansible-lint over
                 <code>meta/galaxy_info</code>, argument specs, and handlers, plus the molecule
-                skeleton and Galaxy publish workflow. No Python toolchain.</td>
+                skeleton. With <code>publish_to_galaxy=false</code> no
+                <code>publish-galaxy.yml</code> is emitted — the Galaxy publish opt-out path
+                (<code>ansible-collection</code> above covers the default opt-in). No Python
+                toolchain.</td>
             </tr>
             <tr>
               <td><code>ansible-playbooks</code></td>

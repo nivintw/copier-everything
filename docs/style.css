@@ -237,7 +237,6 @@ a.card:hover { border-color: var(--accent); text-decoration: none; transform: tr
 .callout.note { border-left-color: var(--accent); }
 .callout.tip { border-left-color: var(--ok); }
 .callout.warn { border-left-color: var(--warn); }
-.callout.danger { border-left-color: var(--danger); }
 
 /* ---- Tables ---------------------------------------------------------------- */
 
@@ -259,7 +258,6 @@ td code { white-space: normal; overflow-wrap: anywhere; }
 }
 .badge.accent { background: var(--accent-soft); color: var(--accent-text); border-color: transparent; }
 .badge.ok { color: var(--ok); }
-.badge.warn { color: var(--warn); }
 .badge.type-bool { background: var(--accent-soft); color: var(--accent-text); border-color: transparent; }
 .badge.type-str { color: var(--text-soft); }
 .badge.type-int { color: var(--warn); }
@@ -267,7 +265,7 @@ td code { white-space: normal; overflow-wrap: anywhere; }
 /* ---- Definition list (question reference) ---------------------------------- */
 
 .def { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); margin: 1rem 0; box-shadow: var(--shadow); }
-.def > summary, .def > .def-head { padding: 0.8rem 1.1rem; cursor: pointer; display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.def > summary { padding: 0.8rem 1.1rem; cursor: pointer; display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
 .def > summary { list-style: none; }
 .def > summary::-webkit-details-marker { display: none; }
 .def > summary:hover { background: var(--surface-2); }

@@ -36,7 +36,8 @@ _exclude:
 # same steps for anyone who skips trust. Each task is gated to the initial copy. The three
 # repo-INITIALIZING tasks (git init / git add / scaffold commit) additionally gate on
 # `initialize_repository` so they're skipped when adopting into an existing repo (which
-# already has git + real history) — see docs/adopting-into-an-existing-repo.md. `uv sync` and
+# already has git + real history) — see
+# https://nivintw.github.io/copier-everything/usage.html#adoption. `uv sync` and
 # `prek install` keep the plain copy gate (idempotent, useful in both greenfield and adoption)
 # — but `prek install` is guarded to no-op without a git repo, since installing hooks needs a
 # .git, which `initialize_repository: false` into a not-yet-init'd dir wouldn't have created.
@@ -95,9 +96,10 @@ _message_after_copy: |
     uvx prek install      # wire up the pre-commit hooks
   {% else -%}
   Adopted into an existing repo (initialize_repository=false): git init + the scaffold commit
-  were skipped. Reconcile the scaffold against your real files, then commit on your own branch
-  — see docs/adopting-into-an-existing-repo.md.{% if has_python %} Run `uv sync` for the dev
-  toolchain and{% endif %} `uvx prek install` to wire up the hooks when ready.
+  were skipped. Reconcile the scaffold against your real files, then commit on your own branch.
+  See https://nivintw.github.io/copier-everything/usage.html#adoption for the full procedure.
+  Run{% if has_python %} `uv sync` for the dev toolchain and{% endif %} `uvx prek install` to
+  wire up the hooks when ready.
   {% endif -%}
 
 # ----------------------------------------------------------------------------- #
@@ -185,7 +187,7 @@ initialize_repository:
   type: bool
   # Gates the three repo-initializing _tasks (git init / git add / scaffold commit); the rest
   # (uv sync, prek install) are idempotent and run regardless. Full adoption procedure:
-  # docs/adopting-into-an-existing-repo.md.
+  # https://nivintw.github.io/copier-everything/usage.html#adoption.
   help: >-
     Initialize a fresh git repo and make the first commit? Answer NO when adopting into an
     existing repository (it already has git + history).
