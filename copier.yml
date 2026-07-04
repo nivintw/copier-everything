@@ -8,7 +8,10 @@
 
 _subdirectory: template
 _answers_file: .copier-answers.yml
-_min_copier_version: "9.0.0"
+# Matches the floor pyproject.toml's dev dependency actually tests (copier>=9.11.0) — nothing
+# verifies this template's features (dict-style multiselect choices, regex_search validators)
+# against an older copier, so the advertised minimum shouldn't claim more than that.
+_min_copier_version: "9.11.0"
 
 # Strip the `.jinja` suffix on render (default, stated for clarity).
 _templates_suffix: .jinja
@@ -153,7 +156,14 @@ repo_name:
 year:
   type: int
   help: Inception year (SPDX headers)
-  default: 2026
+  # Derived from the render-time clock instead of a hardcoded literal (which would otherwise
+  # go stale every January) via the strftime filter jinja2_ansible_filters registers in
+  # copier's Jinja env; copier casts the rendered string to int per `type: int` above.
+  default: "{{ '%Y' | strftime }}"
+  validator: >-
+    {% if year < 2000 or year > 2100 %}
+    year must be a plausible 4-digit year (2000-2100).
+    {% endif %}
 
 license:
   type: str
@@ -199,7 +209,10 @@ test_frameworks:
 
 contains_python:
   type: bool
-  help: Does this project contain Python? (forced yes when pytest is selected)
+  help: >-
+    Does this project contain Python? (defaults to yes when pytest is selected — contains_*
+    questions like this one may unlock further sub-questions, unlike the standalone include_*
+    module toggles below)
   default: "{{ 'pytest' in test_frameworks }}"
 
 # Hidden, computed guard: true if Python is present for ANY reason. Everything Python
@@ -347,7 +360,10 @@ publish_to_galaxy:
 # ----------------------------------------------------------------------------- #
 include_terraform:
   type: bool
-  help: Terraform scaffolding (versions · variables · outputs)
+  help: >-
+    Terraform scaffolding (versions · variables · outputs) — include_* toggles like this one
+    are standalone modules with no follow-up sub-questions, unlike contains_python/
+    contains_ansible above
   default: false
 
 include_docker:

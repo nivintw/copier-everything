@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: © 2026 Tyler Nivin
 # SPDX-License-Identifier: MIT
 
-# Dead-link check for this template repo's own Markdown (README, REVIEW, docs). Mirrors the
+# Dead-link check for this template repo's own Markdown (README, docs). Mirrors the
 # link-check.yml.jinja shipped into generated repos — link checking is a network operation, so
 # it's its own workflow, separate from the deterministic render-matrix gate in ci.yml.
 
@@ -30,10 +30,10 @@ jobs:
         uses: lycheeverse/lychee-action@8646ba30535128ac92d33dfc9133794bfdd9b411 # v2.8.0
         with:
           # lychee excludes mailto: by default; scope to Markdown so LICENSES/lockfiles aren't
-          # crawled. Excludes — our Pages site, our own /compare/ URLs, the private
-          # nivintw/repo-management repo, and the REUSE badge /info/ endpoint (all valid but
-          # unverifiable from a PR) — live in .config/lychee.toml, passed via --config so all
-          # excludes share one source. See that file for the per-host rationale.
+          # crawled. Excludes — our Pages site and our own /compare/ URLs (valid but
+          # unverifiable from a PR) and the REUSE badge /info/ endpoint — live in
+          # .config/lychee.toml, passed via --config so all excludes share one source. See
+          # that file for the per-host rationale.
           args: "--no-progress --config .config/lychee.toml '**/*.md'"
           fail: true
         env:

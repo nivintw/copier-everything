@@ -85,7 +85,7 @@ installable package, a pyproject-only-for-pytest repo, a pytest + bats repo (the
 
 The baseline (prek hooks, REUSE licensing, Conventional-Commit linting + release-please
 releases, CI) is language-agnostic and ships with every shape. See
-[`REVIEW.md`](REVIEW.md) for the model.
+[the design model](https://nivintw.github.io/copier-everything/design.html) for the details.
 
 ---
 
@@ -97,8 +97,7 @@ releases, CI) is language-agnostic and ships with every shape. See
   files end in `.jinja`.
 - **`tests/`** — copier-everything's own test suite: `render-matrix.sh` renders every
   `answers/*.yml` shape and runs the full gate. Wired into CI.
-- **`REVIEW.md`** — the design model, decisions/assumptions, and open follow-ups.
-- **`docs/`** — the published documentation site (served at
+- **`docs/`** — the published documentation site, including the design model (served at
   [nivintw.github.io/copier-everything](https://nivintw.github.io/copier-everything/) via
   GitHub Pages), generated with `/dev-kit:generate-docs`.
 

@@ -64,11 +64,16 @@ def test_no_dirty_local_changes(generated_project_dir: Path) -> None:
     )
 
 
+def _assert_uv_sync_ran(project_dir: Path) -> None:
+    """Shared by generated_project_dir and the adoption flow below — same task, same proof."""
+    pyvenv_cfg = project_dir / ".venv" / "pyvenv.cfg"
+    assert pyvenv_cfg.is_file(), ".venv/pyvenv.cfg not found — uv sync task did not run"
+    assert (project_dir / "uv.lock").is_file(), "uv.lock not created by uv sync task"
+
+
 def test_venv_and_lock_created(generated_project_dir: Path) -> None:
     """The uv sync task created a virtual environment and a committed uv.lock."""
-    pyvenv_cfg = generated_project_dir / ".venv" / "pyvenv.cfg"
-    assert pyvenv_cfg.is_file(), ".venv/pyvenv.cfg not found — uv sync task did not run"
-    assert (generated_project_dir / "uv.lock").is_file(), "uv.lock not created by uv sync task"
+    _assert_uv_sync_ran(generated_project_dir)
 
 
 def test_git_hooks_installed(generated_project_dir: Path) -> None:
@@ -104,6 +109,54 @@ def pkg_unpublished_project_dir(
             "is_package": False,
         },
         skip_tasks=False,
+    )
+
+
+def test_adoption_flow(
+    template_dir: Path,
+    tmp_path_factory: pytest.TempPathFactory,
+    render_template: Callable[..., Path],
+    capfd: pytest.CaptureFixture[str],
+) -> None:
+    """Render with initialize_repository=False (adopting into an existing, git-less dir).
+
+    One render covers all three adoption-flow properties, rather than a fixture re-rendering
+    per test: `capfd` is only needed for the prek-install-noop assertion, but pytest provides
+    it at function scope regardless, so there's no separate cost to reading it here too.
+    Copier's tasks run via bare `subprocess.run` with no output capture, so they inherit the
+    process's real file descriptors — `capfd` (not `capsys`, which only intercepts
+    sys.stdout/stderr in-process) is what actually sees them.
+    """
+    project_dir = render_template(
+        template_dir,
+        tmp_path_factory.mktemp("rendered_adopted"),
+        data={
+            "project_name": "Adopted Project",
+            "project_description": "adopting into an existing repo",
+            "test_frameworks": ["pytest"],
+            "contains_python": True,
+            "initialize_repository": False,
+        },
+        skip_tasks=False,
+    )
+    output = "".join(capfd.readouterr())
+
+    # A regression that fired git init/add/commit regardless of the flag would silently turn
+    # an adoption run into a fresh-repo run, clobbering whatever git history already existed.
+    assert not (project_dir / ".git").exists(), (
+        "initialize_repository=False still created .git — the three repo-initializing "
+        "_tasks in copier.yml must stay gated on initialize_repository"
+    )
+
+    # uv sync isn't gated on initialize_repository, so it must still run on adoption.
+    _assert_uv_sync_ran(project_dir)
+
+    # Render succeeding at all already proves the guard didn't let `uvx prek install` run
+    # against a git-less directory (that would fail and abort the whole task list) — this
+    # additionally asserts on the guard's own echo'd message, so a regression that silently
+    # takes the wrong branch without erroring (e.g. the condition inverted) is still caught.
+    assert "skipping prek install — no git repo yet" in output, (
+        f"expected the prek-install no-op guard's message in task output, got:\n{output}"
     )
 
 

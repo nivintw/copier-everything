@@ -25,12 +25,19 @@ excludes = [
   "**/*.json5",
   "!**/.gitignore",
   # CODEOWNERS has no extension hawkeye maps; it carries its own `#` header (reuse-verified).
+  # Not present in this repo's own tree yet — nivintw/repo-management's automation adds one —
+  # kept ready for when it lands rather than dropped and re-added later. (The general policy
+  # for entries like this: keep when there's a concrete future reason the content reappears,
+  # drop when there's none — e.g. .config/lychee.toml's exclude list drops an ignore-pattern
+  # whose only source, REVIEW.md, this repo permanently deleted.)
   "**/CODEOWNERS",
   # The Copier template tree — its headers resolve at render time (see REUSE.toml).
   "template/**",
 ]
 
-# '#'-comment files hawkeye doesn't map by default.
+# '#'-comment files hawkeye doesn't map by default. .envrc is this repo's own root .envrc;
+# .dockerignore is kept defensively for if Docker tooling is ever added at the root (mirrors
+# the generated template's own .dockerignore, which this repo doesn't otherwise need).
 [mapping.SCRIPT_STYLE]
 extensions = ["txt", "fish", "bats"]
 filenames = [".gitignore", ".envrc", ".dockerignore"]

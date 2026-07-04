@@ -12,10 +12,6 @@ exclude = [
   # our own /compare/ URLs: release-please's CHANGELOG links to compare/<prev>...<next>; the
   # <next> tag isn't cut until the Release PR merges, so it 404s on every Release PR (self-heals).
   "github\\.com/nivintw/copier-everything/compare/",
-  # nivintw/repo-management: a private repo (REVIEW.md cites it as the owner of this repo's
-  # release App + rulesets); the repo-scoped GITHUB_TOKEN can't read other private repos, so
-  # lychee 404s even though the link is correct.
-  "github\\.com/nivintw/repo-management",
   # The REUSE badge's /info/ endpoint 404s until the repo is registered/crawled by reuse.software.
   "api\\.reuse\\.software/info/",
 ]
