@@ -60,6 +60,7 @@ STRUCTURALLY_TESTED = {
     ".github/workflows/pr.yml",  # test_pr_workflow
     ".github/workflows/link-check.yml",  # test_link_check_workflow
     ".editorconfig",  # test_editorconfig (rules identical; only a dogfooding comment differs)
+    "scripts/refresh-binary-checksums.sh",  # test_refresh_binary_checksums_sh
 }
 
 # Differs substantially by design, or is generated — intentionally not asserted.
@@ -77,7 +78,6 @@ NOT_SYNCED = {
     ".config/release-please-config.json",
     ".config/.release-please-manifest.json",
     ".github/renovate.json",  # root uses renovate.json5 (json5 comments)
-    "scripts/refresh-binary-checksums.sh",  # root also refreshes template/**/*.jinja pins
     # Prose — repo-specific or release-generated.
     "README.md",
     "AGENTS.md",
@@ -134,6 +134,20 @@ def _drop_triggers(doc: dict) -> None:
     doc.pop("on", None)
 
 
+def _non_comment_lines(path: Path, *, strip: bool = False) -> list[str]:
+    """Lines that aren't blank or a ``#`` comment.
+
+    For files where comment wording is allowed to differ between the root and a render but
+    the actual content must match.
+    """
+    lines = [
+        line
+        for line in path.read_text().splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+    return [line.strip() for line in lines] if strip else lines
+
+
 def test_every_rendered_file_is_classified(generated_project_dir: Path) -> None:
     """Every file a render produces must be in exactly one sync bucket.
 
@@ -171,19 +185,31 @@ def test_trivially_equal_files(template_dir: Path, generated_project_dir: Path) 
 
 def test_editorconfig(template_dir: Path, generated_project_dir: Path) -> None:
     """.editorconfig: the indent/charset rules are identical; only a dogfooding comment differs."""
+    # .editorconfig isn't cleanly INI/TOML-parseable (`root = true` precedes any section), so
+    # compare the meaningful lines — everything that isn't a comment or blank.
+    assert _non_comment_lines(template_dir / ".editorconfig", strip=True) == _non_comment_lines(
+        generated_project_dir / ".editorconfig", strip=True
+    ), ".editorconfig rules are not synced (beyond the dogfooding comment)!"
 
-    def rules(path: Path) -> list[str]:
-        # .editorconfig isn't cleanly INI/TOML-parseable (`root = true` precedes any section),
-        # so compare the meaningful lines — everything that isn't a comment or blank.
+
+def test_refresh_binary_checksums_sh(template_dir: Path, generated_project_dir: Path) -> None:
+    """refresh-binary-checksums.sh: code must match; comments + the one glob deviation may differ.
+
+    Root additionally scans template/.github/workflows/*.jinja (it refreshes both its own
+    ci.yml AND the template's ci.yml.jinja); the generated copy has no template/ dir to scan.
+    """
+
+    def code_lines(path: Path) -> list[str]:
+        # The one documented functional deviation: root's glob loop additionally scans
+        # template/.github/workflows/*.jinja. Normalize it away so the rest can compare equal.
         return [
-            line.strip()
-            for line in path.read_text().splitlines()
-            if line.strip() and not line.lstrip().startswith("#")
+            line.replace(" template/.github/workflows/*.jinja", "")
+            for line in _non_comment_lines(path)
         ]
 
-    assert rules(template_dir / ".editorconfig") == rules(
-        generated_project_dir / ".editorconfig"
-    ), ".editorconfig rules are not synced (beyond the dogfooding comment)!"
+    root = code_lines(template_dir / "scripts/refresh-binary-checksums.sh")
+    render = code_lines(generated_project_dir / "scripts/refresh-binary-checksums.sh")
+    assert root == render, "refresh-binary-checksums.sh code is not synced (beyond comments)!"
 
 
 def test_pyproject_toml(template_dir: Path, generated_project_dir: Path) -> None:

@@ -1,0 +1,35 @@
+# SPDX-FileCopyrightText: © 2026 Tyler Nivin
+# SPDX-License-Identifier: MIT
+
+name: Install taplo
+description: >-
+  Download, SHA256-verify, and install the pinned taplo release binary. Version and checksum
+  are the caller's inputs (not owned here) so Renovate's regex customManager, which only
+  scans .github/workflows/*.yml and template/.github/workflows/*.jinja, keeps tracking the
+  # renovate:-annotated pin.
+inputs:
+  version:
+    description: taplo version to install (e.g. "0.10.0")
+    required: true
+  sha256:
+    description: expected SHA256 checksum of the downloaded release asset
+    required: true
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        # Routed through env (not interpolated into the script) per zizmor's
+        # template-injection guidance.
+        VERSION: ${{ inputs.version }}
+        SHA256: ${{ inputs.sha256 }}
+      run: | # zizmor: ignore[github-env] the point of this action is putting the binary on PATH
+        set -euo pipefail
+        mkdir -p "$HOME/.local/bin"
+        # taplo ships no upstream checksum file, so this SHA is computed from the asset.
+        curl -fsSL "https://github.com/tamasfe/taplo/releases/download/${VERSION}/taplo-linux-x86_64.gz" \
+          -o "$RUNNER_TEMP/taplo.gz"
+        echo "${SHA256}  $RUNNER_TEMP/taplo.gz" | sha256sum -c -
+        gunzip -c "$RUNNER_TEMP/taplo.gz" >"$HOME/.local/bin/taplo"
+        chmod +x "$HOME/.local/bin/taplo"
+        echo "$HOME/.local/bin" >>"$GITHUB_PATH"

@@ -28,6 +28,17 @@ set -euo pipefail
 shopt -s inherit_errexit
 
 BASE_REF="${BASE_REF:-}"
+if [ -n "$BASE_REF" ] && ! git rev-parse --verify --quiet "${BASE_REF}^{commit}" >/dev/null; then
+  # Distinguish "ref didn't resolve" (shallow clone, typo, stale ref) from the legitimate
+  # "file is new at HEAD" case pinned_value_at_base() treats as empty — a fetch-depth: 1
+  # runner would otherwise silently disable the tamper gate below instead of failing loudly.
+  # ^{commit} requires a commit-ish (not just any resolvable object, e.g. a blob or tree SHA
+  # passed by mistake), matching what pinned_value_at_base()'s `git show "$BASE_REF:$file"`
+  # actually needs.
+  echo "ERROR: BASE_REF '${BASE_REF}' does not resolve to a valid commit — refusing to run with a" >&2
+  echo "  broken tamper gate (fix the ref, or fetch enough history for it to resolve)." >&2
+  exit 1
+fi
 
 WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
@@ -96,10 +107,14 @@ cached_sha() { # <TOOL> <version> <outvar>
 
 # Extract the quoted value of an env-var assignment (first occurrence). Empty (exit 0) when absent.
 pinned_value() { # <VAR> <file> -> value or empty
-  grep -oE "$1: \"[^\"]+\"" "$2" 2>/dev/null | head -n1 | sed -E 's/.*"([^"]+)".*/\1/' || true
+  # Anchored to (whitespace-then-)line-start so a search for TRIVY_VERSION can't match inside
+  # a hypothetical OLD_TRIVY_VERSION — a bare \b wouldn't help here since `_` is a word char.
+  grep -oE "^[[:space:]]*$1: \"[^\"]+\"" "$2" 2>/dev/null | head -n1 | sed -E 's/.*"([^"]+)".*/\1/' || true
 }
 pinned_value_at_base() { # <VAR> <file> <baseref> -> value at base or empty
-  git show "$3:$2" 2>/dev/null | grep -oE "$1: \"[^\"]+\"" | head -n1 | sed -E 's/.*"([^"]+)".*/\1/' || true
+  # grep here reads from git show's pipe, not a file arg, so there's no "file not found"
+  # stderr to suppress (unlike pinned_value()'s grep, which does need it).
+  git show "$3:$2" 2>/dev/null | grep -oE "^[[:space:]]*$1: \"[^\"]+\"" | head -n1 | sed -E 's/.*"([^"]+)".*/\1/' || true
 }
 
 if [ "$#" -gt 0 ]; then
