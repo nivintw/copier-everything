@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.1](https://github.com/nivintw/copier-everything/compare/v1.8.0...v1.8.1) (2026-07-04)
+
+
+### Bug Fixes
+
+* Explicitly check the shebang in the checksum-script sync test ([e8d110b](https://github.com/nivintw/copier-everything/commit/e8d110be7df7b59f26fb93a80bd2a29e1fc4624b))
+
 ## [1.8.0](https://github.com/nivintw/copier-everything/compare/v1.7.0...v1.8.0) (2026-07-04)
 
 
