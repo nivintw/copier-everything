@@ -42,14 +42,9 @@ def helm_chart_dir(
     return charts[0]
 
 
-def test_deployment_selector_matches_template_labels(helm_chart_dir: Path) -> None:
-    """spec.selector.matchLabels must be a subset of spec.template.metadata.labels.
-
-    Kubernetes rejects a Deployment update that changes an existing selector, and a selector
-    that doesn't match its own pod template means the Deployment adopts no pods at all — both
-    failure modes chart.selectorLabels exists to prevent by giving both sites one source of
-    truth instead of two hand-duplicated label lists that could drift apart.
-    """
+@pytest.fixture(scope="module")
+def helm_manifests(helm_chart_dir: Path) -> list[dict]:
+    """Run `helm template` once and return the parsed manifests, shared by both tests below."""
     helm = shutil.which("helm")
     assert helm is not None, "helm not found on PATH"
     result = subprocess.run(  # noqa: S603
@@ -58,8 +53,18 @@ def test_deployment_selector_matches_template_labels(helm_chart_dir: Path) -> No
         text=True,
         check=True,
     )
-    manifests = [doc for doc in yaml.safe_load_all(result.stdout) if doc]
-    deployments = [doc for doc in manifests if doc.get("kind") == "Deployment"]
+    return [doc for doc in yaml.safe_load_all(result.stdout) if doc]
+
+
+def test_deployment_selector_matches_template_labels(helm_manifests: list[dict]) -> None:
+    """spec.selector.matchLabels must be a subset of spec.template.metadata.labels.
+
+    Kubernetes rejects a Deployment update that changes an existing selector, and a selector
+    that doesn't match its own pod template means the Deployment adopts no pods at all — both
+    failure modes chart.selectorLabels exists to prevent by giving both sites one source of
+    truth instead of two hand-duplicated label lists that could drift apart.
+    """
+    deployments = [doc for doc in helm_manifests if doc.get("kind") == "Deployment"]
     assert len(deployments) == 1, f"expected exactly one Deployment, found {len(deployments)}"
 
     selector_labels = deployments[0]["spec"]["selector"]["matchLabels"]
@@ -70,7 +75,7 @@ def test_deployment_selector_matches_template_labels(helm_chart_dir: Path) -> No
     )
 
 
-def test_service_selector_matches_deployment_pods(helm_chart_dir: Path) -> None:
+def test_service_selector_matches_deployment_pods(helm_manifests: list[dict]) -> None:
     """The Service's selector must also route to the Deployment's pods.
 
     A Service and a Deployment are two independent template files that both hardcode (or, via
@@ -78,17 +83,8 @@ def test_service_selector_matches_deployment_pods(helm_chart_dir: Path) -> None:
     test ties them together. A mismatch here means `kubectl get endpoints` shows zero
     addresses: the Service exists and looks healthy, but every request to it fails.
     """
-    helm = shutil.which("helm")
-    assert helm is not None, "helm not found on PATH"
-    result = subprocess.run(  # noqa: S603
-        [helm, "template", str(helm_chart_dir)],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    manifests = [doc for doc in yaml.safe_load_all(result.stdout) if doc]
-    services = [doc for doc in manifests if doc.get("kind") == "Service"]
-    deployments = [doc for doc in manifests if doc.get("kind") == "Deployment"]
+    services = [doc for doc in helm_manifests if doc.get("kind") == "Service"]
+    deployments = [doc for doc in helm_manifests if doc.get("kind") == "Deployment"]
     assert len(services) == 1, f"expected exactly one Service, found {len(services)}"
     assert len(deployments) == 1, f"expected exactly one Deployment, found {len(deployments)}"
 

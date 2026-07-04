@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+import tomllib
 from typing import TYPE_CHECKING
 
 import pytest
@@ -129,6 +130,9 @@ def test_version_lookup_reads_installed_metadata(pkg_unpublished_project_dir: Pa
         "top-level condition is python_source, not is_package"
     )
 
+    pyproject = tomllib.loads((pkg_unpublished_project_dir / "pyproject.toml").read_text())
+    dist_name = pyproject["project"]["name"]
+
     uv = shutil.which("uv")
     assert uv is not None, "uv not found on PATH"
     result = subprocess.run(  # noqa: S603
@@ -138,7 +142,7 @@ def test_version_lookup_reads_installed_metadata(pkg_unpublished_project_dir: Pa
             "python",
             "-c",
             f"import importlib.metadata as m; from {package_name} import __version__ as v; "
-            "assert v == m.version('pkg-unpublished'), (v, m.version('pkg-unpublished'))",
+            f"assert v == m.version({dist_name!r}), (v, m.version({dist_name!r}))",
         ],
         cwd=pkg_unpublished_project_dir,
         capture_output=True,
