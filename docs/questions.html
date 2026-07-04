@@ -516,7 +516,7 @@
             <span><span class="k">when</span> <code>{{ is_package }}</code></span>
           </div>
           <p><strong>Help:</strong> Emit a PyPI publish workflow (fires on each GitHub Release, OIDC Trusted Publishing)?</p>
-          <p><strong>Drives:</strong> Adds <code>.github/workflows/publish.yml</code> — a GitHub Actions workflow that builds and pushes the package to PyPI on each GitHub Release using OIDC Trusted Publishing (no long-lived API tokens required). Answer <code>false</code> for a package that is not published to the public PyPI (private packages, internal tools). See <a href="modules.html">Modules &amp; levers</a> for the workflow details.</p>
+          <p><strong>Drives:</strong> Adds <code>.github/workflows/publish.yml</code> — a GitHub Actions workflow that builds the package once, rehearses the release on TestPyPI (publish, then smoke-install the built wheel), and only then publishes to PyPI, on each GitHub Release. Each publish stage uses OIDC Trusted Publishing (no long-lived API tokens required) bound to its own GitHub deployment environment (<code>testpypi</code> / <code>pypi</code>). Answer <code>false</code> for a package that is not published to the public PyPI (private packages, internal tools). See <a href="modules.html">Modules &amp; levers</a> for the workflow details.</p>
         </div>
       </details>
 

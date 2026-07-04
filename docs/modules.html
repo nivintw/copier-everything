@@ -234,9 +234,10 @@ contains_python ─────────────────────�
               <td><span class="badge type-bool">bool</span></td>
               <td><code>is_package</code></td>
               <td><code>is_package</code></td>
-              <td>Emits <code>.github/workflows/publish.yml</code>: fires on each GitHub Release,
-                builds with <code>uv build</code>, and publishes via OIDC Trusted Publishing (no
-                long-lived secret).</td>
+              <td>Emits <code>.github/workflows/publish.yml</code>: fires on each GitHub Release
+                and drives build once → publish to TestPyPI → smoke-install the built wheel →
+                publish to PyPI, each publish stage in its own OIDC Trusted Publishing
+                environment (no long-lived secret).</td>
             </tr>
           </tbody>
         </table>
@@ -285,8 +286,11 @@ contains_python ─────────────────────�
             <tr>
               <td><code>.github/workflows/publish.yml</code></td>
               <td><code>publish_to_pypi</code></td>
-              <td>Fires on <code>release: published</code>. Uses OIDC Trusted Publishing — one-time
-                setup on PyPI required. Skips on forks via a <code>fork == false</code> guard.</td>
+              <td>Fires on <code>release: published</code>. Builds once, rehearses on TestPyPI,
+                smoke-installs the wheel, then publishes to PyPI — each stage in its own OIDC
+                Trusted Publishing environment (<code>testpypi</code> / <code>pypi</code>);
+                one-time environment + Trusted Publisher setup required (see the generated
+                README). Skips on forks via a <code>fork == false</code> guard.</td>
             </tr>
           </tbody>
         </table>
