@@ -236,6 +236,15 @@ python_package:
   help: Python import package name
   default: "{{ project_slug | replace('-', '_') }}"
   when: "{{ python_source }}"
+  # Must be a valid Python identifier: it's used as the src/<pkg> directory name and
+  # spliced unquoted into `import <pkg>` (e.g. the publish.yml smoke job) — an invalid
+  # identifier here isn't just cosmetic, it's a guaranteed SyntaxError on every run.
+  validator: >-
+    {% if not python_package %}python_package cannot be empty.
+    {% elif not (python_package | regex_search('^[a-zA-Z_][a-zA-Z0-9_]*$')) %}
+    python_package must be a valid Python identifier: start with a letter or underscore,
+    then only letters, digits, or underscores (no dashes, dots, or spaces).
+    {% endif %}
 
 python_version:
   type: str
