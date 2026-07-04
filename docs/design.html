@@ -154,8 +154,8 @@
 
       <p>Deliberately, an Ansible-only repo gets <strong>no <code>pyproject.toml</code></strong> — not even a stub. Linting is the official <code>ansible-lint</code> pre-commit hook (no venv required). Molecule (collection/role testing) and Galaxy publish run via <code>uvx</code>-pinned tools in CI. <code>yamllint</code> becomes the single YAML owner (replacing any Python-centric YAML linting). This is a deliberate contrast with the Python path, which is uv/pyproject-centric.</p>
 
-      <h2 id="canonical-shapes">The four canonical shapes <a class="anchor" href="#canonical-shapes">#</a></h2>
-      <p>All four shapes are CI-verified by <code>tests/render-matrix.sh</code> against committed answer sets in <code>tests/answers/</code>. The matrix also covers edge cases: the unpublished-package variant, the Apache-license path, and a full terraform+docker+helm build.</p>
+      <h2 id="canonical-shapes">The four canonical Python shapes <a class="anchor" href="#canonical-shapes">#</a></h2>
+      <p>All four shapes are CI-verified by <code>tests/render-matrix.sh</code> against committed answer sets in <code>tests/answers/</code>. The matrix also covers edge cases: the unpublished-package variant, the Apache-license path, and a full terraform+docker+helm build. These are the Python/testing shapes specifically — for the full set of CI-verified fixtures across every module (Ansible, Terraform, Docker, Helm, SQL, and combinations), see <a href="usage.html#shapes">Canonical project shapes</a> in the usage guide.</p>
 
       <div class="card-grid">
         <div class="card">

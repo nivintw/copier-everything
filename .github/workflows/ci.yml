@@ -195,6 +195,9 @@ jobs:
           uv run ty check .
           uv run pytest
 
+      - name: Check docs search index is up to date
+        run: uv run python scripts/generate-search-index.py --check
+
   # Single required status check for branch protection. repo-management requires the context
   # "ci / lint-and-test" across every managed repo — the name produced when a caller job
   # `ci` invokes this reusable workflow's `lint-and-test` job. This repo's gate is split into

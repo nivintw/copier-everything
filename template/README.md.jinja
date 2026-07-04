@@ -56,6 +56,15 @@ docker compose up --build
 helm lint helm/{{ project_slug }}
 helm template helm/{{ project_slug }}
 ```
+{% endif %}{% if include_sql %}
+## SQL
+
+See `sql/README.md` for the dialect and dbt-templater details.
+
+```bash
+sqlfluff lint sql/
+sqlfluff fix sql/
+```
 {% endif %}{% if has_ansible %}
 ## Ansible
 
