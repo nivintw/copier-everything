@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.2](https://github.com/nivintw/copier-everything/compare/v1.8.1...v1.8.2) (2026-07-04)
+
+
+### Bug Fixes
+
+* Correct Ansible/Python/Helm template content and gating ([2b78454](https://github.com/nivintw/copier-everything/commit/2b78454921746c824ff9d2d5dd7892b10156b9b5)), closes [#139](https://github.com/nivintw/copier-everything/issues/139) [#140](https://github.com/nivintw/copier-everything/issues/140) [#141](https://github.com/nivintw/copier-everything/issues/141) [#143](https://github.com/nivintw/copier-everything/issues/143) [#137](https://github.com/nivintw/copier-everything/issues/137) [#138](https://github.com/nivintw/copier-everything/issues/138) [#142](https://github.com/nivintw/copier-everything/issues/142) [#132](https://github.com/nivintw/copier-everything/issues/132) [#134](https://github.com/nivintw/copier-everything/issues/134) [#133](https://github.com/nivintw/copier-everything/issues/133)
+* Gate .envrc entry in licenserc SCRIPT_STYLE mapping on has_python ([1386a25](https://github.com/nivintw/copier-everything/commit/1386a25fadbac2e5c9a6095353f091c64e352779))
+
 ## [1.8.1](https://github.com/nivintw/copier-everything/compare/v1.8.0...v1.8.1) (2026-07-04)
 
 
