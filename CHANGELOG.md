@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.8.0](https://github.com/nivintw/copier-everything/compare/v1.7.0...v1.8.0) (2026-07-04)
+
+
+### Features
+
+* Back-port proven TestPyPI→PyPI Trusted Publishing flow to publish.yml ([1b754be](https://github.com/nivintw/copier-everything/commit/1b754be40f7ee7d184179ad5ba8579114e87b9b9)), closes [#109](https://github.com/nivintw/copier-everything/issues/109)
+
+
+### Bug Fixes
+
+* Reject Python reserved keywords in python_package validator ([300a6d3](https://github.com/nivintw/copier-everything/commit/300a6d361aa3656d802dc0179ce4b9218ee1b4f2))
+* Validate python_package as a Python identifier, clarify tag-trust boundary ([f4f7c75](https://github.com/nivintw/copier-everything/commit/f4f7c7578770f190d71d666f69dc85c24799f264))
+
 ## [1.7.0](https://github.com/nivintw/copier-everything/compare/v1.6.0...v1.7.0) (2026-07-03)
 
 
