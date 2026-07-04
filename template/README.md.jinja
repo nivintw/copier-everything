@@ -82,7 +82,27 @@ Published to **[Ansible Galaxy](https://galaxy.ansible.com)** on each GitHub Rel
 (`.github/workflows/publish-galaxy.yml`). Galaxy has no OIDC trusted publishing, so set an
 **`ANSIBLE_GALAXY_API_KEY`** repository secret (from your Galaxy account → Preferences → API key)
 to enable it; until then the workflow fails loudly rather than silently skipping.
-{% endif %}{% endif %}
+{% endif %}{% endif %}{% if publish_to_pypi %}
+## Publishing to PyPI
+
+Published to **[PyPI](https://pypi.org/project/{{ project_slug }}/)** on each GitHub Release
+(`.github/workflows/publish.yml`), dress-rehearsed through **TestPyPI** first — build once,
+publish to TestPyPI, install and import the built wheel, then (gated on that) publish to
+PyPI. Auth is OIDC **Trusted Publishing** (no long-lived secret), bound to two GitHub
+**deployment environments** — `testpypi` and `pypi` — each restricted to `v*` tag
+deployments.
+
+One-time setup before the first release:
+
+1. Create the `testpypi` and `pypi` environments (repo Settings → Environments), each with
+   a deployment branch/tag policy restricted to `v*` tags.
+2. Add a pending Trusted Publisher on [test.pypi.org](https://test.pypi.org/manage/account/publishing/)
+   and [pypi.org](https://pypi.org/manage/account/publishing/), each pointing at owner
+   `{{ repo_owner }}`, repo `{{ repo_name }}`, workflow `publish.yml`, and the matching
+   environment (`testpypi` / `pypi`).
+
+Until both publishers exist, `uv publish` fails loudly rather than silently skipping.
+{% endif %}
 ## License
 
 [{{ license }}](LICENSE) — and [REUSE](https://reuse.software)-compliant.
