@@ -29,6 +29,8 @@ dev = [
   "pytest>=8",
   "pyyaml>=6",
   "ruff>=0.12",
+  # ty is pre-1.0 and evolves quickly, so ">=0.0.1" is a permissive floor, not a meaningful one
+  # — Renovate keeps the resolved version current regardless.
   "ty>=0.0.1",
 ]
 

@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
+# SPDX-License-Identifier: {{ license }}
+
+---
+# Role argument validation (the role's meta/argument_specs.yml). Unlike the standalone role
+# kind's argument_specs, this doesn't fall back to project_description — that describes the
+# whole collection, not this bundled sample role, so it would be the wrong text here.
+argument_specs:
+  main:
+    short_description: The example role
+    options:
+      example_enabled:
+        type: bool
+        default: true
+        description: Whether the role performs its tasks.

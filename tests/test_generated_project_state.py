@@ -76,3 +76,75 @@ def test_git_hooks_installed(generated_project_dir: Path) -> None:
     # default_install_hook_types in the template's .pre-commit-config.yaml.
     for hook in ("pre-commit", "commit-msg"):
         assert (hooks_dir / hook).is_file(), f"{hook} hook was not installed by prek install"
+
+
+@pytest.fixture(scope="module")
+def pkg_unpublished_project_dir(
+    template_dir: Path,
+    tmp_path_factory: pytest.TempPathFactory,
+    render_template: Callable[..., Path],
+) -> Path:
+    """Render python_source=true, is_package=false WITH tasks, so uv sync actually installs it.
+
+    This is the shape __init__.py.jinja's version-lookup condition must branch correctly on
+    (see tests/answers/pkg-unpublished.yml's own comment: "the key autonomous assumption").
+    Uses its own output dir — output_dir_module_scope is already claimed by
+    generated_project_dir above, and both fixtures render different data into the same module.
+    """
+    return render_template(
+        template_dir,
+        tmp_path_factory.mktemp("rendered_pkg_unpublished"),
+        data={
+            "project_name": "Pkg Unpublished",
+            "project_description": "installed but not published",
+            "test_frameworks": ["pytest"],
+            "contains_python": True,
+            "python_source": True,
+            "is_package": False,
+        },
+        skip_tasks=False,
+    )
+
+
+def test_version_lookup_reads_installed_metadata(pkg_unpublished_project_dir: Path) -> None:
+    """Verify __version__ is read from installed package metadata, not hardcoded.
+
+    python_source=true installs a real distribution even when is_package=false, so __version__
+    must come from the installed metadata, not __init__.py.jinja's hand-edited "0.0.0"
+    placeholder for source layouts that aren't installed.
+
+    A regression to the wrong branch condition (is_package instead of python_source) renders
+    the placeholder branch instead — which ALSO produces the string "0.0.0" today (the
+    project's own starting version), so neither a bare ``isinstance(__version__, str)`` smoke
+    test nor a same-value check would catch it. Asserting the source actually took the
+    importlib.metadata branch is what makes this test discriminate the two.
+    """
+    src_dirs = [p for p in (pkg_unpublished_project_dir / "src").iterdir() if p.is_dir()]
+    assert len(src_dirs) == 1, f"expected exactly one src/ package, found {src_dirs}"
+    package_name = src_dirs[0].name
+
+    init_py = pkg_unpublished_project_dir / "src" / package_name / "__init__.py"
+    assert "importlib.metadata" in init_py.read_text(), (
+        "__init__.py didn't take the importlib.metadata branch — check __init__.py.jinja's "
+        "top-level condition is python_source, not is_package"
+    )
+
+    uv = shutil.which("uv")
+    assert uv is not None, "uv not found on PATH"
+    result = subprocess.run(  # noqa: S603
+        [
+            uv,
+            "run",
+            "python",
+            "-c",
+            f"import importlib.metadata as m; from {package_name} import __version__ as v; "
+            "assert v == m.version('pkg-unpublished'), (v, m.version('pkg-unpublished'))",
+        ],
+        cwd=pkg_unpublished_project_dir,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, (
+        f"__version__ doesn't match importlib.metadata.version() — {result.stderr}"
+    )
