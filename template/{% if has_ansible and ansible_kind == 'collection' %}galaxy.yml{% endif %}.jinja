@@ -18,9 +18,14 @@ tags:
   # linux, monitoring, networking, security, storage, tools, …); replace with what fits.
   - tools
 repository: https://github.com/{{ repo_owner }}/{{ repo_name }}
-# Keep dev-only trees out of the built artifact.
+# Keep dev-only trees out of the built artifact. An entry for a path this shape doesn't
+# render is a no-op, so this lists every dev-only top-level path the template can produce.
 build_ignore:
   - .ansible
+  - .config
+  - .devcontainer
   - .github
+  - .vscode
   - molecule
+  - scripts
   - tests

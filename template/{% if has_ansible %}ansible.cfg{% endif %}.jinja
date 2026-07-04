@@ -3,7 +3,14 @@
 
 # Ansible configuration. Galaxy content from requirements.yml installs to Ansible's default
 # path (~/.ansible/collections) — where ansible-lint, Molecule, and ansible-playbook all resolve
-# it without a relative path that Molecule's ephemeral runs can't follow. Local roles live in
-# ./roles.
+# it without a relative path that Molecule's ephemeral runs can't follow.
+#
+# roles_path/inventory are set unconditionally, but neither directory is scaffolded for every
+# ansible_kind: ./roles only exists for 'collection' (the standalone 'role' kind's content is
+# the repo root, and 'playbooks' has no roles/ of its own); ./inventory only exists for
+# 'playbooks'. A missing configured path doesn't fail the gate (ansible-lint's static analysis
+# never resolves it), but commands that DO resolve it (ansible-inventory, ansible-galaxy role
+# list) print a harmless warning rather than silently ignoring it.
 [defaults]
 roles_path = ./roles
+inventory = ./inventory

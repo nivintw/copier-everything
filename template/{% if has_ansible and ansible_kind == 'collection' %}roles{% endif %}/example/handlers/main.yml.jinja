@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
+# SPDX-License-Identifier: {{ license }}
+
+---
+# Handlers for the example role. Notify them from tasks with `notify:` — replace this
+# placeholder with a real restart/reload (e.g. ansible.builtin.service).
+- name: Reload example
+  ansible.builtin.debug:
+    msg: "The example reload handler fired."

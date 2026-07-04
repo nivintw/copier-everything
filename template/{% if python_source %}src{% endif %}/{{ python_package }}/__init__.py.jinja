@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: {{ license }}
 
 """{{ project_name }}."""
-{% if is_package %}
+{% if python_source %}
 from importlib.metadata import PackageNotFoundError, version
 
 # Single source of truth: the installed distribution's version. release-please bumps the
