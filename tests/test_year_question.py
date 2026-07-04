@@ -10,7 +10,7 @@ surface as an opaque render failure for a real user, with nothing pointing at th
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+import time
 from typing import TYPE_CHECKING
 
 import pytest
@@ -25,16 +25,24 @@ def test_year_default_is_current_year(
     output_dir_module_scope: Path,
     render_template: Callable[..., Path],
 ) -> None:
-    """An unanswered `year` question defaults to the render-time year, not a stale literal."""
+    """An unanswered `year` question defaults to the render-time year, not a stale literal.
+
+    copier.yml's `strftime` filter (jinja2_ansible_filters) formats `time.localtime()`, not
+    UTC — bracket the render with before/after local-year captures (not a single UTC read) so
+    the assertion can't flake around midnight, a DST transition, or a UTC/local mismatch.
+    """
+    before_year = time.localtime().tm_year
     project_dir = render_template(
         template_dir,
         output_dir_module_scope,
         data={"project_name": "Year Default Test"},
         skip_tasks=True,
     )
+    after_year = time.localtime().tm_year
     answers = (project_dir / ".copier-answers.yml").read_text()
-    assert f"year: {datetime.now(UTC).year}" in answers, (
-        f"expected year to default to the current year, got:\n{answers}"
+    assert any(f"year: {y}" in answers for y in {before_year, after_year}), (
+        f"expected year to default to the current year ({before_year} or {after_year}), "
+        f"got:\n{answers}"
     )
 
 
