@@ -158,12 +158,3 @@
 ### Bug Fixes
 
 * Set GH_REPO so the release auto-merge step works without a checkout ([4e4894f](https://github.com/nivintw/copier-everything/commit/4e4894f6829a37b8a76e19a1e1ca58935fa14ebe))
-
-<!--
-SPDX-FileCopyrightText: © 2026 Tyler Nivin
-SPDX-License-Identifier: MIT
--->
-
-## Changelog
-
-<!-- release-please manages this file; the first release will populate it. -->

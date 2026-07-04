@@ -26,6 +26,16 @@ path = ["uv.lock"]
 SPDX-FileCopyrightText = "© 2026 Tyler Nivin"
 SPDX-License-Identifier = "MIT"
 
+# CHANGELOG.md is rewritten by release-please on every release, which only manages content
+# below the `# Changelog` heading — a hand-added header above it isn't rewritten today, but
+# isn't a guarantee either, and an earlier hand-placed header here already went "orphaned"
+# once release-please's insertions pushed it down over many releases. Licensed here instead,
+# like uv.lock, so it survives whatever release-please does to the file.
+[[annotations]]
+path = ["CHANGELOG.md"]
+SPDX-FileCopyrightText = "© 2026 Tyler Nivin"
+SPDX-License-Identifier = "MIT"
+
 # Empty marker file telling GitHub Pages to serve docs/ as-is (no Jekyll) — can't carry a
 # header, and the HTML it protects contains literal Jinja examples Jekyll would otherwise mangle.
 [[annotations]]

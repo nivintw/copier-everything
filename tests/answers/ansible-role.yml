@@ -2,10 +2,13 @@
 # SPDX-License-Identifier: MIT
 
 # Shape: a standalone Ansible role, no Python — exercises ansible-lint (production profile) over
-# meta/galaxy_info + argument_specs + handlers, and proves the pyproject-free toolchain.
+# meta/galaxy_info + argument_specs + handlers, and proves the pyproject-free toolchain. Also
+# the publish_to_galaxy=false path (ansible-collection.yml covers the default true path) —
+# proving publish-galaxy.yml is correctly omitted.
 project_name: Ansible Role
 project_description: ansible role shape
 test_frameworks: []
 contains_python: false
 contains_ansible: true
 ansible_kind: role
+publish_to_galaxy: false

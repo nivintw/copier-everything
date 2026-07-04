@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: © 2026 Tyler Nivin
+# SPDX-License-Identifier: MIT
+
+# Shape: the Helm module on the bare baseline (no Python) — exercises `helm lint` and the
+# check-yaml/yamllint Go-template exclusions in isolation (full-modules.yml only covers Helm
+# bundled with everything else).
+project_name: Helm Shape
+project_description: helm chart module
+test_frameworks: []
+contains_python: false
+include_helm: true

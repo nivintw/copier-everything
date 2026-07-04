@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: © 2026 Tyler Nivin
+# SPDX-License-Identifier: MIT
+
+# Shape: the Terraform module on the bare baseline (no Python) — exercises the
+# antonbabenko/pre-commit-terraform fmt/validate/tflint hooks in isolation, without a
+# Python gate alongside them (full-modules.yml only covers Terraform bundled with everything
+# else).
+project_name: Terraform Shape
+project_description: terraform scaffolding module
+test_frameworks: []
+contains_python: false
+include_terraform: true
