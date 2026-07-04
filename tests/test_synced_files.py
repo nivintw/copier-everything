@@ -207,8 +207,20 @@ def test_refresh_binary_checksums_sh(template_dir: Path, generated_project_dir: 
             for line in _non_comment_lines(path)
         ]
 
-    root = code_lines(template_dir / "scripts/refresh-binary-checksums.sh")
-    render = code_lines(generated_project_dir / "scripts/refresh-binary-checksums.sh")
+    root_path = template_dir / "scripts/refresh-binary-checksums.sh"
+    render_path = generated_project_dir / "scripts/refresh-binary-checksums.sh"
+
+    # _non_comment_lines() strips the shebang too (it starts with "#"), so check it explicitly
+    # — it's semantically significant (selects the interpreter) but would otherwise be silently
+    # excluded from the comparison below.
+    root_shebang = root_path.read_text().splitlines()[0]
+    render_shebang = render_path.read_text().splitlines()[0]
+    assert root_shebang == render_shebang == "#!/usr/bin/env bash", (
+        "refresh-binary-checksums.sh shebang is not synced!"
+    )
+
+    root = code_lines(root_path)
+    render = code_lines(render_path)
     assert root == render, "refresh-binary-checksums.sh code is not synced (beyond comments)!"
 
 
