@@ -11,14 +11,20 @@
    free text with no format validator in copier.yml, so an unquoted value containing e.g.
    ": " or a leading special char would corrupt the YAML (confirmed: an unquoted
    project_description of "A tool: for testing" breaks the parser). Escaping backslash then
-   double-quote (in that order) keeps a double-quoted YAML scalar valid for any input. #}
-site_name: "{{ project_name | replace('\\', '\\\\') | replace('"', '\\"') }}"
+   double-quote (in that order) keeps a double-quoted YAML scalar valid for any input.
+   Precomputed once per variable (rather than inline at each use) so the escaping rule is
+   defined in one place. #}
+{%- set project_name_yaml = project_name | replace('\\', '\\\\') | replace('"', '\\"') %}
+{%- set project_description_yaml = project_description | replace('\\', '\\\\') | replace('"', '\\"') %}
+{%- set repo_owner_yaml = repo_owner | replace('\\', '\\\\') | replace('"', '\\"') %}
+{%- set repo_name_yaml = repo_name | replace('\\', '\\\\') | replace('"', '\\"') %}
+site_name: "{{ project_name_yaml }}"
 {%- if project_description %}
-site_description: "{{ project_description | replace('\\', '\\\\') | replace('"', '\\"') }}"
+site_description: "{{ project_description_yaml }}"
 {%- endif %}
-site_url: "https://{{ repo_owner | replace('\\', '\\\\') | replace('"', '\\"') }}.github.io/{{ repo_name | replace('\\', '\\\\') | replace('"', '\\"') }}/"
-repo_url: "https://github.com/{{ repo_owner | replace('\\', '\\\\') | replace('"', '\\"') }}/{{ repo_name | replace('\\', '\\\\') | replace('"', '\\"') }}"
-repo_name: "{{ repo_owner | replace('\\', '\\\\') | replace('"', '\\"') }}/{{ repo_name | replace('\\', '\\\\') | replace('"', '\\"') }}"
+site_url: "https://{{ repo_owner_yaml }}.github.io/{{ repo_name_yaml }}/"
+repo_url: "https://github.com/{{ repo_owner_yaml }}/{{ repo_name_yaml }}"
+repo_name: "{{ repo_owner_yaml }}/{{ repo_name_yaml }}"
 
 theme:
   name: material
