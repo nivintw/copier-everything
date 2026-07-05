@@ -47,14 +47,13 @@ theme:
         icon: material/brightness-7
         name: Switch to dark mode
 
-# Wired for the vendored asciinema-player assets (see castify's embedding.md reference doc)
-# so a repo only needs to drop the vendored files at these conventional paths under
-# docs/assets/ to embed a `<figure class="cast">` terminal recording — a repo with no casts
-# to embed never references them and is unaffected by the paths not existing yet.
-extra_css:
-  - assets/asciinema-player.css
-extra_javascript:
-  - assets/asciinema-player.min.js
+# docs/superpowers/** holds dev-only brainstorming specs and plans (the
+# superpowers:brainstorming/writing-plans convention) — shares the docs/ tree with the
+# published site but is never meant to be site content, and generate-docs never touches it.
+# `mkdocs build --strict` fails on any *.md under docs_dir that isn't in nav: below, so
+# exclude it explicitly rather than every repo re-discovering this the hard way.
+exclude_docs:
+  - superpowers/
 
 nav:
   - Home: index.md
