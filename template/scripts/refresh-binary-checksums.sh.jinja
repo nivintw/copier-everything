@@ -113,7 +113,10 @@ pinned_value() { # <VAR> <file> -> value or empty
   # missing or unreadable file). The guard below catches a missing file up front; capturing
   # grep's own exit code (not the head/sed pipeline's, which would swallow it) catches any
   # other read failure the guard doesn't, e.g. a file that exists but isn't readable.
-  [ -f "$2" ] || { echo "ERROR: pinned_value: no such file: $2" >&2; exit 1; }
+  [ -f "$2" ] || {
+    echo "ERROR: pinned_value: no such file: $2" >&2
+    exit 1
+  }
   # Anchored to (whitespace-then-)line-start so a search for TRIVY_VERSION can't match inside
   # a hypothetical OLD_TRIVY_VERSION — a bare \b wouldn't help here since `_` is a word char.
   local matched grep_rc
