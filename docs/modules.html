@@ -923,9 +923,13 @@ contains_python ─────────────────────�
             <tr>
               <td><code>mkdocs.yml</code></td>
               <td>MkDocs Material config: one shared "Terminal Slate" theme (dark by default,
-                light toggle, blue accent), the favicon/logo, extra CSS/JS wiring for vendored
-                <a href="https://github.com/asciinema/asciinema-player">asciinema-player</a>
-                assets, and a minimal starter <code>nav:</code>.</td>
+                light toggle, blue accent), the favicon/logo, an <code>exclude_docs:</code>
+                entry for <code>docs/superpowers/**</code> (dev-only brainstorming/plan specs,
+                never site content), and a minimal starter <code>nav:</code>. A page that embeds
+                its first <a href="https://github.com/asciinema/asciinema-player">asciinema-player</a>
+                cast adds its own <code>extra_css</code>/<code>extra_javascript</code> entry at
+                that point — the base config doesn't wire those assets unconditionally, since
+                every page loads them regardless of whether it uses them.</td>
             </tr>
             <tr>
               <td><code>docs/index.md</code></td>
@@ -948,6 +952,16 @@ contains_python ─────────────────────�
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <div class="callout note">
+        <span class="callout-title">Also touches <code>.config/rumdl.toml</code></span>
+        The docs design deliberately relies on raw HTML passing through Markdown unmodified
+        (castify's <code>&lt;figure class="cast"&gt;</code> embeds, a per-plugin
+        <code>&lt;span data-version="..."&gt;</code> version-badge convention). With
+        <code>include_docs_site</code> on, <code>rumdl.toml</code> disables <code>MD033</code>
+        (no inline HTML) alongside the always-off <code>MD013</code>; a repo without the docs
+        site keeps rumdl's stricter default.
       </div>
 
       <div class="callout tip">

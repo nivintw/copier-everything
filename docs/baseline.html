@@ -375,7 +375,7 @@
             <tr>
               <td><code>label-hygiene.yml</code></td>
               <td><code>on: issues</code> (closed)</td>
-              <td>Strips the <code>status:*</code> progression labels (<code>status:triage</code>, <code>status:ready</code>, <code>status:in-progress</code>, <code>status:in-review</code>, <code>status:blocked</code>) from an issue when it closes, so a closed issue never keeps wearing a stale open-state label. Self-disabling: it removes only the labels actually present, so a repo that doesn't use the taxonomy (the template doesn't provision these labels) gets a clean no-op. Leaves <code>type:*</code>/<code>priority:*</code> intact as historical record.</td>
+              <td>Strips the <code>status:*</code> progression labels (<code>status:triage</code>, <code>status:ready</code>, <code>status:in-progress</code>, <code>status:in-review</code>, <code>status:blocked</code>) from an issue when it closes, so a closed issue never keeps wearing a stale open-state label. Self-disabling: it removes only the labels actually present, so a repo that doesn't use the taxonomy (the template doesn't provision these labels) gets a clean no-op. Leaves <code>type:*</code>/<code>priority:*</code> intact as historical record. Re-checks the issue is still closed immediately before stripping — reopening emits no event to cancel an already-scheduled run, so this guards against a reopen racing the label removal.</td>
             </tr>
             <tr>
               <td><code>approve-bot-prs.yml</code></td>
@@ -446,6 +446,7 @@ HAWKEYE_SHA256: "d6eb0505…"</code></pre>
         <span class="callout-title">Keeping hashes current automatically</span>
         <p><code>scripts/refresh-binary-checksums.sh</code> recomputes each SHA256 from its pinned version — reading the upstream-published checksum file for trivy, osv-scanner, hawkeye, and kubeconform; hashing the asset directly for taplo (which publishes none). <code>renovate.json</code> wires the script as a <code>postUpgradeTask</code> (<code>executionMode: branch</code>), so the central self-hosted Renovate runner runs it during the upgrade and folds the refreshed hash into Renovate's <strong>own</strong> commit — no separate bot pushing onto the Renovate branch.</p>
         <p>The runner must authorize the script in its <code>allowedCommands</code>; absent that, the hash stays stale and the fail-closed mismatch stands — re-pin by hand with the script, then commit.</p>
+        <p>The <code>postUpgradeTask</code> command also sets <code>BASE_REF</code> to the branch's merge-base with the default branch, activating a tamper gate: the script refuses to re-pin a SHA whose adjacent <code>*_VERSION</code> is unchanged versus that ref — an upstream asset swapped on an already-published tag — and exits with a <code>TAMPER ALERT</code> instead. A human re-pinning locally (no <code>BASE_REF</code>) skips this gate by design; there's no reliable base ref to diff against outside the automated branch structure.</p>
       </div>
 
       <h2 id="renovate">Renovate <a class="anchor" href="#renovate">#</a></h2>
