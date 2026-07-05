@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.9.1](https://github.com/nivintw/copier-everything/compare/v1.9.0...v1.9.1) (2026-07-05)
+
+
+### Bug Fixes
+
+* Handle both on:/True key representations in docs.yml test ([4e00a76](https://github.com/nivintw/copier-everything/commit/4e00a76cacc1ed65101768a069d38042ada098a7))
+* Parse rendered docs.yml as YAML instead of substring-matching triggers ([63adc39](https://github.com/nivintw/copier-everything/commit/63adc392ec01a2066b38687864686bcb088d73d9))
+* Re-add push trigger to docs.yml caller now that repo-management[#86](https://github.com/nivintw/copier-everything/issues/86) shipped ([c7ab066](https://github.com/nivintw/copier-everything/commit/c7ab066154bb5dbbb5a3f736e19661c48ff34958)), closes [#160](https://github.com/nivintw/copier-everything/issues/160)
+
 ## [1.9.0](https://github.com/nivintw/copier-everything/compare/v1.8.3...v1.9.0) (2026-07-05)
 
 
