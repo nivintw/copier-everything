@@ -82,6 +82,7 @@ installable package, a pyproject-only-for-pytest repo, a pytest + bats repo (the
 | `include_helm` | A starter Helm chart under `helm/<slug>/` + `helm lint` and `kubeconform` manifest validation (CI) |
 | `include_sql` | `sql/` with a dialect-aware `.sqlfluff` + `sqlfluff` lint/fix (optional dbt templater) |
 | `include_devcontainer` | `.devcontainer/devcontainer.json` for Codespaces / VS Code |
+| `include_docs_site` (default `true`, opt-**out**) | `mkdocs.yml` + a placeholder `docs/index.md` + `docs/assets/favicon.svg` + a thin `docs.yml` GitHub Pages caller workflow (delegates the actual build to `nivintw/repo-management`'s reusable workflow) |
 
 The baseline (prek hooks, REUSE licensing, Conventional-Commit linting + release-please
 releases, CI) is language-agnostic and ships with every shape. See

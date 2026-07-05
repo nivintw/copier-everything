@@ -1,0 +1,54 @@
+# SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
+# SPDX-License-Identifier: {{ license }}
+
+# MkDocs Material config — the one shared "Terminal Slate" theme reused identically across
+# every copier-everything-descended repo (fleet-wide docs design; see
+# docs/superpowers/specs/2026-07-04-mkdocs-fleet-epic-design.md in the template source for
+# the full rationale). This file only scaffolds the mechanism — real navigation and content
+# are authored per repo by the generate-docs skill, not here.
+
+{#- Double-quoted YAML scalars: project_name/project_description/repo_owner/repo_name are
+   free text with no format validator in copier.yml, so an unquoted value containing e.g.
+   ": " or a leading special char would corrupt the YAML (confirmed: an unquoted
+   project_description of "A tool: for testing" breaks the parser). Escaping backslash then
+   double-quote (in that order) keeps a double-quoted YAML scalar valid for any input. #}
+site_name: "{{ project_name | replace('\\', '\\\\') | replace('"', '\\"') }}"
+{%- if project_description %}
+site_description: "{{ project_description | replace('\\', '\\\\') | replace('"', '\\"') }}"
+{%- endif %}
+site_url: "https://{{ repo_owner | replace('\\', '\\\\') | replace('"', '\\"') }}.github.io/{{ repo_name | replace('\\', '\\\\') | replace('"', '\\"') }}/"
+repo_url: "https://github.com/{{ repo_owner | replace('\\', '\\\\') | replace('"', '\\"') }}/{{ repo_name | replace('\\', '\\\\') | replace('"', '\\"') }}"
+repo_name: "{{ repo_owner | replace('\\', '\\\\') | replace('"', '\\"') }}/{{ repo_name | replace('\\', '\\\\') | replace('"', '\\"') }}"
+
+theme:
+  name: material
+  favicon: assets/favicon.svg
+  logo: assets/favicon.svg
+  palette:
+    # No `media:` binding on either entry: the FIRST scheme below is what every new visitor
+    # sees regardless of OS preference (dark by design, not just by default-detection) — the
+    # toggle is what lets a visitor opt into the other one, remembered via local storage.
+    - scheme: slate
+      primary: black
+      accent: light blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    - scheme: default
+      primary: white
+      accent: light blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+# Wired for the vendored asciinema-player assets (see castify's embedding.md reference doc)
+# so a repo only needs to drop the vendored files at these conventional paths under
+# docs/assets/ to embed a `<figure class="cast">` terminal recording — a repo with no casts
+# to embed never references them and is unaffected by the paths not existing yet.
+extra_css:
+  - assets/asciinema-player.css
+extra_javascript:
+  - assets/asciinema-player.min.js
+
+nav:
+  - Home: index.md

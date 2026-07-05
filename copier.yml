@@ -431,3 +431,10 @@ include_devcontainer:
   type: bool
   help: Dev Container scaffolding (.devcontainer/devcontainer.json for Codespaces / VS Code)
   default: false
+
+include_docs_site:
+  type: bool
+  help: MkDocs Material docs site (mkdocs.yml + a placeholder page + the Pages build workflow)
+  # Opt-OUT, unlike its siblings above: every fleet repo is meant to carry this eventually, so
+  # the default flips the other way round.
+  default: true

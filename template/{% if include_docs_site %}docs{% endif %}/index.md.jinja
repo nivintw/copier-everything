@@ -1,0 +1,12 @@
+<!--
+SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
+SPDX-License-Identifier: {{ license }}
+-->
+
+# {{ project_name }}
+
+{% if project_description -%}
+{{ project_description }}
+{%- else -%}
+Documentation for {{ project_name }}.
+{%- endif %}

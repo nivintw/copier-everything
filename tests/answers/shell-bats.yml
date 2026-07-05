@@ -1,8 +1,12 @@
 # SPDX-FileCopyrightText: © 2026 Tyler Nivin
 # SPDX-License-Identifier: MIT
 
-# Shape: no Python at all — a pure-shell repo with bats tests (no pyproject.toml).
+# Shape: no Python at all — a pure-shell repo with bats tests (no pyproject.toml). Also the
+# one shape whose project_description carries a colon, embedded quotes, and a backslash —
+# include_docs_site defaults true here, so mkdocs.yml.jinja's YAML-escaping (site_description:
+# "{{ project_description | replace(...) }}") actually runs against a value that needs it, and
+# check-yaml/yamllint in the gate below catch a regression if that escaping ever breaks.
 project_name: Shell Bats
-project_description: pure shell, bats only
+project_description: 'pure shell: "bats" only, no back\slash needed'
 test_frameworks: [bats]
 contains_python: false

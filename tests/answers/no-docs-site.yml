@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: © 2026 Tyler Nivin
+# SPDX-License-Identifier: MIT
+
+# Shape: opting OUT of the docs site — include_docs_site defaults to true, so every other
+# shape already exercises the "on" path; this is the one shape that exercises the "off"
+# path — the gate runs cleanly with the docs scaffold absent (same role docker-shell.yml
+# plays for include_docker's off-by-default path, just inverted since this flag is
+# on-by-default). Presence/absence of mkdocs.yml/docs/ itself is asserted directly in
+# tests/test_docs_site.py, not just implied by the gate passing.
+project_name: No Docs Site
+project_description: opts out of the docs site scaffold
+test_frameworks: []
+contains_python: false
+include_docs_site: false

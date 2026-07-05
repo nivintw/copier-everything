@@ -761,7 +761,7 @@
       <!-- ================================================================ -->
       <h2 id="modules">Includable modules <a class="anchor" href="#modules">#</a></h2>
 
-      <p>Each module is a boolean toggle that defaults to <code>false</code>. Modules are fully orthogonal — you can enable any combination without affecting the quality baseline or any other module. The SQL module unlocks two follow-up questions (<code>sql_dialect</code> and <code>sql_use_dbt</code>) that are hidden when SQL is off. For the complete list of scaffolded files and CI integration per module, see <a href="modules.html">Modules &amp; levers</a>.</p>
+      <p>Each module is a boolean toggle. Most default to <code>false</code> (opt-in); <code>include_docs_site</code> is the one exception, defaulting <code>true</code> (opt-out) — see its entry below. Modules are fully orthogonal — you can enable any combination without affecting the quality baseline or any other module. The SQL module unlocks two follow-up questions (<code>sql_dialect</code> and <code>sql_use_dbt</code>) that are hidden when SQL is off. For the complete list of scaffolded files and CI integration per module, see <a href="modules.html">Modules &amp; levers</a>.</p>
 
       <div class="table-wrap">
         <table>
@@ -809,6 +809,12 @@
               <td><code>include_devcontainer</code></td>
               <td><span class="badge type-bool">bool</span></td>
               <td><code>false</code></td>
+              <td>Always</td>
+            </tr>
+            <tr>
+              <td><code>include_docs_site</code></td>
+              <td><span class="badge type-bool">bool</span></td>
+              <td><code>true</code></td>
               <td>Always</td>
             </tr>
           </tbody>
@@ -931,6 +937,21 @@
           </div>
           <p><strong>Help:</strong> Dev Container scaffolding (.devcontainer/devcontainer.json for Codespaces / VS Code)</p>
           <p><strong>Drives:</strong> Adds a <code>.devcontainer/devcontainer.json</code> with a baseline configuration for GitHub Codespaces and the VS Code Dev Containers extension. See <a href="modules.html">Modules &amp; levers</a>.</p>
+        </div>
+      </details>
+
+      <details class="def" id="include_docs_site">
+        <summary>
+          <span class="def-name">include_docs_site</span>
+          <span class="badge type-bool">bool</span>
+          MkDocs Material docs site (mkdocs.yml + a placeholder page + the Pages build workflow)
+        </summary>
+        <div class="def-body">
+          <div class="meta-row">
+            <span><span class="k">default</span> <code>true</code></span>
+          </div>
+          <p><strong>Help:</strong> MkDocs Material docs site (mkdocs.yml + a placeholder page + the Pages build workflow)</p>
+          <p><strong>Drives:</strong> Adds <code>mkdocs.yml</code>, a placeholder <code>docs/index.md</code>, a shared <code>docs/assets/favicon.svg</code>, and a thin <code>.github/workflows/docs.yml</code> caller that delegates the actual build-and-deploy to <code>nivintw/repo-management</code>'s reusable workflow. Unlike every other module above, this one defaults <strong>on</strong> — every fleet repo is meant to carry it eventually, so set it to <code>false</code> to opt out. See <a href="modules.html">Modules &amp; levers</a>.</p>
         </div>
       </details>
 

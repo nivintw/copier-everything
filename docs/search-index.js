@@ -190,6 +190,11 @@ window.SEARCH_INDEX = [
 "url": "modules.html"
 },
 {
+"title": "Docs Site",
+"page": "Modules & levers",
+"url": "modules.html"
+},
+{
 "title": "Python levers",
 "page": "Modules & levers",
 "url": "modules.html#python-levers"
@@ -298,6 +303,16 @@ window.SEARCH_INDEX = [
 "title": "Behavior by Python shape",
 "page": "Modules & levers",
 "url": "modules.html#devcontainer-behavior"
+},
+{
+"title": "Docs Site",
+"page": "Modules & levers",
+"url": "modules.html#docs-site"
+},
+{
+"title": "Generated files",
+"page": "Modules & levers",
+"url": "modules.html#docs-site-files"
 },
 {
 "title": "Quality baseline — copier-everything",
