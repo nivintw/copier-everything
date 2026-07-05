@@ -53,6 +53,15 @@ def test_docs_site_files_present_by_default(
     assert push_trigger["branches"] == ["main"]
     assert push_trigger["paths"] == ["docs/**", "mkdocs.yml"]
 
+    mkdocs_yaml = yaml.safe_load((project_dir / "mkdocs.yml").read_text())
+    # docs/superpowers/** holds dev-only brainstorming specs, never site content — must be
+    # excluded or `mkdocs build --strict` fails on any repo that has that convention's files.
+    assert mkdocs_yaml["exclude_docs"] == ["superpowers/"]
+    # asciinema-player assets aren't vendored by default — wiring extra_css/extra_javascript
+    # unconditionally 404s every page until a repo actually embeds its first cast.
+    assert "extra_css" not in mkdocs_yaml
+    assert "extra_javascript" not in mkdocs_yaml
+
 
 def test_docs_site_files_absent_when_disabled(
     template_dir: Path,
