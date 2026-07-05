@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.0](https://github.com/nivintw/copier-everything/compare/v1.8.3...v1.9.0) (2026-07-05)
+
+
+### Features
+
+* Add include_docs_site template feature (MkDocs Material scaffold) ([cf86eb4](https://github.com/nivintw/copier-everything/commit/cf86eb4de5c679e87daf86d3200bea1ff0ac3a0a)), closes [#156](https://github.com/nivintw/copier-everything/issues/156)
+
 ## [1.8.3](https://github.com/nivintw/copier-everything/compare/v1.8.2...v1.8.3) (2026-07-05)
 
 
