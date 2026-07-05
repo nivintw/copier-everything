@@ -13,6 +13,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import yaml
+
 if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
@@ -37,9 +39,11 @@ def test_docs_site_files_present_by_default(
     assert (project_dir / "docs" / "assets" / "favicon.svg").is_file()
     workflow = project_dir / ".github" / "workflows" / "docs.yml"
     assert workflow.is_file()
-    workflow_text = workflow.read_text()
-    assert "branches: [main]" in workflow_text
-    assert "paths: ['docs/**', 'mkdocs.yml']" in workflow_text
+    workflow_yaml = yaml.safe_load(workflow.read_text())
+    # PyYAML resolves the bare `on:` key as the boolean True (YAML 1.1), not the string "on".
+    push_trigger = workflow_yaml[True]["push"]
+    assert push_trigger["branches"] == ["main"]
+    assert push_trigger["paths"] == ["docs/**", "mkdocs.yml"]
 
 
 def test_docs_site_files_absent_when_disabled(
