@@ -110,9 +110,14 @@ cached_sha() { # <TOOL> <version> <outvar>
 # Extract the quoted value of an env-var assignment (first occurrence) from a file or a
 # `git show`n blob on stdin. Returns empty (exit 0) when absent.
 pinned_value() { # <VAR> <file> -> value or empty
+  # Fail loudly on a bad path instead of masking it as "no pin found": grep's own exit code
+  # conflates "no match" (1 — the intended empty-return case) with "read error" (>=1 for a
+  # missing/unreadable file too), and with stderr previously discarded a typo'd $2 would
+  # silently resolve to empty here. Guarding existence explicitly keeps that distinction.
+  [ -f "$2" ] || { echo "ERROR: pinned_value: no such file: $2" >&2; exit 1; }
   # Anchored to (whitespace-then-)line-start so a search for TRIVY_VERSION can't match inside
   # a hypothetical OLD_TRIVY_VERSION — a bare \b wouldn't help here since `_` is a word char.
-  grep -oE "^[[:space:]]*$1: \"[^\"]+\"" "$2" 2>/dev/null | head -n1 | sed -E 's/.*"([^"]+)".*/\1/' || true
+  grep -oE "^[[:space:]]*$1: \"[^\"]+\"" "$2" | head -n1 | sed -E 's/.*"([^"]+)".*/\1/' || true
 }
 pinned_value_at_base() { # <VAR> <file> <baseref> -> value at base or empty
   # grep here reads from git show's pipe, not a file arg, so there's no "file not found"
