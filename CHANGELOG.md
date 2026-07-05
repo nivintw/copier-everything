@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.3](https://github.com/nivintw/copier-everything/compare/v1.8.2...v1.8.3) (2026-07-05)
+
+
+### Bug Fixes
+
+* License .gitignore via REUSE.toml instead of a hawkeye negation ([c933e90](https://github.com/nivintw/copier-everything/commit/c933e90540624f433337edf9c75279ae4540e828)), closes [#145](https://github.com/nivintw/copier-everything/issues/145)
+
 ## [1.8.2](https://github.com/nivintw/copier-everything/compare/v1.8.1...v1.8.2) (2026-07-04)
 
 
