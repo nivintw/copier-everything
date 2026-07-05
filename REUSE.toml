@@ -13,6 +13,13 @@ precedence = "override"
 SPDX-FileCopyrightText = "© 2026 Tyler Nivin"
 SPDX-License-Identifier = "MIT"
 
+# .gitignore stays in hawkeye's default excludes (not re-included via a negation) and is
+# licensed here instead of via an inline header.
+[[annotations]]
+path = ".gitignore"
+SPDX-FileCopyrightText = "© 2026 Tyler Nivin"
+SPDX-License-Identifier = "MIT"
+
 # JSON has no comment syntax for an inline SPDX header (release-please's config + manifest).
 [[annotations]]
 path = ["**/*.json"]

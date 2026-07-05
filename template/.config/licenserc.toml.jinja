@@ -14,8 +14,8 @@ SPDX-License-Identifier: {{ '{{' }} props["spdxLicenseIdentifier"] {{ '}}' }}
 """
 # REUSE-IgnoreEnd
 
-# Negations cancel hawkeye's built-in default excludes (which skip **/*.md and
-# **/.gitignore) so those get headered too.
+# Negations cancel hawkeye's built-in default excludes (which skip **/*.md) so those get
+# headered too.
 {%- if markdown_has_frontmatter %}
 # This project has frontmatter-first markdown (YAML on line 1 — Claude Code skills,
 # Jekyll/Hugo), so markdown stays in hawkeye's default excludes (a line-1 SPDX comment
@@ -32,7 +32,6 @@ excludes = [
 {%- if not markdown_has_frontmatter %}
   "!**/*.md",
 {%- endif %}
-  "!**/.gitignore",
   "**/.python-version",
   "**/.vscode/*",
   # CODEOWNERS has no extension hawkeye maps; it carries its own `#` header (reuse-verified).
@@ -52,10 +51,15 @@ additionalHeaders = ["markdown-header.toml"]
 [mapping.MARKDOWN_CUSTOM]
 extensions = ["md"]
 {% endif %}
-# '#'-comment files hawkeye doesn't map by default.
+# '#'-comment files hawkeye doesn't map by default. (.gitignore stays in hawkeye's default
+# excludes and is licensed via REUSE.toml instead — see that file.)
 [mapping.SCRIPT_STYLE]
 extensions = ["txt", "fish", "bats"{% if include_terraform %}, "tf"{% endif %}{% if has_ansible %}, "cfg"{% endif %}]
-filenames = [".gitignore"{% if has_python %}, ".envrc"{% endif %}{% if include_docker %}, ".dockerignore"{% endif %}{% if include_helm %}, ".helmignore"{% endif %}]
+{%- set script_style_filenames = [] %}
+{%- if has_python %}{% set _ = script_style_filenames.append('".envrc"') %}{% endif %}
+{%- if include_docker %}{% set _ = script_style_filenames.append('".dockerignore"') %}{% endif %}
+{%- if include_helm %}{% set _ = script_style_filenames.append('".helmignore"') %}{% endif %}
+filenames = [{{ script_style_filenames|join(", ") }}]
 
 [properties]
 inceptionYear = "{{ year }}"
