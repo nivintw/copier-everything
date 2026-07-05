@@ -29,6 +29,14 @@ def _checksum_rule_package_names(config: dict) -> set[str]:
     raise AssertionError(msg)
 
 
+def _checksum_rule_commands(config: dict) -> list[str]:
+    for rule in config["packageRules"]:
+        if "postUpgradeTasks" in rule:
+            return rule["postUpgradeTasks"]["commands"]
+    msg = "no postUpgradeTasks-scoped packageRules entry found"
+    raise AssertionError(msg)
+
+
 def test_renovate_checksum_pins_match_ci_yml(template_dir: Path) -> None:
     """The checksum-scoped packageRule in both renovate configs must track the same tools."""
     ci_yml_jinja = (template_dir / "template/.github/workflows/ci.yml.jinja").read_text()
@@ -50,3 +58,19 @@ def test_renovate_checksum_pins_match_ci_yml(template_dir: Path) -> None:
         ".github/renovate.json5's checksum packageRule has drifted from "
         "ci.yml.jinja's depName annotations"
     )
+
+
+def test_renovate_checksum_postupgradetask_sets_base_ref(template_dir: Path) -> None:
+    """The postUpgradeTask command must set BASE_REF, or refresh-binary-checksums.sh's
+    supply-chain tamper gate is silently off on this automated path (only a human running the
+    script locally would set it themselves).
+    """
+    template_config = json.loads((template_dir / "template/.github/renovate.json").read_text())
+    root_config = pyjson5.decode((template_dir / ".github/renovate.json5").read_text())
+
+    for name, config in [("template/.github/renovate.json", template_config), (".github/renovate.json5", root_config)]:
+        commands = _checksum_rule_commands(config)
+        assert any("BASE_REF=" in command for command in commands), (
+            f"{name}'s checksum postUpgradeTask command doesn't set BASE_REF — "
+            "the tamper gate would be silently off"
+        )
