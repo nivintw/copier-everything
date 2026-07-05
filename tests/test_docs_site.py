@@ -11,6 +11,7 @@ These tests assert presence and absence directly.
 
 from __future__ import annotations
 
+import tomllib
 from typing import TYPE_CHECKING
 
 import yaml
@@ -62,6 +63,11 @@ def test_docs_site_files_present_by_default(
     assert "extra_css" not in mkdocs_yaml
     assert "extra_javascript" not in mkdocs_yaml
 
+    # The docs design deliberately relies on raw HTML in Markdown (castify cast embeds,
+    # version-badge spans) — MD033 must be off or the lint gate fails on either pattern.
+    rumdl_toml = tomllib.loads((project_dir / ".config" / "rumdl.toml").read_text())
+    assert "MD033" in rumdl_toml["global"]["disable"]
+
 
 def test_docs_site_files_absent_when_disabled(
     template_dir: Path,
@@ -78,3 +84,8 @@ def test_docs_site_files_absent_when_disabled(
     assert not (project_dir / "mkdocs.yml").exists()
     assert not (project_dir / "docs").exists()
     assert not (project_dir / ".github" / "workflows" / "docs.yml").exists()
+
+    # rumdl.toml is always scaffolded regardless of include_docs_site — but a repo with no
+    # docs site has no reason to relax MD033 and should keep the stricter default.
+    rumdl_toml = tomllib.loads((project_dir / ".config" / "rumdl.toml").read_text())
+    assert "MD033" not in rumdl_toml["global"]["disable"]
