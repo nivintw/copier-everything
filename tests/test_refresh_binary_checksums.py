@@ -19,9 +19,10 @@ if TYPE_CHECKING:
 
 
 def test_pinned_value_fails_loudly_on_missing_file(template_dir: Path) -> None:
+    """A typo'd file argument must exit loudly, not silently resolve to empty."""
     script = template_dir / "scripts" / "refresh-binary-checksums.sh"
     result = subprocess.run(  # noqa: S603
-        ["bash", str(script), "some/typo/path.yml"],
+        ["bash", str(script), "some/typo/path.yml"],  # noqa: S607
         cwd=template_dir,
         capture_output=True,
         text=True,
