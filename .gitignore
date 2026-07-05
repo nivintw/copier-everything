@@ -1,6 +1,3 @@
-# SPDX-FileCopyrightText: © 2026 Tyler Nivin
-# SPDX-License-Identifier: MIT
-
 # This is the TEMPLATE repo's own ignore file. The generated project ships its
 # own .gitignore (see template/.gitignore.jinja).
 
