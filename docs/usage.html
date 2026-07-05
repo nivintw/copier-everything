@@ -371,6 +371,18 @@ uvx copier update</code></pre>
                 files.</td>
             </tr>
             <tr>
+              <td><code>no-docs-site</code></td>
+              <td>
+                <code>test_frameworks: []</code><br>
+                <code>contains_python: false</code><br>
+                <code>include_docs_site: false</code>
+              </td>
+              <td>Opts <strong>out</strong> of the docs site module on the bare baseline. Every
+                other shape exercises <code>include_docs_site</code>'s default-<code>true</code>
+                path implicitly; this is the one shape that asserts <code>mkdocs.yml</code> and
+                <code>docs/</code> are absent when it's turned off.</td>
+            </tr>
+            <tr>
               <td><code>full-modules</code></td>
               <td>
                 <code>python_source: true</code><br>

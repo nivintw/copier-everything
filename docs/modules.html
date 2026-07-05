@@ -123,6 +123,12 @@
           <p><code>.devcontainer/devcontainer.json</code> pre-wired to the Microsoft Python or
             Debian base image, with VS Code extensions.</p>
         </a>
+        <a class="card" href="#docs-site">
+          <span class="card-eyebrow">Docs</span>
+          <h3>Docs Site</h3>
+          <p>An MkDocs Material scaffold (<code>mkdocs.yml</code> + a placeholder page + a Pages
+            build workflow) — on by default, unlike every module above.</p>
+        </a>
       </div>
 
       <!-- ------------------------------------------------------------------ -->
@@ -892,6 +898,64 @@ contains_python ─────────────────────�
         The <code>devcontainer.json</code> is compatible with GitHub Codespaces out of the box.
         Open the repo in Codespaces and the Python environment (if applicable) is ready after
         the <code>postCreateCommand</code> runs.
+      </div>
+
+      <!-- ------------------------------------------------------------------ -->
+      <h2 id="docs-site">Docs Site <a class="anchor" href="#docs-site">#</a></h2>
+
+      <p>Gating question:
+        <a href="questions.html#include_docs_site"><code>include_docs_site</code></a>
+        <span class="badge type-bool">bool</span> — default <code>true</code>.</p>
+
+      <p>Unlike every module above, this one is <strong>opt-out</strong>: every repo descended
+        from this template is meant to eventually carry a docs site, so the default flips the
+        other way round. Set it to <code>false</code> to skip it entirely.</p>
+
+      <p>This scaffolds the <em>mechanism</em> only — a shared theme, a placeholder page, and a
+        deploy workflow. Real navigation and content are authored per repo by the
+        <code>/dev-kit:generate-docs</code> skill, not by Copier.</p>
+
+      <h3 id="docs-site-files">Generated files <a class="anchor" href="#docs-site-files">#</a></h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>File</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><code>mkdocs.yml</code></td>
+              <td>MkDocs Material config: one shared "Terminal Slate" theme (dark by default,
+                light toggle, blue accent), the favicon/logo, extra CSS/JS wiring for vendored
+                <a href="https://github.com/asciinema/asciinema-player">asciinema-player</a>
+                assets, and a minimal starter <code>nav:</code>.</td>
+            </tr>
+            <tr>
+              <td><code>docs/index.md</code></td>
+              <td>Placeholder landing page (title + <code>project_description</code>) — replaced
+                with real content by <code>/dev-kit:generate-docs</code>.</td>
+            </tr>
+            <tr>
+              <td><code>docs/assets/favicon.svg</code></td>
+              <td>The <code>&gt;</code> prompt-glyph mark used as both favicon and header logo,
+                identical across every repo on this theme.</td>
+            </tr>
+            <tr>
+              <td><code>.github/workflows/docs.yml</code></td>
+              <td>Thin caller workflow — delegates the actual MkDocs build and GitHub Pages
+                deploy to <code>nivintw/repo-management</code>'s reusable workflow, so a
+                <code>mkdocs</code>/<code>mkdocs-material</code> version bump is one Renovate PR
+                for the whole fleet rather than one per repo. Manual (<code>workflow_dispatch</code>)
+                only for now — the reusable workflow it calls doesn't exist yet, so an automatic
+                trigger would fail every run until that lands.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-title">Part of a fleet-wide rollout</span>
+        This module is one piece of a larger, staged migration replacing this template's own
+        bespoke <code>docs/*.html</code> site with MkDocs across every repo descended from it.
+        See the design spec under <code>docs/superpowers/specs/</code> in this repo's source for
+        the full architecture and rollout order.
       </div>
 
       <footer class="page-footer">

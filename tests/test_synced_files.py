@@ -98,6 +98,13 @@ NOT_SYNCED = {
     # The template ships a smoke test; this repo has its own suite (you are reading it).
     "tests/conftest.py",
     "tests/test_smoke.py",
+    # This repo hasn't migrated its own docs to the new MkDocs scaffold yet — that's the
+    # separate, deliberately-blocked pilot issue #157. The root keeps its existing bespoke
+    # docs/*.html site until that migration lands.
+    "mkdocs.yml",
+    "docs/index.md",
+    "docs/assets/favicon.svg",
+    ".github/workflows/docs.yml",
 }
 
 

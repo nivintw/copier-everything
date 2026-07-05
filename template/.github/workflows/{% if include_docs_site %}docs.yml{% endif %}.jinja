@@ -1,0 +1,36 @@
+# SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
+# SPDX-License-Identifier: {{ license }}
+{% raw %}
+# Thin caller: the actual MkDocs build-and-deploy logic lives in ONE place —
+# nivintw/repo-management's reusable workflow — so a `mkdocs`/`mkdocs-material` version
+# bump is one Renovate PR for the whole fleet, not one per repo. `pages: write` +
+# `id-token: write` are declared here (not inside the reusable workflow) because GitHub
+# requires the CALLING workflow to grant the permissions a reusable workflow's jobs use.
+#
+# Pinned to a commit (zizmor's blanket unpinned-uses policy), not a tag — repo-management
+# has no release process for this workflow, so Renovate tracks and bumps the digest instead,
+# same as it does for every other `uses:` pin in this file (see main.yml/docs on Renovate's
+# GitHub Actions digest-pinning).
+#
+# MANUAL TRIGGER ONLY, for now: repo-management's `.github/workflows/docs.yml` doesn't exist
+# yet (tracked at nivintw/repo-management#86, part of the same fleet-wide rollout as the
+# design spec referenced above) — a `push` trigger here would fire on every new project's
+# first commit touching docs/**/mkdocs.yml and fail outright (a broken `uses:` target fails
+# the run, it doesn't no-op). Add the `push` trigger back once #86 ships.
+name: docs
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: nivintw/repo-management/.github/workflows/docs.yml@22812b52c1c212b57ddef29da6e18e96afce03c7 # main
+{% endraw %}

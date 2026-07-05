@@ -9,6 +9,13 @@ version = 1
 path = ".gitignore"
 SPDX-FileCopyrightText = "© {{ year }} {{ author_name }}"
 SPDX-License-Identifier = "{{ license }}"
+{% if include_docs_site %}
+# The favicon is a graphic asset, not a text file hawkeye can header inline.
+[[annotations]]
+path = "docs/assets/favicon.svg"
+SPDX-FileCopyrightText = "© {{ year }} {{ author_name }}"
+SPDX-License-Identifier = "{{ license }}"
+{% endif %}
 
 # Files that can't carry an SPDX header (no comment syntax / generated). Everything
 # else gets a real header from hawkeye (see .config/licenserc.toml).
