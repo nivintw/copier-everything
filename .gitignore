@@ -13,7 +13,10 @@ __pycache__/
 /.copier-test/
 
 ### ship continuity files (progress tracking, never committed) ###
-/.ship/
+.ship/
+
+### superpowers:brainstorming local artifacts (mockups/companions, never committed) ###
+.superpowers/
 
 ### VS Code — track only the curated workspace files, ignore personal/machine state ###
 .vscode/*
@@ -22,6 +25,3 @@ __pycache__/
 
 ### macOS ###
 .DS_Store
-
-# ship progress files (dev-kit:ship)
-.ship/
