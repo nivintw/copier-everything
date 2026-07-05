@@ -202,6 +202,9 @@ initialize_repository:
 test_frameworks:
   type: str
   help: "Test suites to scaffold (space toggles; none selected = no tests/ dir)"
+  # Multiselect, unlike include_*'s one-boolean-per-module convention below: this asks what
+  # to scaffold (both pytest and bats can coexist), not whether one ecosystem/module is
+  # present, so there's nothing to enumerate against and no reason to force separate booleans.
   multiselect: true
   choices:
     pytest — Python tests: pytest
