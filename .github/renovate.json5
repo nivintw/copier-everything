@@ -33,11 +33,13 @@
       // relying on the runner to export it, so the script's supply-chain tamper gate (refuse
       // a re-pin whose *_VERSION did NOT change vs BASE_REF — a swapped asset on a fixed tag)
       // is always active on this automated path, with no out-of-band runner convention to
-      // silently drift out of sync.
+      // silently drift out of sync. The command fails loudly if the merge-base computation
+      // itself fails (e.g. no origin/HEAD symref in the runner's clone), rather than letting
+      // a silently-empty BASE_REF degrade back to the gate being off.
       "description": "Only re-run the checksum refresh when one of the 5 checksum-relevant pins actually changed.",
       "matchPackageNames": ["aquasecurity/trivy", "google/osv-scanner", "korandoru/hawkeye", "tamasfe/taplo", "yannh/kubeconform"],
       "postUpgradeTasks": {
-        "commands": ["BASE_REF=\"$(git merge-base HEAD origin/HEAD)\" scripts/refresh-binary-checksums.sh"],
+        "commands": ["BASE_REF=\"$(git merge-base HEAD origin/HEAD)\" || { echo 'ERROR: could not compute BASE_REF via git merge-base — refusing to run with the tamper gate silently disabled' >&2; exit 1; }; export BASE_REF; scripts/refresh-binary-checksums.sh"],
         "fileFilters": [".github/workflows/**", "template/.github/workflows/**"],
         "executionMode": "branch",
       },
