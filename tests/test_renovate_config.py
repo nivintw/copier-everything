@@ -16,28 +16,34 @@ import re
 from typing import TYPE_CHECKING
 
 import pyjson5
+import pytest
 
 if TYPE_CHECKING:
     from pathlib import Path
 
 
-def _checksum_rule_package_names(config: dict) -> set[str]:
+@pytest.fixture
+def renovate_configs(template_dir: Path) -> dict[str, dict]:
+    """Both renovate configs, keyed by their path relative to the repo root."""
+    template_json = template_dir / "template/.github/renovate.json"
+    root_json5 = template_dir / ".github/renovate.json5"
+    return {
+        "template/.github/renovate.json": json.loads(template_json.read_text()),
+        ".github/renovate.json5": pyjson5.decode(root_json5.read_text()),
+    }
+
+
+def _checksum_rule(config: dict) -> dict:
     for rule in config["packageRules"]:
         if "postUpgradeTasks" in rule:
-            return set(rule["matchPackageNames"])
+            return rule
     msg = "no postUpgradeTasks-scoped packageRules entry found"
     raise AssertionError(msg)
 
 
-def _checksum_rule_commands(config: dict) -> list[str]:
-    for rule in config["packageRules"]:
-        if "postUpgradeTasks" in rule:
-            return rule["postUpgradeTasks"]["commands"]
-    msg = "no postUpgradeTasks-scoped packageRules entry found"
-    raise AssertionError(msg)
-
-
-def test_renovate_checksum_pins_match_ci_yml(template_dir: Path) -> None:
+def test_renovate_checksum_pins_match_ci_yml(
+    template_dir: Path, renovate_configs: dict[str, dict]
+) -> None:
     """The checksum-scoped packageRule in both renovate configs must track the same tools."""
     ci_yml_jinja = (template_dir / "template/.github/workflows/ci.yml.jinja").read_text()
     # Scoped to datasource=github-releases: ci.yml.jinja also annotates pypi-sourced pins
@@ -47,29 +53,21 @@ def test_renovate_checksum_pins_match_ci_yml(template_dir: Path) -> None:
     annotated = set(re.findall(r"datasource=github-releases depName=(\S+)", ci_yml_jinja))
     assert annotated, "no github-releases depName annotations found in ci.yml.jinja — regex drift?"
 
-    template_config = json.loads((template_dir / "template/.github/renovate.json").read_text())
-    root_config = pyjson5.decode((template_dir / ".github/renovate.json5").read_text())
-
-    assert annotated == _checksum_rule_package_names(template_config), (
-        "template/.github/renovate.json's checksum packageRule has drifted from "
-        "ci.yml.jinja's depName annotations"
-    )
-    assert annotated == _checksum_rule_package_names(root_config), (
-        ".github/renovate.json5's checksum packageRule has drifted from "
-        "ci.yml.jinja's depName annotations"
-    )
+    for name, config in renovate_configs.items():
+        package_names = set(_checksum_rule(config)["matchPackageNames"])
+        assert annotated == package_names, (
+            f"{name}'s checksum packageRule has drifted from ci.yml.jinja"
+        )
 
 
-def test_renovate_checksum_postupgradetask_sets_base_ref(template_dir: Path) -> None:
-    """The postUpgradeTask command must set BASE_REF, or refresh-binary-checksums.sh's
-    supply-chain tamper gate is silently off on this automated path (only a human running the
-    script locally would set it themselves).
+def test_renovate_checksum_postupgradetask_sets_base_ref(renovate_configs: dict[str, dict]) -> None:
+    """The postUpgradeTask command must set BASE_REF.
+
+    Otherwise refresh-binary-checksums.sh's supply-chain tamper gate is silently off on this
+    automated path (only a human running the script locally would set it themselves).
     """
-    template_config = json.loads((template_dir / "template/.github/renovate.json").read_text())
-    root_config = pyjson5.decode((template_dir / ".github/renovate.json5").read_text())
-
-    for name, config in [("template/.github/renovate.json", template_config), (".github/renovate.json5", root_config)]:
-        commands = _checksum_rule_commands(config)
+    for name, config in renovate_configs.items():
+        commands = _checksum_rule(config)["postUpgradeTasks"]["commands"]
         assert any("BASE_REF=" in command for command in commands), (
             f"{name}'s checksum postUpgradeTask command doesn't set BASE_REF — "
             "the tamper gate would be silently off"
