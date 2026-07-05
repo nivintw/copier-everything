@@ -942,9 +942,9 @@ contains_python ─────────────────────�
               <td>Thin caller workflow — delegates the actual MkDocs build and GitHub Pages
                 deploy to <code>nivintw/repo-management</code>'s reusable workflow, so a
                 <code>mkdocs</code>/<code>mkdocs-material</code> version bump is one Renovate PR
-                for the whole fleet rather than one per repo. Manual (<code>workflow_dispatch</code>)
-                only for now — the reusable workflow it calls doesn't exist yet, so an automatic
-                trigger would fail every run until that lands.</td>
+                for the whole fleet rather than one per repo. Triggers on <code>push</code> to
+                <code>main</code> (paths: <code>docs/**</code>, <code>mkdocs.yml</code>) and
+                <code>workflow_dispatch</code> for manual runs.</td>
             </tr>
           </tbody>
         </table>
@@ -954,8 +954,8 @@ contains_python ─────────────────────�
         <span class="callout-title">Part of a fleet-wide rollout</span>
         This module is one piece of a larger, staged migration replacing this template's own
         bespoke <code>docs/*.html</code> site with MkDocs across every repo descended from it.
-        See the design spec under <code>docs/superpowers/specs/</code> in this repo's source for
-        the full architecture and rollout order.
+        See <a href="https://github.com/nivintw/repo-management/issues/85">repo-management#85</a>
+        for the full architecture and rollout order.
       </div>
 
       <footer class="page-footer">

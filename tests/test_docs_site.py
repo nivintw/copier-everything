@@ -35,7 +35,11 @@ def test_docs_site_files_present_by_default(
     assert (project_dir / "mkdocs.yml").is_file()
     assert (project_dir / "docs" / "index.md").is_file()
     assert (project_dir / "docs" / "assets" / "favicon.svg").is_file()
-    assert (project_dir / ".github" / "workflows" / "docs.yml").is_file()
+    workflow = project_dir / ".github" / "workflows" / "docs.yml"
+    assert workflow.is_file()
+    workflow_text = workflow.read_text()
+    assert "branches: [main]" in workflow_text
+    assert "paths: ['docs/**', 'mkdocs.yml']" in workflow_text
 
 
 def test_docs_site_files_absent_when_disabled(
