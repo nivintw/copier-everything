@@ -132,17 +132,21 @@ def test_label_hygiene_skips_stripping_when_reopened_between_checks(
     render_template: Callable[..., Path],
     tmp_path: Path,
 ) -> None:
-    """A reopen landing between the first check and the mutating edit — the actual TOCTOU
-    gap the second re-check exists to close (#195) — must also skip stripping, not just a
-    reopen caught by the first check (test_label_hygiene_skips_stripping_when_reopened)."""
+    """A reopen landing between the checks must skip stripping too.
+
+    This is the actual TOCTOU gap the second re-check exists to close (#195) — not just a
+    reopen caught by the first check (test_label_hygiene_skips_stripping_when_reopened).
+    """
     script = _extract_run_script(template_dir, output_dir_module_scope, render_template)
     issue_json = '{"state": "CLOSED", "labels": [{"name": "status:in-review"}]}'
 
-    result, edit_calls_log = _run_script(script, tmp_path, issue_json=issue_json, recheck_state="OPEN")
+    result, edit_calls_log = _run_script(
+        script, tmp_path, issue_json=issue_json, recheck_state="OPEN"
+    )
 
     assert result.returncode == 0, result.stderr
     assert not edit_calls_log.exists(), (
-        "gh issue edit --remove-label must not run when the second re-check finds the issue reopened"
+        "gh issue edit --remove-label must not run when the second re-check finds it reopened"
     )
     assert "no longer closed" in result.stdout.lower()
 
