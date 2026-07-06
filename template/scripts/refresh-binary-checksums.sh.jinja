@@ -137,12 +137,20 @@ pinned_value_at_base() { # <VAR> <file> <baseref> -> value at base or empty
   # A path absent at BASE_REF (introduced since) is the one legitimate empty case here.
   # `git cat-file -e`'s exit code alone can't distinguish it from a genuine read error
   # (corrupted object, partial-clone missing blob): a missing path exits 128 with a "does
-  # not exist" message, but a missing blob exits 1 with no message at all — so match
-  # cat-file's own message instead of trusting the exit code, and fail loudly on anything
-  # else, the same tamper gate pinned_value()'s guard above protects for the plain-file case.
+  # not exist"/"exists on disk, but not in" message (git picks the wording based on whether
+  # the path is also absent from the *working tree* — every real caller here passes a file
+  # that IS on disk, per the `[ -f "$f" ]` guard above, so the "exists on disk" wording is
+  # actually the common case, not the exotic one), but a missing blob exits 1 with no
+  # message at all — so match cat-file's own message instead of trusting the exit code, and
+  # fail loudly on anything else, the same tamper gate pinned_value()'s guard above protects
+  # for the plain-file case. LC_ALL=C pins the message to English regardless of the runner's
+  # locale — git's fatal messages are translated, and matching translated text would silently
+  # break this exact legitimate case on a non-English runner.
   local cat_err
-  if ! cat_err="$(git cat-file -e "$3:$2" 2>&1 1>/dev/null)"; then
-    [[ "$cat_err" == *"does not exist in"* ]] && return 0
+  if ! cat_err="$(LC_ALL=C git cat-file -e "$3:$2" 2>&1 1>/dev/null)"; then
+    case "$cat_err" in
+    *"does not exist in"* | *"exists on disk, but not in"*) return 0 ;;
+    esac
     echo "ERROR: pinned_value_at_base: git cat-file -e $3:$2 failed: ${cat_err:-(no output)}" >&2
     exit 1
   fi
