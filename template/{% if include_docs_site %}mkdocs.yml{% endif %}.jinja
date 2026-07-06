@@ -80,6 +80,12 @@ theme:
         icon: material/brightness-7
         name: Switch to dark mode
 
+# Overrides Material's default `code { word-break: break-word }`, which otherwise breaks
+# long identifiers (e.g. `project_name`) mid-word inside narrow table columns — see
+# stylesheets/extra.css (scaffolded alongside this file) for the fix itself.
+extra_css:
+  - stylesheets/extra.css
+
 # Adding this key at all switches MkDocs off its implicit default plugin set (just
 # `search`), so `search` is listed explicitly below or built-in search silently
 # disappears (nivintw/repo-management#85 fleet epic; #94/#95/#97 for the other three).

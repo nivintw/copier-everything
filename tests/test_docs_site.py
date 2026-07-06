@@ -52,9 +52,13 @@ def test_docs_site_files_present_by_default(
     # exclude_docs is mkdocs' PathSpec option: a gitignore-style multiline STRING, not a
     # YAML list (a list is a config error mkdocs rejects outright — see mkdocs.yml.jinja).
     assert mkdocs_yaml["exclude_docs"] == "superpowers/\nincludes/\n"
-    # asciinema-player assets aren't vendored by default — wiring extra_css/extra_javascript
+    # extra_css is wired to a real, always-vendored fix (table code spans mangling long
+    # identifiers) — unlike a hypothetical castify asset, this file always exists, so it's
+    # safe to wire unconditionally rather than only once a repo opts into some feature.
+    assert mkdocs_yaml["extra_css"] == ["stylesheets/extra.css"]
+    assert (project_dir / "docs" / "stylesheets" / "extra.css").is_file()
+    # asciinema-player assets aren't vendored by default — wiring extra_javascript
     # unconditionally 404s every page until a repo actually embeds its first cast.
-    assert "extra_css" not in mkdocs_yaml
     assert "extra_javascript" not in mkdocs_yaml
 
     # Fleet-general theme/markdown_extensions baseline folded in from nivintw-claude-skills
