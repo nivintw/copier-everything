@@ -35,6 +35,7 @@ from typing import TYPE_CHECKING
 import pyjson5
 import pytest
 import yaml
+from conftest import tolerant_yaml_load
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -48,6 +49,10 @@ TRIVIALLY_EQUAL = {
     ".github/workflows/label-hygiene.yml",
     "LICENSE",
     "LICENSES/MIT.txt",
+    # The shared favicon mark and the generic 404 mechanism — both fleet-identical with no
+    # repo-specific content, so nothing here is expected to ever diverge from the template.
+    "docs/assets/favicon.svg",
+    "overrides/404.html",
 }
 
 # Legitimately differs; the named test subtracts the documented deviation and compares the rest.
@@ -59,8 +64,10 @@ STRUCTURALLY_TESTED = {
     ".vscode/extensions.json",  # test_vscode_extensions
     ".github/workflows/pr.yml",  # test_pr_workflow
     ".github/workflows/link-check.yml",  # test_link_check_workflow
+    ".github/workflows/docs.yml",  # test_docs_workflow
     ".editorconfig",  # test_editorconfig (rules identical; only a dogfooding comment differs)
     "scripts/refresh-binary-checksums.sh",  # test_refresh_binary_checksums_sh
+    "mkdocs.yml",  # test_mkdocs_yml
 }
 
 # Differs substantially by design, or is generated — intentionally not asserted.
@@ -98,13 +105,9 @@ NOT_SYNCED = {
     # The template ships a smoke test; this repo has its own suite (you are reading it).
     "tests/conftest.py",
     "tests/test_smoke.py",
-    # This repo hasn't migrated its own docs to the new MkDocs scaffold yet — that's the
-    # separate, deliberately-blocked pilot issue #157. The root keeps its existing bespoke
-    # docs/*.html site until that migration lands.
-    "mkdocs.yml",
+    # Real, bespoke landing-page content authored by the generate-docs skill (issue #157) —
+    # the template only ever scaffolds a placeholder here, so the two are meant to diverge.
     "docs/index.md",
-    "docs/assets/favicon.svg",
-    ".github/workflows/docs.yml",
 }
 
 
@@ -369,3 +372,42 @@ def test_link_check_workflow(template_dir: Path, generated_project_dir: Path) ->
     _drop_triggers(root)
     _drop_triggers(render)
     assert root == render, "link-check.yml is not synced (beyond the trigger + retry/timeout)!"
+
+
+def test_docs_workflow(template_dir: Path, generated_project_dir: Path) -> None:
+    """docs.yml: the thin caller workflow is identical (files differ only in comments)."""
+    assert _yaml(template_dir / ".github/workflows/docs.yml") == _yaml(
+        generated_project_dir / ".github/workflows/docs.yml"
+    ), ".github/workflows/docs.yml is not synced!"
+
+
+def test_mkdocs_yml(template_dir: Path, generated_project_dir: Path) -> None:
+    """mkdocs.yml: the fleet-shared theme/markdown baseline is synced; content-specific keys aren't.
+
+    nav/site_name/site_description/site_url/repo_url/repo_name are this repo's own content
+    (authored by generate-docs) and the template's placeholder shape respectively — legitimately
+    different, not asserted here. Everything that makes a repo's docs site part of the shared
+    fleet baseline (nivintw/copier-everything#178) must match by value.
+    """
+    root = tolerant_yaml_load((template_dir / "mkdocs.yml").read_text())
+    render = tolerant_yaml_load((generated_project_dir / "mkdocs.yml").read_text())
+
+    assert root["edit_uri"] == render["edit_uri"], "mkdocs.yml edit_uri is not synced!"
+    assert root["exclude_docs"] == render["exclude_docs"], "mkdocs.yml exclude_docs is not synced!"
+
+    root_theme, render_theme = root["theme"], render["theme"]
+    for key in ("name", "custom_dir", "favicon", "logo", "palette"):
+        assert root_theme[key] == render_theme[key], f"mkdocs.yml theme.{key} is not synced!"
+    assert set(root_theme["features"]) == set(render_theme["features"]), (
+        "mkdocs.yml theme.features is not synced!"
+    )
+
+    def extension_names(extensions: list) -> set[str]:
+        return {ext if isinstance(ext, str) else next(iter(ext)) for ext in extensions}
+
+    assert extension_names(root["markdown_extensions"]) == extension_names(
+        render["markdown_extensions"]
+    ), "mkdocs.yml markdown_extensions is not synced!"
+    assert root["markdown_extensions"] == render["markdown_extensions"], (
+        "mkdocs.yml markdown_extensions config (params, not just names) is not synced!"
+    )

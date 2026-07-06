@@ -1,0 +1,35 @@
+# SPDX-FileCopyrightText: © 2026 Tyler Nivin
+# SPDX-License-Identifier: MIT
+
+# Thin caller: the actual MkDocs build-and-deploy logic lives in ONE place —
+# nivintw/repo-management's reusable workflow — so a `mkdocs`/`mkdocs-material` version
+# bump is one Renovate PR for the whole fleet, not one per repo. `pages: write` +
+# `id-token: write` are declared here (not inside the reusable workflow) because GitHub
+# requires the CALLING workflow to grant the permissions a reusable workflow's jobs use.
+#
+# Pinned to a commit (zizmor's blanket unpinned-uses policy), not a tag — repo-management
+# has no release process for this workflow, so Renovate tracks and bumps the digest instead,
+# same as every other `uses:` pin in this repo's workflows.
+#
+# Hand-mirrored from template/.github/workflows/{% if include_docs_site %}docs.yml{% endif
+# %}.jinja (this repo isn't a copier instance of itself — see nivintw/copier-everything#157).
+
+name: docs
+
+on:
+  push:
+    branches: [main]
+    paths: ["docs/**", "mkdocs.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: nivintw/repo-management/.github/workflows/docs.yml@864420032528f0d7339fe07a44630b620f16d88b # main

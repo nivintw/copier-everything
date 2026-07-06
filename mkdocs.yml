@@ -1,0 +1,90 @@
+# SPDX-FileCopyrightText: © 2026 Tyler Nivin
+# SPDX-License-Identifier: MIT
+
+# MkDocs Material config for copier-everything's own docs site. Hand-mirrored (not
+# `copier update`d — this repo is the template source, not a copier instance of itself)
+# from what template/{% if include_docs_site %}mkdocs.yml{% endif %}.jinja scaffolds for
+# every `include_docs_site` adopter (nivintw/copier-everything#178), pinned to this repo's
+# real values. This is the pilot migration off the old hand-authored docs/*.html site
+# (nivintw/copier-everything#157) — content below is authored by the generate-docs skill,
+# not hand-written here.
+site_name: "copier-everything"
+site_description: "Copier template that scaffolds a new repo with a batteries-included quality baseline, plus opt-in modules for Python, Ansible, Terraform, Docker, and Helm."
+site_url: "https://nivintw.github.io/copier-everything/"
+repo_url: "https://github.com/nivintw/copier-everything"
+repo_name: "nivintw/copier-everything"
+edit_uri: "edit/main/docs/"
+
+theme:
+  name: material
+  # overrides/404.html — Material treats 404.html as a "static template" rendered straight
+  # from the theme, not from a docs/404.md source, so a docs/404.md would build but its
+  # content is silently discarded; custom_dir + a theme override is the only documented
+  # way to customize the page.
+  custom_dir: overrides
+  favicon: assets/favicon.svg
+  logo: assets/favicon.svg
+  features:
+    - content.code.copy
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.tracking
+    - navigation.top
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.action.edit
+    - content.tooltips
+  palette:
+    # No `media:` binding on either entry: the FIRST scheme below is what every new visitor
+    # sees regardless of OS preference (dark by design, not just by default-detection) — the
+    # toggle is what lets a visitor opt into the other one, remembered via local storage.
+    - scheme: slate
+      primary: black
+      accent: light blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    - scheme: default
+      primary: white
+      accent: light blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+markdown_extensions:
+  # Material's own icon set (nav icons, admonition icons, card-grid layouts) — the
+  # emoji_index/generator pair is Material's documented way to wire :material-*:/
+  # :octicons-*: glyphs, not a general emoji picker.
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - attr_list
+  - md_in_html
+  - footnotes
+
+# docs/superpowers/** holds dev-only brainstorming specs and plans (the
+# superpowers:brainstorming/writing-plans convention) — shares the docs/ tree with the
+# published site but is never meant to be site content. `mkdocs build --strict` fails on
+# any *.md under docs_dir that isn't in nav: below, so exclude it explicitly.
+# exclude_docs is mkdocs' PathSpec option — a gitignore-style multiline string, not a list.
+exclude_docs: |
+  superpowers/
+
+nav:
+  - Home: index.md
+  - Usage & adoption: usage.md
+  - Design model: design.md
+  - Modules & levers: modules.md
+  - Template questions: questions.md
+  - Quality baseline: baseline.md
