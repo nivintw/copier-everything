@@ -172,7 +172,10 @@ jobs:
           # --limit raised well past gh's 30-item default so a busier repo's stranded PR can't
           # fall off the first page.
           # commits is fetched here (not a separate gh pr view per candidate below) so the
-          # non-bot-commit check has no extra API round trip per stranded PR.
+          # non-bot-commit check has no extra API round trip per stranded PR. gh caps this
+          # at the first 100 commits per PR — irrelevant in practice, since a release-please
+          # Release PR carries one generated bump commit (plus, rarely, a handful of manual
+          # fixups), nowhere near that limit.
           prs_json="$(gh pr list --state open --limit 100 \
             --json number,author,labels,mergeStateStatus,commits)"
           # Same reasoning as above: a plain assignment (not `mapfile < <(...)`) so a jq
@@ -183,11 +186,13 @@ jobs:
           # logins (if any) are computed here too and carried alongside the number as a TSV
           # pair, rather than re-fetched per PR in the loop below.
           # A commit author with no linked GitHub account (an unlinked git email) comes
-          # back with a null `.login` — falling straight to `.login` and joining would
-          # silently collapse a real human commit to an empty string (null joins as ""),
-          # defeating this whole check, so fall back to `.email`/`.name` before giving up.
+          # back with a null OR empty-string `.login` — falling straight to `.login` and
+          # joining would silently collapse a real human commit to an empty string (jq's
+          # `//` treats "" as truthy, so a bare `.login // .email` wouldn't fall through
+          # for that case either), defeating this whole check. Explicitly treat both null
+          # and "" as "no login" before falling back to `.email`/`.name`.
           stranded_str="$(printf '%s' "$prs_json" | jq -r --arg app "${CI_APP_SLUG}[bot]" \
-            '.[] | select(.author.login == $app and (.labels[]?.name == "autorelease: pending") and .mergeStateStatus == "DIRTY") | [.number, ([.commits[].authors[]? | select(.login != $app) | (.login // .email // .name // "unknown-author")] | unique | join(", "))] | @tsv')"
+            '.[] | select(.author.login == $app and (.labels[]?.name == "autorelease: pending") and .mergeStateStatus == "DIRTY") | [.number, ([.commits[].authors[]? | select(.login != $app) | ((.login | select(. != null and . != "")) // .email // .name // "unknown-author")] | unique | join(", "))] | @tsv')"
           stranded=()
           if [ -n "$stranded_str" ]; then
             mapfile -t stranded <<<"$stranded_str"

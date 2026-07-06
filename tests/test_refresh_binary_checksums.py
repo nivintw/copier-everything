@@ -99,14 +99,37 @@ def test_pinned_value_at_base_returns_value_when_present(template_dir: Path, git
     assert result.stderr == ""
 
 
-def test_pinned_value_at_base_returns_empty_when_path_absent_at_base(
+def test_pinned_value_at_base_returns_empty_when_path_never_existed(
     template_dir: Path, git_repo_with_pin: Path
 ) -> None:
-    """A path introduced since BASE_REF is the one legitimate empty case."""
+    """A path absent from both the working tree and BASE_REF: one of git's two distinct
+    "absent" messages (see the on-disk variant below) — also a legitimate empty case."""
     script = template_dir / "scripts" / "refresh-binary-checksums.sh"
     result = _run_pinned_value_at_base(script, git_repo_with_pin, var="TRIVY_VERSION", file="nope.yml", base_ref="HEAD")
     assert result.returncode == 0
     assert result.stdout == ""
+    assert result.stderr == ""
+
+
+def test_pinned_value_at_base_returns_empty_when_path_new_on_disk_since_base(
+    template_dir: Path, git_repo_with_pin: Path
+) -> None:
+    """The actual production scenario: a workflow file introduced since BASE_REF exists on
+    disk (the caller's `[ -f "$f" ]` guard already confirmed that) but not at BASE_REF.
+
+    git picks a DIFFERENT message ("exists on disk, but not in") than when the path is
+    absent everywhere ("does not exist in", covered above) — this is the message variant
+    pinned_value_at_base() actually hits in real use, and a fix that only matches the other
+    one silently regresses this exact legitimate case.
+    """
+    script = template_dir / "scripts" / "refresh-binary-checksums.sh"
+    (git_repo_with_pin / "new-since-base.yml").write_text('TRIVY_VERSION: "9.9.9"\n')
+    result = _run_pinned_value_at_base(
+        script, git_repo_with_pin, var="TRIVY_VERSION", file="new-since-base.yml", base_ref="HEAD"
+    )
+    assert result.returncode == 0
+    assert result.stdout == ""
+    assert result.stderr == ""
     assert result.stderr == ""
 
 
