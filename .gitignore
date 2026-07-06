@@ -12,6 +12,9 @@ __pycache__/
 ### Copier test renders ###
 /.copier-test/
 
+### MkDocs (this repo's own docs site — see docs/) ###
+site/
+
 ### ship continuity files (progress tracking, never committed) ###
 .ship/
 

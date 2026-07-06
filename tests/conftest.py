@@ -44,6 +44,15 @@ def tolerant_yaml_load(text: str) -> dict:
     return yaml.load(text, Loader=_TolerantSafeLoader)  # noqa: S506 - SafeLoader-derived
 
 
+def mkdocs_extension_names(extensions: list) -> set[str]:
+    """Extract each entry's name from mkdocs.yml's `markdown_extensions` list.
+
+    Entries are either a bare string (`admonition`) or a single-key dict carrying config
+    (`{pymdownx.highlight: {...}}`) — this normalizes both to the extension's name.
+    """
+    return {ext if isinstance(ext, str) else next(iter(ext)) for ext in extensions}
+
+
 def on_key(doc: dict) -> dict:
     """The ``on:`` block, under either representation (bool ``True`` or the string ``"on"``).
 

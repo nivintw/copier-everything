@@ -86,7 +86,7 @@ installable package, a pyproject-only-for-pytest repo, a pytest + bats repo (the
 
 The baseline (prek hooks, REUSE licensing, Conventional-Commit linting + release-please
 releases, CI) is language-agnostic and ships with every shape. See
-[the design model](https://nivintw.github.io/copier-everything/design.html) for the details.
+[the design model](https://nivintw.github.io/copier-everything/design/) for the details.
 
 ---
 

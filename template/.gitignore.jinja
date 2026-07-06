@@ -43,6 +43,9 @@ crash.log
 .terraform.lock.hcl
 override.tf
 override.tf.json
+{% endif %}{% if include_docs_site %}
+### MkDocs ###
+site/
 {% endif %}{% if include_docker %}
 ### Docker ###
 *.env.local

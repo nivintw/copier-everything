@@ -35,7 +35,7 @@ from typing import TYPE_CHECKING
 import pyjson5
 import pytest
 import yaml
-from conftest import tolerant_yaml_load
+from conftest import mkdocs_extension_names, tolerant_yaml_load
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -402,10 +402,7 @@ def test_mkdocs_yml(template_dir: Path, generated_project_dir: Path) -> None:
         "mkdocs.yml theme.features is not synced!"
     )
 
-    def extension_names(extensions: list) -> set[str]:
-        return {ext if isinstance(ext, str) else next(iter(ext)) for ext in extensions}
-
-    assert extension_names(root["markdown_extensions"]) == extension_names(
+    assert mkdocs_extension_names(root["markdown_extensions"]) == mkdocs_extension_names(
         render["markdown_extensions"]
     ), "mkdocs.yml markdown_extensions is not synced!"
     assert root["markdown_extensions"] == render["markdown_extensions"], (

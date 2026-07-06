@@ -14,7 +14,7 @@ from __future__ import annotations
 import tomllib
 from typing import TYPE_CHECKING
 
-from conftest import on_key, tolerant_yaml_load
+from conftest import mkdocs_extension_names, on_key, tolerant_yaml_load
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -78,11 +78,7 @@ def test_docs_site_files_present_by_default(
     # Repo-specific extras (e.g. content.tabs.link) aren't part of the shared baseline —
     # only earn a place once a repo actually has the content that justifies them.
     assert "content.tabs.link" not in mkdocs_yaml["theme"]["features"]
-    extension_names = {
-        ext if isinstance(ext, str) else next(iter(ext))
-        for ext in mkdocs_yaml["markdown_extensions"]
-    }
-    assert extension_names == {
+    assert mkdocs_extension_names(mkdocs_yaml["markdown_extensions"]) == {
         "pymdownx.emoji",
         "admonition",
         "pymdownx.details",

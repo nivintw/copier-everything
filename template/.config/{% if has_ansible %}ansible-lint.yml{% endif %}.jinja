@@ -13,6 +13,12 @@ profile: production
 exclude_paths:
   # Local Ansible cache/content (anything under .ansible/) — never our code, don't lint it.
   - .ansible/
+{%- if include_docs_site %}
+  # mkdocs.yml carries a `!!python/name:...` tag (Material's documented way to wire its
+  # emoji icon set) that ansible-lint's YAML loader can't construct — it isn't Ansible
+  # content in the first place, so exclude it rather than working around the tag.
+  - mkdocs.yml
+{%- endif %}
 
 skip_list:
   # This project versions from 0.0.0 and bumps via release-please, not a hand-set version, so
