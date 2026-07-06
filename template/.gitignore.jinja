@@ -46,6 +46,8 @@ override.tf.json
 {% endif %}{% if include_docs_site %}
 ### MkDocs ###
 site/
+# The social-cards plugin caches generated og:image renders here across builds.
+.cache/
 {% endif %}{% if include_docker %}
 ### Docker ###
 *.env.local
