@@ -133,7 +133,12 @@ pinned_value() { # <VAR> <file> -> value or empty
     echo "ERROR: pinned_value: no such file: $2" >&2
     exit 1
   }
-  _extract_pinned_value "$1" pinned_value "$2" <"$2"
+  # Read into a variable rather than redirecting "$2" as stdin on the same line it's also
+  # passed as an argument — shellcheck's SC2094 (read-and-write-same-file) fires on that
+  # syntactic shape even though nothing here is written, only read.
+  local content
+  content="$(cat "$2")"
+  printf '%s' "$content" | _extract_pinned_value "$1" pinned_value "$2"
 }
 pinned_value_at_base() { # <VAR> <file> <baseref> -> value at base or empty
   # A path absent at BASE_REF (introduced since) is the one legitimate empty case here.
