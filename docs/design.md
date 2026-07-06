@@ -284,7 +284,7 @@ branch structure.
   lychee, `trivy image`, or kubeconform — they need a Docker daemon or network access. Their
   first real run happens when a generated repo's CI runs.
 - **The docs-site module keeps evolving.** `include_docs_site` scaffolds the MkDocs Material
-  *mechanism* only — theme, `markdown_extensions`, and the Pages build workflow. Fleet
+  *mechanism* only — theme, `plugins`, `markdown_extensions`, and the Pages build workflow. Fleet
   repos that go further (a homepage card grid, content tabs, a custom 404 page) prove
   improvements out locally first; the genuinely fleet-general ones get folded back into this
   template's baseline (see [modules & levers](modules.md#docs-site)) rather than staying a
