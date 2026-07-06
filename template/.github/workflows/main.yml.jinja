@@ -182,8 +182,12 @@ jobs:
           # back to a true zero-length array below. Each stranded candidate's non-bot commit
           # logins (if any) are computed here too and carried alongside the number as a TSV
           # pair, rather than re-fetched per PR in the loop below.
+          # A commit author with no linked GitHub account (an unlinked git email) comes
+          # back with a null `.login` — falling straight to `.login` and joining would
+          # silently collapse a real human commit to an empty string (null joins as ""),
+          # defeating this whole check, so fall back to `.email`/`.name` before giving up.
           stranded_str="$(printf '%s' "$prs_json" | jq -r --arg app "${CI_APP_SLUG}[bot]" \
-            '.[] | select(.author.login == $app and (.labels[]?.name == "autorelease: pending") and .mergeStateStatus == "DIRTY") | [.number, ([.commits[].authors[]?.login] | unique | map(select(. != $app)) | join(", "))] | @tsv')"
+            '.[] | select(.author.login == $app and (.labels[]?.name == "autorelease: pending") and .mergeStateStatus == "DIRTY") | [.number, ([.commits[].authors[]? | select(.login != $app) | (.login // .email // .name // "unknown-author")] | unique | join(", "))] | @tsv')"
           stranded=()
           if [ -n "$stranded_str" ]; then
             mapfile -t stranded <<<"$stranded_str"
