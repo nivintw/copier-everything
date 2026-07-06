@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.11.1](https://github.com/nivintw/copier-everything/compare/v1.11.0...v1.11.1) (2026-07-06)
+
+
+### Bug Fixes
+
+* address ruff findings CI caught that local prek didn't run ([2c8e4ca](https://github.com/nivintw/copier-everything/commit/2c8e4cadc21d966781b5afbc1e6455514793eb42))
+* docs-site push trigger doesn't watch overrides/** ([1e6a73f](https://github.com/nivintw/copier-everything/commit/1e6a73fb1b92aa909d8b36f092bde7dbaf04698f)), closes [#192](https://github.com/nivintw/copier-everything/issues/192)
+* harden pinned_value_at_base() against masked cat-file/show failures ([1106631](https://github.com/nivintw/copier-everything/commit/11066311338f79351e7711b7da8226888d59e67e)), closes [#193](https://github.com/nivintw/copier-everything/issues/193) [#191](https://github.com/nivintw/copier-everything/issues/191)
+* non-bot-commit guard silently passed for unlinked-email commits ([a8da203](https://github.com/nivintw/copier-everything/commit/a8da203864cc8cec4b828275ff447282d84eac30))
+* pinned_value_at_base regressed the exact case it was meant to protect ([0ba0129](https://github.com/nivintw/copier-everything/commit/0ba01299a8297e513b515ba8bb9564f599696868))
+* restore asciinema-player mkdocs wiring dropped by the v1.10.0 baseline ([a071341](https://github.com/nivintw/copier-everything/commit/a071341e5b6d9dea8c32f19e3dd49f7a453908c8)), closes [#196](https://github.com/nivintw/copier-everything/issues/196)
+* silence a shellcheck SC2094 false positive from the simplify refactor ([fbd5589](https://github.com/nivintw/copier-everything/commit/fbd558912241bc49ae0ba7e4ceeed7a5271933be))
+* stranded-Release-PR closer can destroy human edits; label-hygiene TOCTOU gap ([02465aa](https://github.com/nivintw/copier-everything/commit/02465aacaef179d5de2550515d1f91917cbf6669)), closes [#195](https://github.com/nivintw/copier-everything/issues/195)
+* widen rumdl per-file-ignores glob to cover nested docs subdirectories ([3804ba7](https://github.com/nivintw/copier-everything/commit/3804ba7b705dd22082b7134f7d51d9658b4c92fe)), closes [#194](https://github.com/nivintw/copier-everything/issues/194)
+
 ## [1.11.0](https://github.com/nivintw/copier-everything/compare/v1.10.1...v1.11.0) (2026-07-06)
 
 
