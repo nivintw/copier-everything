@@ -53,6 +53,10 @@ TRIVIALLY_EQUAL = {
     # repo-specific content, so nothing here is expected to ever diverge from the template.
     "docs/assets/favicon.svg",
     "overrides/404.html",
+    # The table-code-nowrap fix — fleet-identical, no repo-specific content beyond the SPDX
+    # header (which matches like every other file here, since the fixture supplies this
+    # repo's real author identity).
+    "docs/stylesheets/extra.css",
 }
 
 # Legitimately differs; the named test subtracts the documented deviation and compares the rest.
@@ -68,7 +72,6 @@ STRUCTURALLY_TESTED = {
     ".editorconfig",  # test_editorconfig (rules identical; only a dogfooding comment differs)
     "scripts/refresh-binary-checksums.sh",  # test_refresh_binary_checksums_sh
     "mkdocs.yml",  # test_mkdocs_yml
-    "docs/stylesheets/extra.css",  # test_docs_extra_css (rule identical; only the SPDX header differs)
 }
 
 # Differs substantially by design, or is generated — intentionally not asserted.
@@ -217,21 +220,6 @@ def test_editorconfig(template_dir: Path, generated_project_dir: Path) -> None:
     assert _non_comment_lines(template_dir / ".editorconfig", strip=True) == _non_comment_lines(
         generated_project_dir / ".editorconfig", strip=True
     ), ".editorconfig rules are not synced (beyond the dogfooding comment)!"
-
-
-def test_docs_extra_css(template_dir: Path, generated_project_dir: Path) -> None:
-    """docs/stylesheets/extra.css: the table-code-nowrap fix is identical; only the SPDX header differs."""
-
-    def _drop_spdx_header(path: Path) -> str:
-        return "\n".join(
-            line
-            for line in path.read_text().splitlines()
-            if "SPDX-FileCopyrightText" not in line and "SPDX-License-Identifier" not in line
-        )
-
-    assert _drop_spdx_header(template_dir / "docs/stylesheets/extra.css") == _drop_spdx_header(
-        generated_project_dir / "docs/stylesheets/extra.css"
-    ), "docs/stylesheets/extra.css is not synced (beyond the SPDX header)!"
 
 
 def test_refresh_binary_checksums_sh(template_dir: Path, generated_project_dir: Path) -> None:
