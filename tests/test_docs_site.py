@@ -44,7 +44,7 @@ def test_docs_site_files_present_by_default(
     workflow_yaml = tolerant_yaml_load(workflow.read_text())
     push_trigger = on_key(workflow_yaml)["push"]
     assert push_trigger["branches"] == ["main"]
-    assert push_trigger["paths"] == ["docs/**", "mkdocs.yml"]
+    assert push_trigger["paths"] == ["docs/**", "mkdocs.yml", "overrides/**"]
 
     mkdocs_yaml = tolerant_yaml_load((project_dir / "mkdocs.yml").read_text())
     # docs/superpowers/** holds dev-only brainstorming specs, never site content — must be
