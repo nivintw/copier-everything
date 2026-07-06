@@ -5,9 +5,9 @@ SPDX-License-Identifier: MIT
 
 # copier-everything
 
-A [Copier](https://copier.readthedocs.io/) template that scaffolds *any* project — Python or
-not — with a strong, language-agnostic quality baseline and decoupled, opt-in modules.
-Generate once, then pull template improvements forever with `copier update`.
+A [Copier](https://copier.readthedocs.io/) template that scaffolds *any* project with a
+strong, language-agnostic quality baseline and decoupled, opt-in modules. Generate once,
+then pull template improvements forever with `copier update`.
 
 [Quick start](#quick-start){ .md-button .md-button--primary }
 [Template reference](questions.md){ .md-button }
