@@ -423,9 +423,21 @@ def test_mkdocs_yml(template_dir: Path, generated_project_dir: Path) -> None:
     )
 
     # llmstxt's `sections` is nav-derived, per-repo content (like nav itself, not asserted
-    # here) — only the plugin names are part of the shared fleet baseline.
+    # here) — everything else about a plugin's config IS part of the shared fleet baseline
+    # and must match by value, the same as markdown_extensions below.
+    def _drop_llmstxt_sections(plugins: list) -> list:
+        return [
+            {"llmstxt": {k: v for k, v in plugin["llmstxt"].items() if k != "sections"}}
+            if isinstance(plugin, dict) and "llmstxt" in plugin
+            else plugin
+            for plugin in plugins
+        ]
+
     assert mkdocs_extension_names(root["plugins"]) == mkdocs_extension_names(render["plugins"]), (
         "mkdocs.yml plugins is not synced!"
+    )
+    assert _drop_llmstxt_sections(root["plugins"]) == _drop_llmstxt_sections(render["plugins"]), (
+        "mkdocs.yml plugins config (params, not just names) is not synced!"
     )
 
     assert mkdocs_extension_names(root["markdown_extensions"]) == mkdocs_extension_names(
