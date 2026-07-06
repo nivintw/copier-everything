@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.3](https://github.com/nivintw/copier-everything/compare/v1.9.2...v1.9.3) (2026-07-06)
+
+
+### Bug Fixes
+
+* Close stranded Release PRs so release-please regenerates them ([219e6bf](https://github.com/nivintw/copier-everything/commit/219e6bfd286fdcd47528bbcc3fc9bf9c24718845)), closes [#183](https://github.com/nivintw/copier-everything/issues/183)
+
 ## [1.9.2](https://github.com/nivintw/copier-everything/compare/v1.9.1...v1.9.2) (2026-07-06)
 
 
