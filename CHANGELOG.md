@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.9.2](https://github.com/nivintw/copier-everything/compare/v1.9.1...v1.9.2) (2026-07-06)
+
+
+### Bug Fixes
+
+* Exclude CHANGELOG.md from typos, unblocking release-please auto-merge ([9d3ca09](https://github.com/nivintw/copier-everything/commit/9d3ca0912582de23e773720fa2fd02f93c09d2a7)), closes [#181](https://github.com/nivintw/copier-everything/issues/181)
+* Fail loudly on a bad path in pinned_value() instead of masking it ([95e64e8](https://github.com/nivintw/copier-everything/commit/95e64e8c5c6a975f70e319d75268dbb2f9612982)), closes [#169](https://github.com/nivintw/copier-everything/issues/169)
+* Gate rumdl's MD033 disable on include_docs_site ([1c1382d](https://github.com/nivintw/copier-everything/commit/1c1382d46846251b7ed2a8e28e148bf030401e51)), closes [#163](https://github.com/nivintw/copier-everything/issues/163)
+* Harden the checksum tamper gate against silent degrade paths ([eef6ffe](https://github.com/nivintw/copier-everything/commit/eef6ffe1bf55ea57bb7540ecf63c8a43069ec877))
+* Re-check issue state before stripping labels in label-hygiene ([3a31ee0](https://github.com/nivintw/copier-everything/commit/3a31ee0633c1df70549f8a3d9571f8bcfdabf929)), closes [#171](https://github.com/nivintw/copier-everything/issues/171)
+* Set BASE_REF on checksum-refresh postUpgradeTask so the tamper gate is active ([65e5817](https://github.com/nivintw/copier-everything/commit/65e581797614422837c8233cc39eb5c48dec20ae)), closes [#165](https://github.com/nivintw/copier-everything/issues/165)
+* Stop 404ing on unvendored asciinema assets, exclude dev-only docs/superpowers/** ([1ef6ec7](https://github.com/nivintw/copier-everything/commit/1ef6ec7d16f2748a2c55f6153b124ca97b74fb27)), closes [#172](https://github.com/nivintw/copier-everything/issues/172) [#162](https://github.com/nivintw/copier-everything/issues/162)
+* Sync root's label-hygiene.yml with the [#171](https://github.com/nivintw/copier-everything/issues/171) reopen-race fix ([21caf01](https://github.com/nivintw/copier-everything/commit/21caf01b4a8acbccc7948ff2674828791b20cea1))
+* Trigger approve-bot-prs on pull_request_target, not pull_request ([4a87894](https://github.com/nivintw/copier-everything/commit/4a878947986c5f10a60c4638dc0bd6cc182ee369)), closes [#174](https://github.com/nivintw/copier-everything/issues/174)
+
 ## [1.9.1](https://github.com/nivintw/copier-everything/compare/v1.9.0...v1.9.1) (2026-07-05)
 
 
