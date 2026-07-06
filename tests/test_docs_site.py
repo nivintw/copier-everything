@@ -14,8 +14,7 @@ from __future__ import annotations
 import tomllib
 from typing import TYPE_CHECKING
 
-import yaml
-from conftest import on_key
+from conftest import on_key, tolerant_yaml_load
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -39,26 +38,70 @@ def test_docs_site_files_present_by_default(
     assert (project_dir / "mkdocs.yml").is_file()
     assert (project_dir / "docs" / "index.md").is_file()
     assert (project_dir / "docs" / "assets" / "favicon.svg").is_file()
+    assert (project_dir / "overrides" / "404.html").is_file()
     workflow = project_dir / ".github" / "workflows" / "docs.yml"
     assert workflow.is_file()
-    workflow_yaml = yaml.safe_load(workflow.read_text())
+    workflow_yaml = tolerant_yaml_load(workflow.read_text())
     push_trigger = on_key(workflow_yaml)["push"]
     assert push_trigger["branches"] == ["main"]
     assert push_trigger["paths"] == ["docs/**", "mkdocs.yml"]
 
-    mkdocs_yaml = yaml.safe_load((project_dir / "mkdocs.yml").read_text())
+    mkdocs_yaml = tolerant_yaml_load((project_dir / "mkdocs.yml").read_text())
     # docs/superpowers/** holds dev-only brainstorming specs, never site content — must be
     # excluded or `mkdocs build --strict` fails on any repo that has that convention's files.
-    assert mkdocs_yaml["exclude_docs"] == ["superpowers/"]
+    # exclude_docs is mkdocs' PathSpec option: a gitignore-style multiline STRING, not a
+    # YAML list (a list is a config error mkdocs rejects outright — see mkdocs.yml.jinja).
+    assert mkdocs_yaml["exclude_docs"] == "superpowers/\n"
     # asciinema-player assets aren't vendored by default — wiring extra_css/extra_javascript
     # unconditionally 404s every page until a repo actually embeds its first cast.
     assert "extra_css" not in mkdocs_yaml
     assert "extra_javascript" not in mkdocs_yaml
 
+    # Fleet-general theme/markdown_extensions baseline folded in from nivintw-claude-skills
+    # (nivintw/copier-everything#178) — every include_docs_site adopter gets these by default.
+    assert mkdocs_yaml["edit_uri"] == "edit/main/docs/"
+    assert mkdocs_yaml["theme"]["custom_dir"] == "overrides"
+    expected_features = {
+        "content.code.copy",
+        "navigation.instant",
+        "navigation.instant.progress",
+        "navigation.tracking",
+        "navigation.top",
+        "toc.follow",
+        "search.suggest",
+        "search.highlight",
+        "search.share",
+        "content.action.edit",
+        "content.tooltips",
+    }
+    assert expected_features.issubset(set(mkdocs_yaml["theme"]["features"]))
+    # Repo-specific extras (e.g. content.tabs.link) aren't part of the shared baseline —
+    # only earn a place once a repo actually has the content that justifies them.
+    assert "content.tabs.link" not in mkdocs_yaml["theme"]["features"]
+    extension_names = {
+        ext if isinstance(ext, str) else next(iter(ext))
+        for ext in mkdocs_yaml["markdown_extensions"]
+    }
+    assert extension_names == {
+        "pymdownx.emoji",
+        "admonition",
+        "pymdownx.details",
+        "pymdownx.superfences",
+        "pymdownx.highlight",
+        "pymdownx.inlinehilite",
+        "pymdownx.tabbed",
+        "attr_list",
+        "md_in_html",
+        "footnotes",
+    }
+
     # The docs design deliberately relies on raw HTML in Markdown (castify cast embeds,
     # version-badge spans) — MD033 must be off or the lint gate fails on either pattern.
     rumdl_toml = tomllib.loads((project_dir / ".config" / "rumdl.toml").read_text())
     assert "MD033" in rumdl_toml["global"]["disable"]
+    # pymdownx.tabbed's indentation-based nesting misfires rumdl's MD046 (see #178) —
+    # scoped to docs/*.md rather than disabled globally.
+    assert rumdl_toml["per-file-ignores"]["docs/*.md"] == ["MD033", "MD046"]
 
 
 def test_docs_site_files_absent_when_disabled(
@@ -75,9 +118,11 @@ def test_docs_site_files_absent_when_disabled(
     )
     assert not (project_dir / "mkdocs.yml").exists()
     assert not (project_dir / "docs").exists()
+    assert not (project_dir / "overrides").exists()
     assert not (project_dir / ".github" / "workflows" / "docs.yml").exists()
 
     # rumdl.toml is always scaffolded regardless of include_docs_site — but a repo with no
     # docs site has no reason to relax MD033 and should keep the stricter default.
     rumdl_toml = tomllib.loads((project_dir / ".config" / "rumdl.toml").read_text())
     assert "MD033" not in rumdl_toml["global"]["disable"]
+    assert "per-file-ignores" not in rumdl_toml
