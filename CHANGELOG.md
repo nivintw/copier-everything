@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.11.0](https://github.com/nivintw/copier-everything/compare/v1.10.1...v1.11.0) (2026-07-06)
+
+
+### Features
+
+* **template:** wire fleet docs-site features into include_docs_site ([dd3a33f](https://github.com/nivintw/copier-everything/commit/dd3a33fbbcc7883a082f23e2bae07d858f8a298c)), closes [#184](https://github.com/nivintw/copier-everything/issues/184)
+
+
+### Bug Fixes
+
+* bump the stale repo-management docs.yml pin, fix snippet MD041 ([884253b](https://github.com/nivintw/copier-everything/commit/884253b7dae6e7ea82cf41f879b665ba90bd37b0))
+* stop hardcoding the template author's identity as the default answer ([327bc06](https://github.com/nivintw/copier-everything/commit/327bc0649542e3a640b9807a45b0ad8ca4fea2fc))
+* **template:** stop docs-site tables mangling long identifiers ([f445a7f](https://github.com/nivintw/copier-everything/commit/f445a7fdcef1ff2bc914edddb0eb1999d2588b01))
+* **test:** compare mkdocs.yml plugins by value, not just by name ([a95466a](https://github.com/nivintw/copier-everything/commit/a95466a775ca46388a5f75e131a9c5e14b54d9f3))
+* **test:** pin year in the sync fixture, not just author identity ([7b7ef85](https://github.com/nivintw/copier-everything/commit/7b7ef85eeba7ec4e27cc76fb326e7ef709bac945))
+
 ## [1.10.1](https://github.com/nivintw/copier-everything/compare/v1.10.0...v1.10.1) (2026-07-06)
 
 
