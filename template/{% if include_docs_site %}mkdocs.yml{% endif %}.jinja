@@ -125,5 +125,19 @@ markdown_extensions:
 exclude_docs: |
   superpowers/
 
+# MkDocs 1.5+'s own validation checks, made explicit rather than left to its undocumented
+# defaults — `warn` is what `--strict` (this fleet's `generate-docs` Stage 4 always builds
+# with) promotes to a hard failure, so a broken nav entry, dead link, missing anchor, or
+# non-portable absolute path is caught locally before it's caught live.
+validation:
+  nav:
+    omitted_files: warn
+    not_found: warn
+    absolute_links: warn
+  links:
+    not_found: warn
+    anchors: warn
+    absolute_links: warn
+
 nav:
   - Home: index.md

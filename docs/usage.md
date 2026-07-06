@@ -40,11 +40,11 @@ only fires during the initial `copy` operation:
 | `git init` | `initialize_repository = true` | Creates a fresh git repo in the destination directory. |
 | `uv sync` | Project contains Python (`has_python`) | Creates the virtual env and installs all dev dependencies. |
 | `git add -A` + scaffold commit | `initialize_repository = true` | Stages everything and commits `chore: scaffold <slug>` using the author identity from your answers. The commit runs *before* hook install so the `no-commit-to-branch` hook cannot block the first commit to main. |
-| `uvx prek install` | Always on copy; no-ops gracefully if no `.git` present | Wires up the pre-commit and commit-msg hooks so the quality gate runs locally on every subsequent commit. |
+| `uvx prek@0.4.8 install` | Always on copy; no-ops gracefully if no `.git` present | Wires up the pre-commit and commit-msg hooks so the quality gate runs locally on every subsequent commit. |
 
 !!! tip "Skipping --trust"
     Without `--trust` the tasks are skipped. The post-copy message prints the exact manual
-    steps: `git init`, `uv sync`, `git add -A && git commit`, then `uvx prek install` — run
+    steps: `git init`, `uv sync`, `git add -A && git commit`, then `uvx prek@0.4.8 install` — run
     them in that order (commit before installing hooks).
 
 ### Non-interactive use
@@ -107,7 +107,7 @@ leaves standard `<<<<<<<` / `>>>>>>>` conflict markers for you to resolve. The u
 auto-commits, so you review and stage the result yourself before committing.
 
 !!! note "Run the gate after updating"
-    After resolving conflicts, run `uvx prek run --all-files` to verify the merged tree is
+    After resolving conflicts, run `uvx prek@0.4.8 run --all-files` to verify the merged tree is
     clean before you commit.
 
 ## Canonical project shapes
@@ -157,7 +157,7 @@ via pre-commit.
 Wire up hooks (includes ansible-lint) — run once after generation:
 
 ```bash
-uvx prek install
+uvx prek@0.4.8 install
 ```
 
 Install Galaxy content dependencies (once you add entries to `requirements.yml`):
@@ -169,7 +169,7 @@ uvx --from ansible-core ansible-galaxy install -r requirements.yml
 Run the full lint pass — same check CI runs:
 
 ```bash
-uvx prek run ansible-lint --all-files
+uvx prek@0.4.8 run ansible-lint --all-files
 ```
 
 ### Testing
@@ -269,8 +269,8 @@ and commit on a feature branch, then wire up the hooks:
 
 ```bash
 uv sync                       # dev toolchain (idempotent; safe to re-run)
-uvx prek run --all-files      # the same gate CI runs
-uvx prek install              # install the pre-commit hooks
+uvx prek@0.4.8 run --all-files      # the same gate CI runs
+uvx prek@0.4.8 install              # install the pre-commit hooks
 git add -A && git commit -m "chore: adopt copier-everything"
 ```
 
