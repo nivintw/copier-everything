@@ -1,8 +1,7 @@
 # SPDX-FileCopyrightText: © 2026 Tyler Nivin
 # SPDX-License-Identifier: MIT
 
-"""pinned_value() and pinned_value_at_base() must fail loudly on a genuine read error
-instead of masking it as "no pin found".
+"""pinned_value()/pinned_value_at_base() must fail loudly, never mask a read error as empty.
 
 A typo'd file argument used to silently resolve to an empty match (grep's exit 1 "no match"
 and exit >=2 "read error" were both swallowed by `2>/dev/null ... || true`), so the only
@@ -57,17 +56,15 @@ def _run_pinned_value_at_base(
 ) -> subprocess.CompletedProcess[str]:
     # pinned_value_at_base() calls the shared _extract_pinned_value() helper — both must be
     # sourced, or a success-path call would fail with "command not found", not a real defect.
-    fn = "\n".join(
-        _extract_shell_function(script, name) for name in ("_extract_pinned_value", "pinned_value_at_base")
-    )
-    result = subprocess.run(  # noqa: S603
-        ["bash", "-c", f"{fn}\npinned_value_at_base \"$1\" \"$2\" \"$3\"", "bash", var, file, base_ref],  # noqa: S607
+    fn_names = ("_extract_pinned_value", "pinned_value_at_base")
+    fn = "\n".join(_extract_shell_function(script, name) for name in fn_names)
+    return subprocess.run(  # noqa: S603
+        ["bash", "-c", f'{fn}\npinned_value_at_base "$1" "$2" "$3"', "bash", var, file, base_ref],  # noqa: S607
         cwd=repo,
         capture_output=True,
         text=True,
         check=False,
     )
-    return result
 
 
 @pytest.fixture
@@ -75,17 +72,19 @@ def git_repo_with_pin(tmp_path: Path) -> Path:
     """A one-commit git repo with a pinned-version file, for pinned_value_at_base() tests."""
     repo = tmp_path / "repo"
     repo.mkdir()
-    run = functools.partial(subprocess.run, cwd=repo, check=True)  # noqa: S603
-    run(["git", "init", "-q"])  # noqa: S607
-    run(["git", "config", "user.email", "test@example.com"])  # noqa: S607
-    run(["git", "config", "user.name", "test"])  # noqa: S607
+    run = functools.partial(subprocess.run, cwd=repo, check=True)
+    run(["git", "init", "-q"])
+    run(["git", "config", "user.email", "test@example.com"])
+    run(["git", "config", "user.name", "test"])
     (repo / "pinned.yml").write_text('TRIVY_VERSION: "1.2.3"\n')
-    run(["git", "add", "."])  # noqa: S607
-    run(["git", "commit", "-q", "-m", "init"])  # noqa: S607
+    run(["git", "add", "."])
+    run(["git", "commit", "-q", "-m", "init"])
     return repo
 
 
-def test_pinned_value_at_base_returns_value_when_present(template_dir: Path, git_repo_with_pin: Path) -> None:
+def test_pinned_value_at_base_returns_value_when_present(
+    template_dir: Path, git_repo_with_pin: Path
+) -> None:
     """The success path: a value pinned at BASE_REF is extracted correctly.
 
     The three failure-path tests below never reach _extract_pinned_value(), so without
@@ -93,7 +92,9 @@ def test_pinned_value_at_base_returns_value_when_present(template_dir: Path, git
     would go uncaught.
     """
     script = template_dir / "scripts" / "refresh-binary-checksums.sh"
-    result = _run_pinned_value_at_base(script, git_repo_with_pin, var="TRIVY_VERSION", file="pinned.yml", base_ref="HEAD")
+    result = _run_pinned_value_at_base(
+        script, git_repo_with_pin, var="TRIVY_VERSION", file="pinned.yml", base_ref="HEAD"
+    )
     assert result.returncode == 0
     assert result.stdout.strip() == "1.2.3"
     assert result.stderr == ""
@@ -102,10 +103,14 @@ def test_pinned_value_at_base_returns_value_when_present(template_dir: Path, git
 def test_pinned_value_at_base_returns_empty_when_path_never_existed(
     template_dir: Path, git_repo_with_pin: Path
 ) -> None:
-    """A path absent from both the working tree and BASE_REF: one of git's two distinct
-    "absent" messages (see the on-disk variant below) — also a legitimate empty case."""
+    """A path absent everywhere is one of git's two distinct "absent" messages.
+
+    (See the on-disk variant below for the other one.) Also a legitimate empty case.
+    """
     script = template_dir / "scripts" / "refresh-binary-checksums.sh"
-    result = _run_pinned_value_at_base(script, git_repo_with_pin, var="TRIVY_VERSION", file="nope.yml", base_ref="HEAD")
+    result = _run_pinned_value_at_base(
+        script, git_repo_with_pin, var="TRIVY_VERSION", file="nope.yml", base_ref="HEAD"
+    )
     assert result.returncode == 0
     assert result.stdout == ""
     assert result.stderr == ""
@@ -114,13 +119,13 @@ def test_pinned_value_at_base_returns_empty_when_path_never_existed(
 def test_pinned_value_at_base_returns_empty_when_path_new_on_disk_since_base(
     template_dir: Path, git_repo_with_pin: Path
 ) -> None:
-    """The actual production scenario: a workflow file introduced since BASE_REF exists on
-    disk (the caller's `[ -f "$f" ]` guard already confirmed that) but not at BASE_REF.
+    """The actual production scenario: a file introduced since BASE_REF, present on disk.
 
-    git picks a DIFFERENT message ("exists on disk, but not in") than when the path is
-    absent everywhere ("does not exist in", covered above) — this is the message variant
-    pinned_value_at_base() actually hits in real use, and a fix that only matches the other
-    one silently regresses this exact legitimate case.
+    The caller's `[ -f "$f" ]` guard already confirmed the file exists on disk before
+    calling this function, so git picks a DIFFERENT message ("exists on disk, but not in")
+    than when the path is absent everywhere ("does not exist in", covered above) — this is
+    the message variant pinned_value_at_base() actually hits in real use, and a fix that
+    only matches the other one silently regresses this exact legitimate case.
     """
     script = template_dir / "scripts" / "refresh-binary-checksums.sh"
     (git_repo_with_pin / "new-since-base.yml").write_text('TRIVY_VERSION: "9.9.9"\n')
@@ -130,14 +135,18 @@ def test_pinned_value_at_base_returns_empty_when_path_new_on_disk_since_base(
     assert result.returncode == 0
     assert result.stdout == ""
     assert result.stderr == ""
-    assert result.stderr == ""
 
 
-def test_pinned_value_at_base_fails_loudly_on_missing_blob(template_dir: Path, git_repo_with_pin: Path) -> None:
-    """A blob absent from the object store (corrupted DB, partial clone) must error loudly,
-    not be folded into the "path absent at base" empty case — the gap #191 fixed."""
+def test_pinned_value_at_base_fails_loudly_on_missing_blob(
+    template_dir: Path, git_repo_with_pin: Path
+) -> None:
+    """A blob absent from the object store must error loudly.
+
+    (Corrupted DB, partial clone.) Must not be folded into the "path absent at base" empty
+    case — the gap #191 fixed.
+    """
     script = template_dir / "scripts" / "refresh-binary-checksums.sh"
-    blob = subprocess.run(  # noqa: S603
+    blob = subprocess.run(
         ["git", "rev-parse", "HEAD:pinned.yml"],  # noqa: S607
         cwd=git_repo_with_pin,
         capture_output=True,
@@ -148,20 +157,27 @@ def test_pinned_value_at_base_fails_loudly_on_missing_blob(template_dir: Path, g
     backup_path = obj_path.with_name(obj_path.name + ".bak")
     obj_path.rename(backup_path)
     try:
-        result = _run_pinned_value_at_base(script, git_repo_with_pin, var="TRIVY_VERSION", file="pinned.yml", base_ref="HEAD")
+        result = _run_pinned_value_at_base(
+            script, git_repo_with_pin, var="TRIVY_VERSION", file="pinned.yml", base_ref="HEAD"
+        )
     finally:
         backup_path.rename(obj_path)
     assert result.returncode == 1
     assert "ERROR: pinned_value_at_base" in result.stderr
 
 
-def test_pinned_value_at_base_does_not_swallow_a_show_failure(template_dir: Path, git_repo_with_pin: Path) -> None:
-    """The #193 gap: a trailing `|| true` on the whole show|grep|head|sed pipeline used to
-    swallow any downstream failure, not just grep's legitimate "no match". A loose object
-    with valid existence but corrupt (non-zlib) content makes `git cat-file -e` pass but
-    `git show` fail — exactly the failure the old trailing `|| true` masked."""
+def test_pinned_value_at_base_does_not_swallow_a_show_failure(
+    template_dir: Path, git_repo_with_pin: Path
+) -> None:
+    """The #193 gap: a trailing `|| true` used to swallow a real git show failure.
+
+    A loose object with valid existence but corrupt (non-zlib) content makes
+    `git cat-file -e` pass but `git show` fail — exactly the failure the old trailing
+    `|| true` on the whole show|grep|head|sed pipeline masked (not just grep's legitimate
+    "no match").
+    """
     script = template_dir / "scripts" / "refresh-binary-checksums.sh"
-    blob = subprocess.run(  # noqa: S603
+    blob = subprocess.run(
         ["git", "rev-parse", "HEAD:pinned.yml"],  # noqa: S607
         cwd=git_repo_with_pin,
         capture_output=True,
@@ -171,6 +187,8 @@ def test_pinned_value_at_base_does_not_swallow_a_show_failure(template_dir: Path
     obj_path = git_repo_with_pin / ".git" / "objects" / blob[:2] / blob[2:]
     obj_path.chmod(0o644)
     obj_path.write_bytes(b"not a valid zlib-compressed git object")
-    result = _run_pinned_value_at_base(script, git_repo_with_pin, var="TRIVY_VERSION", file="pinned.yml", base_ref="HEAD")
+    result = _run_pinned_value_at_base(
+        script, git_repo_with_pin, var="TRIVY_VERSION", file="pinned.yml", base_ref="HEAD"
+    )
     assert result.returncode == 1
     assert "ERROR: pinned_value_at_base: git show" in result.stderr
