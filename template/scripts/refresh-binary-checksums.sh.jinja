@@ -122,11 +122,12 @@ _extract_pinned_value() { # <VAR> <caller> <location> -> value or empty (reads s
 }
 
 pinned_value() { # <VAR> <file> -> value or empty
-  # Fail loudly on a bad path instead of masking it as "no pin found": grep's own exit code
-  # conflates "no match" (1 — the intended empty-return case) with "read error" (>=2, e.g. a
-  # missing or unreadable file). The guard below catches a missing file up front; capturing
-  # grep's own exit code (not the head/sed pipeline's, which would swallow it) catches any
-  # other read failure the guard doesn't, e.g. a file that exists but isn't readable.
+  # Fail loudly on a bad path instead of masking it as "no pin found": the guard below
+  # catches a missing file up front; reading it via `cat` under `set -e` catches any other
+  # read failure (e.g. a file that exists but isn't readable) by aborting the assignment.
+  # _extract_pinned_value() separately guards grep's own exit code against the piped
+  # content (conflating "no match" — the intended empty-return case — with a real read
+  # error would be the same class of bug this whole file exists to avoid).
   [ -f "$2" ] || {
     echo "ERROR: pinned_value: no such file: $2" >&2
     exit 1
