@@ -26,10 +26,17 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
 
-_FAKE_GH = """#!/bin/sh
+_FAKE_GH = r"""#!/bin/sh
 set -e
 if [ "$1" = "issue" ] && [ "$2" = "view" ]; then
-  cat "$FAKE_GH_ISSUE_VIEW_RESPONSE"
+  # The step re-checks state twice: once for the full state,labels blob (no --jq), and
+  # again right before the mutating edit via --jq '.state' (matching real gh's raw-string
+  # output for a scalar jq result) — so the stub must tell the two invocations apart, not
+  # just cat the same fixture both times.
+  case "$*" in
+    *--jq*) sed -n 's/.*"state": *"\([^"]*\)".*/\1/p' "$FAKE_GH_ISSUE_VIEW_RESPONSE" ;;
+    *) cat "$FAKE_GH_ISSUE_VIEW_RESPONSE" ;;
+  esac
   exit 0
 fi
 if [ "$1" = "issue" ] && [ "$2" = "edit" ]; then
