@@ -131,13 +131,33 @@ pinned_value() { # <VAR> <file> -> value or empty
   printf '%s\n' "$matched" | head -n1 | sed -E 's/.*"([^"]+)".*/\1/'
 }
 pinned_value_at_base() { # <VAR> <file> <baseref> -> value at base or empty
-  # A path absent at BASE_REF (introduced since) is the one legitimate empty case here —
-  # check for it explicitly with git cat-file -e, rather than folding it into a blanket
-  # "swallow any git show failure," which would also mask a genuine read error (corrupted
-  # object, partial-clone missing blob) as an empty base_version — feeding the same tamper
-  # gate pinned_value()'s guard above protects for the plain-file case.
-  git cat-file -e "$3:$2" 2>/dev/null || return 0
-  git show "$3:$2" | grep -oE "^[[:space:]]*$1: \"[^\"]+\"" | head -n1 | sed -E 's/.*"([^"]+)".*/\1/' || true
+  # A path absent at BASE_REF (introduced since) is the one legitimate empty case here.
+  # `git cat-file -e`'s exit code alone can't distinguish it from a genuine read error
+  # (corrupted object, partial-clone missing blob): a missing path exits 128 with a "does
+  # not exist" message, but a missing blob exits 1 with no message at all — so match
+  # cat-file's own message instead of trusting the exit code, and fail loudly on anything
+  # else, the same tamper gate pinned_value()'s guard above protects for the plain-file case.
+  local cat_err
+  if ! cat_err="$(git cat-file -e "$3:$2" 2>&1 1>/dev/null)"; then
+    [[ "$cat_err" == *"does not exist in"* ]] && return 0
+    echo "ERROR: pinned_value_at_base: git cat-file -e $3:$2 failed: ${cat_err:-(no output)}" >&2
+    exit 1
+  fi
+  # Real exit-status check on git show — mirroring pinned_value()'s grep-exit-code guard
+  # above — so a genuine failure here isn't swallowed as "no pin found" the way a trailing
+  # `|| true` on the whole pipeline would.
+  local blob
+  if ! blob="$(git show "$3:$2")"; then
+    echo "ERROR: pinned_value_at_base: git show $3:$2 failed" >&2
+    exit 1
+  fi
+  local matched grep_rc
+  matched="$(printf '%s\n' "$blob" | grep -oE "^[[:space:]]*$1: \"[^\"]+\"")" && grep_rc=0 || grep_rc=$?
+  if [ "$grep_rc" -gt 1 ]; then
+    echo "ERROR: pinned_value_at_base: grep failed reading $3:$2 (exit $grep_rc)" >&2
+    exit 1
+  fi
+  printf '%s\n' "$matched" | head -n1 | sed -E 's/.*"([^"]+)".*/\1/'
 }
 
 if [ "$#" -gt 0 ]; then
