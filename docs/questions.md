@@ -26,9 +26,9 @@ generated file derives from them: SPDX headers, `README.md`, `pyproject.toml`,
 | `project_name` | str | *required* | Human-readable name used in docs and metadata |
 | `project_slug` | str | `{{ project_name \| lower \| replace(' ', '-') \| replace('_', '-') }}` | Machine name for dirs, package, and repo |
 | `project_description` | str | *empty string* | One-line tagline in README and pyproject.toml |
-| `author_name` | str | `Tyler Nivin` | SPDX copyright holder; git identity for scaffold commit |
-| `author_email` | str | `tyler@nivin.tech` | SPDX copyright email; git identity for scaffold commit |
-| `repo_owner` | str | `nivintw` | GitHub user/org login for CODEOWNERS and repo URLs |
+| `author_name` | str | `Your Name` | SPDX copyright holder; git identity for scaffold commit |
+| `author_email` | str | `you@example.com` | SPDX copyright email; git identity for scaffold commit |
+| `repo_owner` | str | `your-github-username` | GitHub user/org login for CODEOWNERS and repo URLs |
 | `repo_name` | str | `{{ project_slug }}` | GitHub repo slug for all `github.com/owner/...` URLs |
 | `year` | int | `2026` | Inception year in SPDX `FileCopyrightText` lines |
 | `license` | str | `MIT` | SPDX license identifier; selects which `LICENSES/` file is kept |
@@ -63,7 +63,7 @@ generated file derives from them: SPDX headers, `README.md`, `pyproject.toml`,
     - Drives: README tagline and the `description` field in `pyproject.toml`.
 
 ??? note "`author_name` — str. Copyright holder / author name (SPDX headers)"
-    - default: `Tyler Nivin`
+    - default: `Your Name`
     - validator: Cannot be empty — required for both SPDX headers and the git author identity
       used in the scaffold commit.
     - Help: Copyright holder / author name (SPDX headers)
@@ -72,19 +72,32 @@ generated file derives from them: SPDX headers, `README.md`, `pyproject.toml`,
       carries the correct author identity even without a global git config. Names containing
       backslashes or double-quotes are escaped automatically by the task command.
 
-    !!! tip "Update the default when forking the template"
-        The default reflects the template author. Change it to your own name before
-        distributing or reusing the template.
+    !!! tip "Skip re-typing this every time"
+        `author_name`/`author_email`/`repo_owner` all default to generic placeholders — the
+        template intentionally doesn't hardcode any one person's identity. To have them
+        pre-filled with your own info on every render, set copier's own user-level
+        `defaults:` in its settings file — `~/Library/Application Support/copier/settings.yml`
+        on macOS, `~/.config/copier/settings.yml` on Linux (or `$COPIER_SETTINGS_PATH`):
+
+        ```yaml
+        defaults:
+          author_name: Jane Doe
+          author_email: jane@example.com
+          repo_owner: janedoe
+        ```
+
+        Copier checks this file before falling back to the template's own default, so it
+        applies across every template you run, not just this one.
 
 ??? note "`author_email` — str. Author email"
-    - default: `tyler@nivin.tech`
+    - default: `you@example.com`
     - validator: Cannot be empty.
     - Help: Author email
     - Drives: SPDX copyright contact in generated files and the `-c user.email=...` flag for
       the scaffold `git commit` task.
 
 ??? note "`repo_owner` — str. GitHub owner (user/org login) — for CODEOWNERS and repo links"
-    - default: `nivintw`
+    - default: `your-github-username`
     - validator: Cannot be empty.
     - Help: GitHub owner (user/org login) — for CODEOWNERS and the repo links in
       SECURITY/CONTRIBUTING

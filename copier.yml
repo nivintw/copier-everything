@@ -128,20 +128,24 @@ project_description:
 author_name:
   type: str
   help: Copyright holder / author name (SPDX headers)
-  default: Tyler Nivin
+  # Generic on purpose, not the template author's own identity — set your real name via
+  # copier's own user-level defaults (~/Library/Application Support/copier/settings.yml on
+  # macOS, ~/.config/copier/settings.yml on Linux: `defaults: {author_name: ...}`), which
+  # copier reads before falling back to this value. See docs/questions.md for the pointer.
+  default: Your Name
   # Non-empty: it's the git identity for the auto-init commit (an empty ident aborts it).
   validator: "{% if not author_name %}author_name cannot be empty.{% endif %}"
 
 author_email:
   type: str
   help: Author email
-  default: tyler@nivin.tech
+  default: you@example.com
   validator: "{% if not author_email %}author_email cannot be empty.{% endif %}"
 
 repo_owner:
   type: str
   help: GitHub owner (user/org login) — for CODEOWNERS and the repo links in SECURITY/CONTRIBUTING
-  default: nivintw
+  default: your-github-username
   validator: "{% if not repo_owner %}repo_owner cannot be empty.{% endif %}"
 
 repo_name:

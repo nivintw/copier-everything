@@ -122,11 +122,23 @@ def generated_project_dir(
     output_dir_module_scope: Path,
     render_template: Callable[..., Path],
 ) -> Path:
-    """Render the "pytest, no python source" shape — the shape this repo's own root is."""
+    """Render the "pytest, no python source" shape — the shape this repo's own root is.
+
+    author_name/author_email/repo_owner are passed explicitly: copier.yml's own defaults
+    are deliberately generic placeholders (not this repo's real identity), so a render
+    that's meant to match this repo's actual root needs them supplied, the same way a real
+    adopter would via copier's own user-defaults settings.yml.
+    """
     return render_template(
         template_dir,
         output_dir_module_scope,
-        data={"project_name": "copier-everything", "python_source": False},
+        data={
+            "project_name": "copier-everything",
+            "python_source": False,
+            "author_name": "Tyler Nivin",
+            "author_email": "tyler@nivin.tech",
+            "repo_owner": "nivintw",
+        },
         skip_tasks=True,
     )
 
