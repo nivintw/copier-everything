@@ -53,15 +53,18 @@ def test_docs_site_files_present_by_default(
     # YAML list (a list is a config error mkdocs rejects outright — see mkdocs.yml.jinja).
     assert mkdocs_yaml["exclude_docs"] == "superpowers/\nincludes/\n"
     # extra_css is wired to a real, always-vendored fix (table code spans mangling long
-    # identifiers) — unlike a hypothetical castify asset, this file always exists, so it's
-    # safe to wire unconditionally rather than only once a repo opts into some feature.
-    assert mkdocs_yaml["extra_css"] == ["stylesheets/extra.css"]
+    # identifiers) — this file always exists, so it's safe to wire unconditionally.
+    # asciinema-player's CSS/JS aren't vendored by default (a repo drops them in only once
+    # it embeds its first cast, per castify's convention) — but referencing a not-yet-present
+    # path costs nothing: mkdocs emits the <link>/<script> tag regardless of whether the file
+    # exists, and doesn't fail --strict on a missing extra_css/extra_javascript path (verified
+    # empirically; #196). So both are wired unconditionally rather than gated behind a repo
+    # actually having a cast yet.
+    assert mkdocs_yaml["extra_css"] == ["stylesheets/extra.css", "assets/asciinema-player.css"]
+    assert mkdocs_yaml["extra_javascript"] == ["assets/asciinema-player.min.js"]
     assert (project_dir / "docs" / "stylesheets" / "extra.css").is_file()
     # pymdownx.snippets' base_path needs a real starter fragment to include from.
     assert (project_dir / "docs" / "includes" / "install.md").is_file()
-    # asciinema-player assets aren't vendored by default — wiring extra_javascript
-    # unconditionally 404s every page until a repo actually embeds its first cast.
-    assert "extra_javascript" not in mkdocs_yaml
 
     # Fleet-general theme/markdown_extensions baseline folded in from nivintw-claude-skills
     # (nivintw/copier-everything#178) — every include_docs_site adopter gets these by default.
