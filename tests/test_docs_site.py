@@ -57,6 +57,8 @@ def test_docs_site_files_present_by_default(
     # safe to wire unconditionally rather than only once a repo opts into some feature.
     assert mkdocs_yaml["extra_css"] == ["stylesheets/extra.css"]
     assert (project_dir / "docs" / "stylesheets" / "extra.css").is_file()
+    # pymdownx.snippets' base_path needs a real starter fragment to include from.
+    assert (project_dir / "docs" / "includes" / "install.md").is_file()
     # asciinema-player assets aren't vendored by default — wiring extra_javascript
     # unconditionally 404s every page until a repo actually embeds its first cast.
     assert "extra_javascript" not in mkdocs_yaml
