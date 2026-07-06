@@ -7,7 +7,11 @@
 [files]
 # template/ is Copier source, validated post-render by tests/render-matrix.sh (which runs
 # typos on each rendered shape); don't lint the raw .jinja here.
-extend-exclude = ["template/"]
+# CHANGELOG.md is release-please-generated prose (commit SHAs, PR/issue titles it doesn't
+# control) — same reasoning as rumdl.toml's exclusion. A commit SHA's hex prefix colliding
+# with a dictionary word (e.g. "caf" in "21caf01" reading as "calf") would otherwise block
+# release-please's own auto-merge on an unrelated, unfixable false positive.
+extend-exclude = ["template/", "CHANGELOG.md"]
 
 [default.extend-words]
 # "vertica" is a SQL dialect offered in copier.yml's choices, not a typo of "vertical".
