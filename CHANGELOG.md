@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.1](https://github.com/nivintw/copier-everything/compare/v1.10.0...v1.10.1) (2026-07-06)
+
+
+### Bug Fixes
+
+* Four small template correctness/consistency fixes ([eeb074e](https://github.com/nivintw/copier-everything/commit/eeb074ebd12062a0ba4c9a2d521c0f9fa8c1eb80)), closes [#161](https://github.com/nivintw/copier-everything/issues/161) [#166](https://github.com/nivintw/copier-everything/issues/166) [#170](https://github.com/nivintw/copier-everything/issues/170) [#175](https://github.com/nivintw/copier-everything/issues/175)
+
 ## [1.10.0](https://github.com/nivintw/copier-everything/compare/v1.9.3...v1.10.0) (2026-07-06)
 
 
