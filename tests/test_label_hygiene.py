@@ -16,6 +16,7 @@ working one, since the same substrings can be present either way.
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 from typing import TYPE_CHECKING
@@ -31,10 +32,11 @@ set -e
 if [ "$1" = "issue" ] && [ "$2" = "view" ]; then
   # The step re-checks state twice: once for the full state,labels blob (no --jq), and
   # again right before the mutating edit via --jq '.state' (matching real gh's raw-string
-  # output for a scalar jq result) — so the stub must tell the two invocations apart, not
-  # just cat the same fixture both times.
+  # output for a scalar jq result) — so the stub reads from two independently-controlled
+  # fixtures rather than just catting the same one both times, so a test can simulate a
+  # reopen landing specifically in the window the second check exists to close.
   case "$*" in
-    *--jq*) sed -n 's/.*"state": *"\([^"]*\)".*/\1/p' "$FAKE_GH_ISSUE_VIEW_RESPONSE" ;;
+    *--jq*) cat "$FAKE_GH_ISSUE_VIEW_STATE_RESPONSE" ;;
     *) cat "$FAKE_GH_ISSUE_VIEW_RESPONSE" ;;
   esac
   exit 0
@@ -64,8 +66,15 @@ def _extract_run_script(
 
 
 def _run_script(
-    script: str, tmp_path: Path, *, issue_json: str
+    script: str, tmp_path: Path, *, issue_json: str, recheck_state: str | None = None
 ) -> tuple[subprocess.CompletedProcess, Path]:
+    """Run the extracted step against a stubbed gh.
+
+    `recheck_state` controls the SECOND `gh issue view` call (the one right before the
+    mutating edit) independently of the first — defaulting to the first check's own state
+    so existing callers don't need to care, but overridable to simulate a reopen landing
+    specifically between the two checks.
+    """
     fake_bin = tmp_path / "bin"
     fake_bin.mkdir()
     gh_stub = fake_bin / "gh"
@@ -74,6 +83,8 @@ def _run_script(
 
     issue_view_response = tmp_path / "issue_view_response.json"
     issue_view_response.write_text(issue_json)
+    issue_view_state_response = tmp_path / "issue_view_state_response.txt"
+    issue_view_state_response.write_text(recheck_state or json.loads(issue_json)["state"])
     edit_calls_log = tmp_path / "edit_calls.log"
 
     env = {
@@ -83,6 +94,7 @@ def _run_script(
         "ISSUE": "42",
         "REPO": "owner/repo",
         "FAKE_GH_ISSUE_VIEW_RESPONSE": str(issue_view_response),
+        "FAKE_GH_ISSUE_VIEW_STATE_RESPONSE": str(issue_view_state_response),
         "FAKE_GH_EDIT_CALLS_LOG": str(edit_calls_log),
     }
     result = subprocess.run(  # noqa: S603
@@ -110,6 +122,27 @@ def test_label_hygiene_skips_stripping_when_reopened(
     assert result.returncode == 0, result.stderr
     assert not edit_calls_log.exists(), (
         "gh issue edit --remove-label must not run on a reopened issue"
+    )
+    assert "no longer closed" in result.stdout.lower()
+
+
+def test_label_hygiene_skips_stripping_when_reopened_between_checks(
+    template_dir: Path,
+    output_dir_module_scope: Path,
+    render_template: Callable[..., Path],
+    tmp_path: Path,
+) -> None:
+    """A reopen landing between the first check and the mutating edit — the actual TOCTOU
+    gap the second re-check exists to close (#195) — must also skip stripping, not just a
+    reopen caught by the first check (test_label_hygiene_skips_stripping_when_reopened)."""
+    script = _extract_run_script(template_dir, output_dir_module_scope, render_template)
+    issue_json = '{"state": "CLOSED", "labels": [{"name": "status:in-review"}]}'
+
+    result, edit_calls_log = _run_script(script, tmp_path, issue_json=issue_json, recheck_state="OPEN")
+
+    assert result.returncode == 0, result.stderr
+    assert not edit_calls_log.exists(), (
+        "gh issue edit --remove-label must not run when the second re-check finds the issue reopened"
     )
     assert "no longer closed" in result.stdout.lower()
 

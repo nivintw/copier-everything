@@ -55,7 +55,11 @@ def _extract_shell_function(script: Path, name: str) -> str:
 def _run_pinned_value_at_base(
     script: Path, repo: Path, *, var: str, file: str, base_ref: str
 ) -> subprocess.CompletedProcess[str]:
-    fn = _extract_shell_function(script, "pinned_value_at_base")
+    # pinned_value_at_base() calls the shared _extract_pinned_value() helper — both must be
+    # sourced, or a success-path call would fail with "command not found", not a real defect.
+    fn = "\n".join(
+        _extract_shell_function(script, name) for name in ("_extract_pinned_value", "pinned_value_at_base")
+    )
     result = subprocess.run(  # noqa: S603
         ["bash", "-c", f"{fn}\npinned_value_at_base \"$1\" \"$2\" \"$3\"", "bash", var, file, base_ref],  # noqa: S607
         cwd=repo,
@@ -79,6 +83,20 @@ def git_repo_with_pin(tmp_path: Path) -> Path:
     run(["git", "add", "."])  # noqa: S607
     run(["git", "commit", "-q", "-m", "init"])  # noqa: S607
     return repo
+
+
+def test_pinned_value_at_base_returns_value_when_present(template_dir: Path, git_repo_with_pin: Path) -> None:
+    """The success path: a value pinned at BASE_REF is extracted correctly.
+
+    The three failure-path tests below never reach _extract_pinned_value(), so without
+    this one a regression in the shared helper (or its wiring into pinned_value_at_base)
+    would go uncaught.
+    """
+    script = template_dir / "scripts" / "refresh-binary-checksums.sh"
+    result = _run_pinned_value_at_base(script, git_repo_with_pin, var="TRIVY_VERSION", file="pinned.yml", base_ref="HEAD")
+    assert result.returncode == 0
+    assert result.stdout.strip() == "1.2.3"
+    assert result.stderr == ""
 
 
 def test_pinned_value_at_base_returns_empty_when_path_absent_at_base(
