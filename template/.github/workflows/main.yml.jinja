@@ -122,6 +122,10 @@ jobs:
       # cleanly. Every OTHER failure (gh API 5xx, auth, a missing required check on main)
       # then reddens the job under `set -euo pipefail`, so a stalled release is loud instead
       # of hiding as a ::warning:: on an otherwise-green run.
+      # `!= '[]'` is defensive belt-and-suspenders, not load-bearing today: verified against
+      # release-please-action v4.4.1's source that `prs` is only ever set (never to `"[]"`)
+      # when at least one PR exists — but the action isn't pinned by version, just by commit
+      # SHA that Renovate bumps, so this guards against a future release changing that.
       - name: Auto-merge the Release PRs
         if: ${{ steps.release.outputs.prs && steps.release.outputs.prs != '[]' }}
         env:
