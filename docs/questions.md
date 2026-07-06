@@ -476,7 +476,7 @@ prints the equivalent manual steps. All tasks are gated to the initial copy
 | `uv sync` | `copy` + `has_python` | Creates the virtual environment and installs all dev dependencies. Only runs when the project includes Python. |
 | `git add -A` | `copy` + `initialize_repository` | Stages all rendered files before the scaffold commit. Skipped when adopting. |
 | `git commit -m "chore: scaffold <slug>"` | `copy` + `initialize_repository` | Makes the first commit using `author_name`/`author_email` as the git author identity so the commit is correct even without a global git config. Runs *before* `prek install` so the no-commit-to-branch hook cannot block the first commit to main. Guarded by `git diff --cached --quiet ||` to be idempotent on re-runs. |
-| `uvx prek install` | `copy` only | Installs the pre-commit hooks. Gracefully no-ops (prints a message) when there is no `.git` directory — i.e. when `initialize_repository: false` is used into a directory that has not yet been initialised as a git repo. |
+| `uvx prek@0.4.8 install` | `copy` only | Installs the pre-commit hooks. Gracefully no-ops (prints a message) when there is no `.git` directory — i.e. when `initialize_repository: false` is used into a directory that has not yet been initialised as a git repo. |
 
 ### `_exclude` — drop the unchosen license text
 
@@ -500,7 +500,7 @@ Because `_copier_operation` is not available in the message context, the message
 
 - **Greenfield (`initialize_repository: true`):** If `--trust` was not passed, prints the
   manual steps in order — `git init`, optionally `uv sync`, then
-  `git add -A && git commit`, then `uvx prek install` — with a note that the commit must
+  `git add -A && git commit`, then `uvx prek@0.4.8 install` — with a note that the commit must
   happen before hooks are installed (the no-commit-to-branch hook would otherwise block the
   first commit to main).
 - **Adoption (`initialize_repository: false`):** Notes that git init and the scaffold commit

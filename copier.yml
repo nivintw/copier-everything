@@ -73,7 +73,7 @@ _tasks:
   # GENUINE prek-install failure on a real repo still propagates instead of being masked.
   - command: >-
       if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-      uvx prek install;
+      uvx prek@0.4.8 install;
       else echo "skipping prek install — no git repo yet (run it after you init/commit)";
       fi
     when: "{{ _copier_operation == 'copy' }}"
@@ -93,12 +93,12 @@ _message_after_copy: |
     uv sync               # venv + dev toolchain
   {%- endif %}
     git add -A && git commit -m "chore: scaffold {{ project_slug }}"
-    uvx prek install      # wire up the pre-commit hooks
+    uvx prek@0.4.8 install # wire up the pre-commit hooks
   {% else -%}
   Adopted into an existing repo (initialize_repository=false): git init + the scaffold commit
   were skipped. Reconcile the scaffold against your real files, then commit on your own branch.
   See https://nivintw.github.io/copier-everything/usage/#adopting-into-an-existing-repo for the full procedure.
-  Run{% if has_python %} `uv sync` for the dev toolchain and{% endif %} `uvx prek install` to
+  Run{% if has_python %} `uv sync` for the dev toolchain and{% endif %} `uvx prek@0.4.8 install` to
   wire up the hooks when ready.
   {% endif -%}
 

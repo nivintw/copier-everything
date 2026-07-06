@@ -16,7 +16,7 @@ uv sync                 # create the venv + install dev tooling
 {% if has_ansible -%}
 uvx --from ansible-core ansible-galaxy install -r requirements.yml   # install Galaxy deps
 {% endif -%}
-uvx prek install        # wire up the pre-commit hooks
+uvx prek@0.4.8 install  # wire up the pre-commit hooks
 {% if 'pytest' in test_frameworks %}uv run pytest           # run the Python tests
 {% endif %}{% if 'bats' in test_frameworks %}bats tests/             # run the shell tests
 {% endif %}```
@@ -30,7 +30,7 @@ identically locally and in CI. Conventional Commits are enforced at commit-msg t
 `vX.Y.Z` tag + GitHub Release on merge).
 
 ```bash
-uvx prek run --all-files   # run every hook on demand
+uvx prek@0.4.8 run --all-files   # run every hook on demand (version pinned to match CI)
 ```
 
 A few hooks shell out to **system tools** prek can't bootstrap — CI installs them for
@@ -78,7 +78,7 @@ Linting is **ansible-lint** (it runs `--syntax-check` internally) via the prek g
 
 ```bash
 uvx --from ansible-core ansible-galaxy install -r requirements.yml   # Galaxy content deps
-uvx prek run ansible-lint --all-files                                # lint (also in the gate)
+uvx prek@0.4.8 run ansible-lint --all-files                          # lint (also in the gate)
 {% if ansible_role_based -%}
 uvx --from molecule --with 'molecule-plugins[docker]' molecule test  # converge + verify (needs Docker)
 {% endif -%}

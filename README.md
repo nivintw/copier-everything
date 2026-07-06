@@ -107,8 +107,8 @@ releases, CI) is language-agnostic and ships with every shape. See
 This repo dogfoods its own baseline. Install the hooks once, then commit via a branch:
 
 ```bash
-uvx prek install            # wire up the pre-commit + commit-msg hooks
-uvx prek run --all-files    # run the gate on demand
+uvx prek@0.4.8 install            # wire up the pre-commit + commit-msg hooks
+uvx prek@0.4.8 run --all-files    # run the gate on demand (version pinned to match CI)
 ```
 
 > **Two system tools:** the `taplo` and `hawkeye` hooks are `language: system`, so install

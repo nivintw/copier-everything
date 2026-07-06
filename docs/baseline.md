@@ -62,7 +62,7 @@ releases, hardened CI with integrity-verified binaries, and continuous dependenc
 The local gate is implemented as a [prek](https://github.com/j178/prek) (pre-commit) hook
 set in `.pre-commit-config.yaml`. Most hooks are pip-backed and self-bootstrap a pinned
 virtual environment — no system install needed. They run identically locally
-(`uvx prek run --all-files`) and in CI.
+(`uvx prek@0.4.8 run --all-files`) and in CI.
 
 !!! note "Local gate principle"
     The local gate is deterministic and offline. Checks that require network access — link
@@ -106,7 +106,7 @@ Two always-on hooks — `taplo` (TOML formatter) and `hawkeye-format` (SPDX head
 enforcement) — use `language: system`. prek cannot auto-bootstrap system hooks; they expect a
 pre-installed binary on `PATH`.
 
-Install them locally so `uvx prek run --all-files` produces the same result as CI. The
+Install them locally so `uvx prek@0.4.8 run --all-files` produces the same result as CI. The
 template ships no Brewfile; a canonical setup provides them via the
 [nivintw/dotfiles](https://github.com/nivintw/dotfiles) Brewfile. Adopters supply their own
 equivalent. In CI, both are installed as version-pinned, SHA256-verified release archives —
