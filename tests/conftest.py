@@ -13,12 +13,35 @@ import warnings
 from typing import TYPE_CHECKING
 
 import pytest
+import yaml
 from copier import run_copy
 from copier.errors import DirtyLocalWarning
 
 if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
+
+
+class _TolerantSafeLoader(yaml.SafeLoader):
+    """SafeLoader that shrugs off tags it doesn't need to validate.
+
+    mkdocs.yml's pymdownx.emoji config carries `!!python/name:...` tags (Material's
+    documented way to wire its icon set) — real Python-object tags that plain
+    yaml.safe_load() rejects outright. Callers that only check nav/theme/extension *names*,
+    not the emoji callables, can use `tolerant_yaml_load` below instead: unknown tags map to
+    their scalar text rather than raising.
+    """
+
+
+_TolerantSafeLoader.add_multi_constructor(
+    "tag:yaml.org,2002:python/name:",
+    lambda _loader, suffix, _node: suffix,
+)
+
+
+def tolerant_yaml_load(text: str) -> dict:
+    """Parse YAML that may carry mkdocs.yml's `!!python/name:...` tags (see above)."""
+    return yaml.load(text, Loader=_TolerantSafeLoader)  # noqa: S506 - SafeLoader-derived
 
 
 def on_key(doc: dict) -> dict:
