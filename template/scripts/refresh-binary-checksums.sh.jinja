@@ -106,7 +106,21 @@ cached_sha() { # <TOOL> <version> <outvar>
   printf -v "$3" '%s' "${SHA_CACHE[$key]}"
 }
 
-# Extract the quoted value of an env-var assignment (first occurrence). Empty (exit 0) when absent.
+# Shared tail for pinned_value()/pinned_value_at_base(): extract the quoted value of an
+# env-var assignment (first occurrence) from content on stdin. <caller>/<location> are
+# only for the error message, so the two callers keep their own distinct wording.
+# Anchored to (whitespace-then-)line-start so a search for TRIVY_VERSION can't match inside
+# a hypothetical OLD_TRIVY_VERSION — a bare \b wouldn't help here since `_` is a word char.
+_extract_pinned_value() { # <VAR> <caller> <location> -> value or empty (reads stdin)
+  local matched grep_rc
+  matched="$(grep -oE "^[[:space:]]*$1: \"[^\"]+\"")" && grep_rc=0 || grep_rc=$?
+  if [ "$grep_rc" -gt 1 ]; then
+    echo "ERROR: $2: grep failed reading $3 (exit $grep_rc)" >&2
+    exit 1
+  fi
+  printf '%s\n' "$matched" | head -n1 | sed -E 's/.*"([^"]+)".*/\1/'
+}
+
 pinned_value() { # <VAR> <file> -> value or empty
   # Fail loudly on a bad path instead of masking it as "no pin found": grep's own exit code
   # conflates "no match" (1 — the intended empty-return case) with "read error" (>=2, e.g. a
@@ -117,15 +131,7 @@ pinned_value() { # <VAR> <file> -> value or empty
     echo "ERROR: pinned_value: no such file: $2" >&2
     exit 1
   }
-  # Anchored to (whitespace-then-)line-start so a search for TRIVY_VERSION can't match inside
-  # a hypothetical OLD_TRIVY_VERSION — a bare \b wouldn't help here since `_` is a word char.
-  local matched grep_rc
-  matched="$(grep -oE "^[[:space:]]*$1: \"[^\"]+\"" "$2")" && grep_rc=0 || grep_rc=$?
-  if [ "$grep_rc" -gt 1 ]; then
-    echo "ERROR: pinned_value: grep failed reading $2 (exit $grep_rc)" >&2
-    exit 1
-  fi
-  printf '%s\n' "$matched" | head -n1 | sed -E 's/.*"([^"]+)".*/\1/'
+  _extract_pinned_value "$1" pinned_value "$2" <"$2"
 }
 pinned_value_at_base() { # <VAR> <file> <baseref> -> value at base or empty
   # A path absent at BASE_REF (introduced since) is the one legitimate empty case here.
@@ -148,13 +154,7 @@ pinned_value_at_base() { # <VAR> <file> <baseref> -> value at base or empty
     echo "ERROR: pinned_value_at_base: git show $3:$2 failed" >&2
     exit 1
   fi
-  local matched grep_rc
-  matched="$(printf '%s\n' "$blob" | grep -oE "^[[:space:]]*$1: \"[^\"]+\"")" && grep_rc=0 || grep_rc=$?
-  if [ "$grep_rc" -gt 1 ]; then
-    echo "ERROR: pinned_value_at_base: grep failed reading $3:$2 (exit $grep_rc)" >&2
-    exit 1
-  fi
-  printf '%s\n' "$matched" | head -n1 | sed -E 's/.*"([^"]+)".*/\1/'
+  printf '%s\n' "$blob" | _extract_pinned_value "$1" pinned_value_at_base "$3:$2"
 }
 
 if [ "$#" -gt 0 ]; then
