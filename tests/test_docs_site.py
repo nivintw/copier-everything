@@ -122,8 +122,9 @@ def test_docs_site_files_present_by_default(
     rumdl_toml = tomllib.loads((project_dir / ".config" / "rumdl.toml").read_text())
     assert "MD033" in rumdl_toml["global"]["disable"]
     # pymdownx.tabbed's indentation-based nesting misfires rumdl's MD046 (see #178) —
-    # scoped to docs/*.md rather than disabled globally.
-    assert rumdl_toml["per-file-ignores"]["docs/*.md"] == ["MD033", "MD046"]
+    # scoped to docs/**/*.md (nested reference pages included, #194) rather than disabled
+    # globally.
+    assert rumdl_toml["per-file-ignores"]["docs/**/*.md"] == ["MD033", "MD046"]
 
 
 def test_docs_site_files_absent_when_disabled(
