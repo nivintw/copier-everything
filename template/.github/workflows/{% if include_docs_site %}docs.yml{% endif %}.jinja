@@ -16,7 +16,10 @@ name: docs
 on:
   push:
     branches: [main]
-    paths: ['docs/**', 'mkdocs.yml']
+    # overrides/** is the theme-customization dir this same include_docs_site feature
+    # scaffolds (overrides/404.html) — a change there alone (the 404 page, or any future
+    # theme override) must trigger a redeploy too, or the live site silently goes stale.
+    paths: ['docs/**', 'mkdocs.yml', 'overrides/**']
   workflow_dispatch:
 
 concurrency:
