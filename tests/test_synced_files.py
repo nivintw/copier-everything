@@ -130,7 +130,10 @@ def generated_project_dir(
     author_name/author_email/repo_owner are passed explicitly: copier.yml's own defaults
     are deliberately generic placeholders (not this repo's real identity), so a render
     that's meant to match this repo's actual root needs them supplied, the same way a real
-    adopter would via copier's own user-defaults settings.yml.
+    adopter would via copier's own user-defaults settings.yml. `year` is likewise pinned
+    explicitly — it otherwise defaults to the render-time current year, which happens to
+    equal root's hardcoded "© 2026" SPDX headers today but would silently start failing
+    every TRIVIALLY_EQUAL/STRUCTURALLY_TESTED comparison the moment the calendar rolls over.
     """
     return render_template(
         template_dir,
@@ -141,6 +144,7 @@ def generated_project_dir(
             "author_name": "Tyler Nivin",
             "author_email": "tyler@nivin.tech",
             "repo_owner": "nivintw",
+            "year": 2026,
         },
         skip_tasks=True,
     )
