@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.10.0](https://github.com/nivintw/copier-everything/compare/v1.9.3...v1.10.0) (2026-07-06)
+
+
+### Features
+
+* **template:** fold fleet-general MkDocs Material improvements into docs-site baseline ([08c6b8c](https://github.com/nivintw/copier-everything/commit/08c6b8c38922e92e40da30cace82954ad70ca7d8))
+
+
+### Bug Fixes
+
+* Address review findings on the MkDocs Material migration ([a453b6f](https://github.com/nivintw/copier-everything/commit/a453b6f9ff466e459dd717a464f0be0e5300beb5))
+
 ## [1.9.3](https://github.com/nivintw/copier-everything/compare/v1.9.2...v1.9.3) (2026-07-06)
 
 
