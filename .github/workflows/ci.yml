@@ -103,8 +103,8 @@ jobs:
       - name: Install trivy + osv-scanner (terraform IaC + dependency CVE scans)
         env:
           # renovate: datasource=github-releases depName=aquasecurity/trivy
-          TRIVY_VERSION: "0.71.2"
-          TRIVY_SHA256: "0510e71e2fd39bf863856d499c8dc19feb4e7336546394c502a8f5cc7ab27460"  # gitleaks:allow
+          TRIVY_VERSION: "0.72.0"
+          TRIVY_SHA256: "bbb64b9695866ce4a7a8f5c9592002c5961cab378577fa3f8a040df362b9b2ea"  # gitleaks:allow
           # renovate: datasource=github-releases depName=google/osv-scanner
           OSV_VERSION: "2.4.0"
           # The published osv-scanner asset is the bare binary, so this checksums it directly.
