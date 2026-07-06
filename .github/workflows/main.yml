@@ -4,13 +4,14 @@
 # Main pipeline: on every push to main, run the SAME quality gate as PRs (ci.yml), then —
 # only here, and only if the gate is green — the release-please stage.
 #
-# RELEASE FLOW (release-please, manifest mode — single package, release-type `simple` →
-# bare `vX.Y.Z` tags):
+# RELEASE FLOW (release-please, manifest mode, separate-pull-requests: true, release-type
+# `simple` → bare `vX.Y.Z` tags; this repo declares a single package, so it's the N=1 case
+# of the same generic mechanism the template scaffolds — see issue #198):
 #   1. On push to main, release-please maintains a Release PR that bumps the version +
 #      CHANGELOG.md.
-#   2. That Release PR is AUTO-MERGED (`--auto --rebase`) the moment its required checks
-#      pass, so releases are continuous: release-please then cuts the `vX.Y.Z` tag + GitHub
-#      Release. Copier consumers pin a release with `copier copy --vcs-ref vX.Y.Z` /
+#   2. Every open Release PR is AUTO-MERGED (`--auto --rebase`) the moment its required
+#      checks pass, so releases are continuous: release-please then cuts the `vX.Y.Z` tag +
+#      GitHub Release. Copier consumers pin a release with `copier copy --vcs-ref vX.Y.Z` /
 #      `copier update`.
 #   3. The release job gates on `needs: [ci, preflight]`, so a tag is never cut on a red
 #      gate. The `ci` job here reuses ci.yml — the exact gate PRs run.
@@ -95,7 +96,7 @@ jobs:
           permission-contents: write
           permission-pull-requests: write
 
-      - name: Run release-please (Release PR, tag, release)
+      - name: Run release-please (Release PRs, tags, releases)
         id: release
         uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4.4.1
         with:
@@ -105,15 +106,27 @@ jobs:
 
       # Continuous release: when release-please opens/updates a Release PR, enable
       # auto-merge so it lands (rebase) once required checks pass — no standing PR, no
-      # manual step. On the next run (a release was cut, no PR) `pr` is empty and this
-      # skips. PR JSON travels via env, never inline `${{ }}`, to dodge script injection.
-      # GH_REPO tells gh which repo to act on: this job has no checkout, so without it
-      # `gh pr merge` probes the working dir for a git remote and dies ("not a git
-      # repository"). gh reads GH_REPO natively, so no `actions/checkout` is needed.
-      - name: Auto-merge the Release PR
-        if: ${{ steps.release.outputs.pr }}
+      # manual step. Because separate-pull-requests is on, release-please emits `prs` (a
+      # JSON array of every Release PR touched this run) rather than the singular `pr` —
+      # iterating it is what makes this generic, matching the template's own mechanism
+      # (issue #198), even though this repo only ever declares one package. On the next
+      # run (a release was cut, no PR) `prs` is unset and this skips. PR JSON travels via
+      # env, never inline `${{ }}`, to dodge script injection. GH_REPO tells gh which repo
+      # to act on: this job has no checkout, so without it `gh pr merge` probes the working
+      # dir for a git remote and dies ("not a git repository"). gh reads GH_REPO natively,
+      # so no `actions/checkout` is needed.
+      - name: Auto-merge the Release PRs
+        if: ${{ steps.release.outputs.prs && steps.release.outputs.prs != '[]' }}
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           GH_REPO: ${{ github.repository }}
-          RELEASE_PR: ${{ steps.release.outputs.pr }}
-        run: gh pr merge "$(printf '%s' "$RELEASE_PR" | jq -r '.number')" --auto --rebase
+          RELEASE_PRS: ${{ steps.release.outputs.prs }}
+        run: |
+          set -euo pipefail
+          # Capture jq's output first (not `jq | while`): under `set -e` a jq failure (null /
+          # non-array `prs`) aborts the step loudly instead of being swallowed by the pipe and
+          # silently enabling auto-merge on nothing.
+          numbers="$(printf '%s' "$RELEASE_PRS" | jq -r '.[].number')"
+          for num in $numbers; do
+            gh pr merge "$num" --auto --rebase
+          done

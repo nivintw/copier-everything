@@ -4,13 +4,16 @@
 # Main pipeline: on every push to main, run the SAME quality gate as PRs, then — only
 # here — release-please (gated by `needs: ci`).
 #
-# RELEASE FLOW (release-please, manifest mode — single package):
+# RELEASE FLOW (release-please, manifest mode, separate-pull-requests: true — N-package
+# generic; this template scaffolds a single package "." by default, the N=1 case of the
+# same mechanism):
 #   1. On push to main, release-please scans Conventional Commits since the last release
-#      and maintains a "Release PR" that bumps the version (.config/.release-please-manifest.json,
-#      mirrored into the version-of-record via .config/release-please-config.json's extra-files)
-#      + CHANGELOG.md.
-#   2. That Release PR is auto-merged (`--auto --rebase`) once its required checks pass, so
-#      releases are continuous; release-please then cuts the `vX.Y.Z` tag + GitHub Release.
+#      and maintains one Release PR per package that bumps that package's version
+#      (.config/.release-please-manifest.json, mirrored into the version-of-record via
+#      .config/release-please-config.json's extra-files) + CHANGELOG.md.
+#   2. Every open Release PR is auto-merged (`--auto --rebase`) once its required checks
+#      pass, so releases are continuous; release-please then cuts each package's `vX.Y.Z`
+#      tag + GitHub Release.
 #   3. The action authenticates as the release GitHub App (see below). An App token is a
 #      distinct actor, so — unlike the default GITHUB_TOKEN — the Release PR runs CI and
 #      merging it triggers downstream workflows.
@@ -96,7 +99,7 @@ jobs:
           permission-contents: write
           permission-pull-requests: write
 
-      - name: Run release-please (Release PR, tag, release)
+      - name: Run release-please (Release PRs, tags, releases)
         id: release
         uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4.4.1
         with:
@@ -104,40 +107,50 @@ jobs:
           config-file: .config/release-please-config.json
           manifest-file: .config/.release-please-manifest.json
 
-      # Continuous release: enable auto-merge on the Release PR so it lands (rebase) once
-      # required checks pass. On the next run (release cut, no PR) `pr` is empty and this
-      # skips. PR JSON travels via env, never inline `${{ }}`, to dodge script injection.
-      # GH_REPO tells gh which repo to act on: this job has no checkout, so without it
-      # `gh pr merge` probes the working dir for a git remote and dies ("not a git
-      # repository"). gh reads GH_REPO natively, so no `actions/checkout` is needed.
+      # Continuous release: enable auto-merge on EVERY open Release PR, so each lands
+      # (rebase) once required checks pass. Because separate-pull-requests is on,
+      # release-please emits `prs` (a JSON array of every Release PR touched this run) —
+      # iterating it is what makes this generic across however many packages the config
+      # declares, from this template's default of one up to however many a consumer adds
+      # by hand. On the next run (a release was cut, no PR) `prs` is unset and this skips.
+      # PR JSON travels via env, never inline `${{ }}`, to dodge script injection. GH_REPO
+      # tells gh which repo to act on: this job has no checkout, so without it `gh pr merge`
+      # probes the working dir for a git remote and dies ("not a git repository"). gh reads
+      # GH_REPO natively, so no `actions/checkout` is needed.
       # Tolerate ONLY the documented setup gap — a repo that hasn't turned on "Allow
       # auto-merge" — by detecting it up front (the repo's allow_auto_merge flag) and warning
       # cleanly. Every OTHER failure (gh API 5xx, auth, a missing required check on main)
       # then reddens the job under `set -euo pipefail`, so a stalled release is loud instead
       # of hiding as a ::warning:: on an otherwise-green run.
-      - name: Auto-merge the Release PR
-        if: ${{ steps.release.outputs.pr }}
+      - name: Auto-merge the Release PRs
+        if: ${{ steps.release.outputs.prs && steps.release.outputs.prs != '[]' }}
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           GH_REPO: ${{ github.repository }}
-          RELEASE_PR: ${{ steps.release.outputs.pr }}
+          RELEASE_PRS: ${{ steps.release.outputs.prs }}
         run: |
           set -euo pipefail
-          num="$(printf '%s' "$RELEASE_PR" | jq -r '.number')"
           # Read the setting in its own statement so a gh API failure here (5xx/auth) trips
           # set -e and reddens the job, rather than the empty result masquerading as "off".
           auto_merge_allowed="$(gh api "repos/${GH_REPO}" --jq '.allow_auto_merge')"
           if [ "$auto_merge_allowed" != "true" ]; then
-            echo "::warning::Auto-merge is off for ${GH_REPO}, so Release PR #${num} was left open. Enable 'Allow auto-merge' + 'Allow rebase merging' and require a status check on main, then merge it (manually for now)."
+            echo "::warning::Auto-merge is off for ${GH_REPO}, so the Release PRs were left open. Enable 'Allow auto-merge' + 'Allow rebase merging' and require a status check on main, then merge them (manually for now)."
             exit 0
           fi
-          gh pr merge "$num" --auto --rebase
+          # Capture jq's output first (not `jq | while`): under `set -e` a jq failure (null /
+          # non-array `prs`) aborts the step loudly instead of being swallowed by the pipe and
+          # silently enabling auto-merge on nothing.
+          numbers="$(printf '%s' "$RELEASE_PRS" | jq -r '.[].number')"
+          for num in $numbers; do
+            gh pr merge "$num" --auto --rebase
+          done
 
       # This template's own release-please-config.json.jinja always scaffolds a single
-      # package, so this never fires against a freshly-generated repo as-is — it guards the
-      # moment a consumer extends that config to 2+ packages by hand (release-please
-      # supports it; the config is a plain file a consumer can and does edit), which is
-      # exactly the real-world incident that motivated this fix. Once that happens: each
+      # package by default, so this never fires against a freshly-generated repo as-is —
+      # it guards the moment a consumer extends that config to 2+ packages by hand
+      # (release-please supports it, separate-pull-requests is already on above, and the
+      # config is a plain file a consumer can and does edit), which is exactly the
+      # real-world incident that motivated this fix. Once that happens: each
       # package's Release PR bumps its own line in the SHARED manifest, so the first to
       # auto-merge above changes main and every other Release PR's branch now textually
       # conflicts with main on that shared file (mergeStateStatus DIRTY) and can never
