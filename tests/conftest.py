@@ -45,10 +45,12 @@ def tolerant_yaml_load(text: str) -> dict:
 
 
 def mkdocs_extension_names(extensions: list) -> set[str]:
-    """Extract each entry's name from mkdocs.yml's `markdown_extensions` list.
+    """Extract each entry's name from an mkdocs.yml list that mixes bare strings and dicts.
 
-    Entries are either a bare string (`admonition`) or a single-key dict carrying config
-    (`{pymdownx.highlight: {...}}`) — this normalizes both to the extension's name.
+    Used for both `markdown_extensions` and `plugins` — both share the same shape: an entry
+    is either a bare string (`admonition`, `search`) or a single-key dict carrying config
+    (`{pymdownx.highlight: {...}}`, `{social: {...}}`) — this normalizes either to just the
+    name.
     """
     return {ext if isinstance(ext, str) else next(iter(ext)) for ext in extensions}
 
