@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.11.2](https://github.com/nivintw/copier-everything/compare/v1.11.1...v1.11.2) (2026-07-06)
+
+
+### Bug Fixes
+
+* **release:** join stranded Release PR numbers correctly for 3+ packages ([f25105d](https://github.com/nivintw/copier-everything/commit/f25105dd78966d647c5924d064204d71f9b47c93))
+* **release:** make release-please auto-merge N-package-generic unconditionally ([69aec39](https://github.com/nivintw/copier-everything/commit/69aec39ebcad8a9289ed47fc55bd4f851920e7a2)), closes [#198](https://github.com/nivintw/copier-everything/issues/198)
+* **release:** name the stranded Release PR(s) in the auto-merge-disabled warning ([4156cc0](https://github.com/nivintw/copier-everything/commit/4156cc0de7f93df137ef04cc8116cabf4c505030))
+
 ## [1.11.1](https://github.com/nivintw/copier-everything/compare/v1.11.0...v1.11.1) (2026-07-06)
 
 
