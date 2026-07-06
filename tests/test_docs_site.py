@@ -51,7 +51,7 @@ def test_docs_site_files_present_by_default(
     # excluded or `mkdocs build --strict` fails on any repo that has that convention's files.
     # exclude_docs is mkdocs' PathSpec option: a gitignore-style multiline STRING, not a
     # YAML list (a list is a config error mkdocs rejects outright — see mkdocs.yml.jinja).
-    assert mkdocs_yaml["exclude_docs"] == "superpowers/\n"
+    assert mkdocs_yaml["exclude_docs"] == "superpowers/\nincludes/\n"
     # asciinema-player assets aren't vendored by default — wiring extra_css/extra_javascript
     # unconditionally 404s every page until a repo actually embeds its first cast.
     assert "extra_css" not in mkdocs_yaml
@@ -78,6 +78,15 @@ def test_docs_site_files_present_by_default(
     # Repo-specific extras (e.g. content.tabs.link) aren't part of the shared baseline —
     # only earn a place once a repo actually has the content that justifies them.
     assert "content.tabs.link" not in mkdocs_yaml["theme"]["features"]
+    # Fleet docs-site plugins (nivintw/repo-management#85: #94 dates, #95 social cards,
+    # #97 llms.txt) — adding `plugins:` at all drops mkdocs' implicit default (`search`
+    # alone), so `search` must be explicit too or built-in search silently disappears.
+    assert mkdocs_extension_names(mkdocs_yaml["plugins"]) == {
+        "search",
+        "git-revision-date-localized",
+        "social",
+        "llmstxt",
+    }
     assert mkdocs_extension_names(mkdocs_yaml["markdown_extensions"]) == {
         "pymdownx.emoji",
         "admonition",
@@ -89,7 +98,15 @@ def test_docs_site_files_present_by_default(
         "attr_list",
         "md_in_html",
         "footnotes",
+        "pymdownx.snippets",
+        "pymdownx.magiclink",
     }
+    snippets_config = next(
+        ext["pymdownx.snippets"]
+        for ext in mkdocs_yaml["markdown_extensions"]
+        if isinstance(ext, dict) and "pymdownx.snippets" in ext
+    )
+    assert snippets_config["base_path"] == "docs/includes"
 
     # The docs design deliberately relies on raw HTML in Markdown (castify cast embeds,
     # version-badge spans) — MD033 must be off or the lint gate fails on either pattern.

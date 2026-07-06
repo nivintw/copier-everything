@@ -14,6 +14,8 @@ __pycache__/
 
 ### MkDocs (this repo's own docs site — see docs/) ###
 site/
+# The social-cards plugin caches generated og:image renders here across builds.
+.cache/
 
 ### ship continuity files (progress tracking, never committed) ###
 .ship/

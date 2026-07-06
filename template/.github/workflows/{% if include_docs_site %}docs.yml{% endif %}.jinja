@@ -30,4 +30,9 @@ jobs:
       pages: write
       id-token: write
     uses: nivintw/repo-management/.github/workflows/docs.yml@864420032528f0d7339fe07a44630b620f16d88b # main
+    with:
+      # mkdocs.yml enables the git-revision-date-localized and llmstxt plugins
+      # (nivintw/repo-management#94, #97) — neither ships with mkdocs-material, so both
+      # need to be installed alongside it at build time.
+      extra-packages: mkdocs-git-revision-date-localized-plugin mkdocs-llmstxt
 {% endraw %}

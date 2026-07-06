@@ -108,6 +108,10 @@ NOT_SYNCED = {
     # Real, bespoke landing-page content authored by the generate-docs skill (issue #157) —
     # the template only ever scaffolds a placeholder here, so the two are meant to diverge.
     "docs/index.md",
+    # Same reasoning as docs/index.md above: the template only scaffolds a mechanism
+    # placeholder for pymdownx.snippets' base_path (issue #184/repo-management#96); real
+    # per-repo snippet content is authored later, not asserted here.
+    "docs/includes/install.md",
 }
 
 
@@ -400,6 +404,12 @@ def test_mkdocs_yml(template_dir: Path, generated_project_dir: Path) -> None:
         assert root_theme[key] == render_theme[key], f"mkdocs.yml theme.{key} is not synced!"
     assert set(root_theme["features"]) == set(render_theme["features"]), (
         "mkdocs.yml theme.features is not synced!"
+    )
+
+    # llmstxt's `sections` is nav-derived, per-repo content (like nav itself, not asserted
+    # here) — only the plugin names are part of the shared fleet baseline.
+    assert mkdocs_extension_names(root["plugins"]) == mkdocs_extension_names(render["plugins"]), (
+        "mkdocs.yml plugins is not synced!"
     )
 
     assert mkdocs_extension_names(root["markdown_extensions"]) == mkdocs_extension_names(

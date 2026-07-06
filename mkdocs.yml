@@ -53,6 +53,30 @@ theme:
         icon: material/brightness-7
         name: Switch to dark mode
 
+# Adding this key at all switches MkDocs off its implicit default plugin set (just
+# `search`), so `search` is listed explicitly below or built-in search silently
+# disappears (nivintw/repo-management#85 fleet epic; #94/#95/#97 for the other three).
+plugins:
+  - search
+  # Per-page "last updated" date derived from git history (nivintw/repo-management#94).
+  - git-revision-date-localized:
+      type: date
+  # Branded social-card (og:image) generation per page (nivintw/repo-management#95).
+  # cairosvg's ctypes loader can't resolve Homebrew's libcairo on macOS, so this can only
+  # be verified on the Linux CI build, not a local `mkdocs build`.
+  - social
+  # Publishes an llms.txt (per https://llmstxt.org/) so LLM tooling can fetch the docs
+  # directly (nivintw/repo-management#97).
+  - llmstxt:
+      sections:
+        Documentation:
+          - index.md
+          - usage.md
+          - design.md
+          - modules.md
+          - questions.md
+          - baseline.md
+
 markdown_extensions:
   # Material's own icon set (nav icons, admonition icons, card-grid layouts) — the
   # emoji_index/generator pair is Material's documented way to wire :material-*:/
@@ -72,6 +96,20 @@ markdown_extensions:
   - attr_list
   - md_in_html
   - footnotes
+  # Shared content fragments (`--8<-- "install.md"`) so e.g. install instructions can't
+  # drift between the homepage and per-plugin pages (nivintw/repo-management#96,
+  # config-only). base_path is relative to docs/includes/ — a snippet reference is just
+  # the filename within that dir, not the full docs/includes/... path.
+  - pymdownx.snippets:
+      base_path: docs/includes
+      check_paths: true
+  # Auto-links bare `owner/repo#N` issue/PR references and commit SHAs
+  # (nivintw/repo-management#96, config-only).
+  - pymdownx.magiclink:
+      repo_url_shortener: true
+      repo_url_shorthand: true
+      user: "nivintw"
+      repo: "copier-everything"
 
 # docs/superpowers/** holds dev-only brainstorming specs and plans (the
 # superpowers:brainstorming/writing-plans convention) — shares the docs/ tree with the
@@ -80,6 +118,7 @@ markdown_extensions:
 # exclude_docs is mkdocs' PathSpec option — a gitignore-style multiline string, not a list.
 exclude_docs: |
   superpowers/
+  includes/
 
 nav:
   - Home: index.md
