@@ -13,10 +13,11 @@ precedence = "override"
 SPDX-FileCopyrightText = "© 2026 Tyler Nivin"
 SPDX-License-Identifier = "MIT"
 
-# .gitignore stays in hawkeye's default excludes (not re-included via a negation) and is
-# licensed here instead of via an inline header.
+# .gitignore files stay in hawkeye's default excludes (not re-included via a negation) and are
+# licensed here instead of via an inline header — both the root one and any nested ones (e.g.
+# tool config dirs like .serena/ that ship their own ignore file).
 [[annotations]]
-path = ".gitignore"
+path = [".gitignore", "**/.gitignore"]
 SPDX-FileCopyrightText = "© 2026 Tyler Nivin"
 SPDX-License-Identifier = "MIT"
 
