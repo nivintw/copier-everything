@@ -21,6 +21,17 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
+def on_key(doc: dict) -> dict:
+    """The ``on:`` block, under either representation (bool ``True`` or the string ``"on"``).
+
+    PyYAML resolves a bare ``on:`` key as the boolean ``True`` (YAML 1.1); this stays robust
+    to a loader that doesn't. Mirrors ``tests/test_synced_files.py::_drop_triggers``, which
+    removes rather than extracts the same key for a different purpose (diffing two rendered
+    workflows with their triggers stripped out).
+    """
+    return doc[True] if True in doc else doc["on"]
+
+
 @pytest.fixture(scope="session")
 def template_dir() -> Path:
     """Path to the template repo root (the directory holding copier.yml)."""

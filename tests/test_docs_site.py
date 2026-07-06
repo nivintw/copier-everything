@@ -15,21 +15,13 @@ import tomllib
 from typing import TYPE_CHECKING
 
 import yaml
+from conftest import on_key
 
 if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
 
     import pytest
-
-
-def _on_key(doc: dict) -> dict:
-    """The ``on:`` block, under either representation (bool ``True`` or the string ``"on"``).
-
-    Mirrors ``tests/test_synced_files.py::_drop_triggers`` — PyYAML resolves a bare ``on:``
-    key as the boolean ``True`` (YAML 1.1), but this stays robust to a loader that doesn't.
-    """
-    return doc[True] if True in doc else doc["on"]
 
 
 def test_docs_site_files_present_by_default(
@@ -50,7 +42,7 @@ def test_docs_site_files_present_by_default(
     workflow = project_dir / ".github" / "workflows" / "docs.yml"
     assert workflow.is_file()
     workflow_yaml = yaml.safe_load(workflow.read_text())
-    push_trigger = _on_key(workflow_yaml)["push"]
+    push_trigger = on_key(workflow_yaml)["push"]
     assert push_trigger["branches"] == ["main"]
     assert push_trigger["paths"] == ["docs/**", "mkdocs.yml"]
 

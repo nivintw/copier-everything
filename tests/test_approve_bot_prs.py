@@ -16,15 +16,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import yaml
+from conftest import on_key
 
 if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
-
-
-def _on_key(doc: dict) -> dict:
-    """The ``on:`` block, under either representation (bool ``True`` or the string ``"on"``)."""
-    return doc[True] if True in doc else doc["on"]
 
 
 def test_approve_bot_prs_triggers_on_pull_request_target(
@@ -42,7 +38,7 @@ def test_approve_bot_prs_triggers_on_pull_request_target(
     workflow = project_dir / ".github" / "workflows" / "approve-bot-prs.yml"
     assert workflow.is_file()
     workflow_yaml = yaml.safe_load(workflow.read_text())
-    trigger = _on_key(workflow_yaml)
+    trigger = on_key(workflow_yaml)
 
     assert "pull_request_target" in trigger, (
         "approve-bot-prs.yml must use pull_request_target, not pull_request — the latter "
