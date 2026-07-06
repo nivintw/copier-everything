@@ -134,17 +134,20 @@ jobs:
           RELEASE_PRS: ${{ steps.release.outputs.prs }}
         run: |
           set -euo pipefail
+          # Capture jq's output first (not `jq | while`): under `set -e` a jq failure (null /
+          # non-array `prs`) aborts the step loudly instead of being swallowed by the pipe and
+          # silently enabling auto-merge on nothing. Computed before the auto_merge_allowed
+          # check too, so a disabled-auto-merge warning can name the exact PR(s) to merge
+          # manually instead of pointing at a discovery step.
+          numbers="$(printf '%s' "$RELEASE_PRS" | jq -r '.[].number')"
           # Read the setting in its own statement so a gh API failure here (5xx/auth) trips
           # set -e and reddens the job, rather than the empty result masquerading as "off".
           auto_merge_allowed="$(gh api "repos/${GH_REPO}" --jq '.allow_auto_merge')"
           if [ "$auto_merge_allowed" != "true" ]; then
-            echo "::warning::Auto-merge is off for ${GH_REPO}, so the Release PRs were left open. Enable 'Allow auto-merge' + 'Allow rebase merging' and require a status check on main, then merge them (manually for now)."
+            pr_list="$(echo "$numbers" | sed 's/^/#/' | paste -sd', ' -)"
+            echo "::warning::Auto-merge is off for ${GH_REPO}, so Release PR(s) ${pr_list} were left open (merge manually once ready). Enable 'Allow auto-merge' + 'Allow rebase merging' and require a status check on main to automate this."
             exit 0
           fi
-          # Capture jq's output first (not `jq | while`): under `set -e` a jq failure (null /
-          # non-array `prs`) aborts the step loudly instead of being swallowed by the pipe and
-          # silently enabling auto-merge on nothing.
-          numbers="$(printf '%s' "$RELEASE_PRS" | jq -r '.[].number')"
           for num in $numbers; do
             gh pr merge "$num" --auto --rebase
           done
