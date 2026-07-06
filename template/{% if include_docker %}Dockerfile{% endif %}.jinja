@@ -5,7 +5,7 @@
 FROM python:{{ python_version }}-slim AS base
 # Pinned (not :latest) so the build is reproducible and hadolint (DL3007) is happy;
 # Renovate's docker manager keeps it current.
-COPY --from=ghcr.io/astral-sh/uv:0.11.23 /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.11.26 /uv /uvx /bin/
 
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
