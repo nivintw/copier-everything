@@ -144,7 +144,10 @@ jobs:
           # set -e and reddens the job, rather than the empty result masquerading as "off".
           auto_merge_allowed="$(gh api "repos/${GH_REPO}" --jq '.allow_auto_merge')"
           if [ "$auto_merge_allowed" != "true" ]; then
-            pr_list="$(echo "$numbers" | sed 's/^/#/' | paste -sd', ' -)"
+            # `paste -d` treats a multi-char delimiter as a cycling set of characters, not a
+            # literal string, so it'd alternate ',' and ' ' across 3+ items — join on a single
+            # char first, then widen it to ", ".
+            pr_list="$(echo "$numbers" | sed 's/^/#/' | paste -sd, - | sed 's/,/, /g')"
             echo "::warning::Auto-merge is off for ${GH_REPO}, so Release PR(s) ${pr_list} were left open (merge manually once ready). Enable 'Allow auto-merge' + 'Allow rebase merging' and require a status check on main to automate this."
             exit 0
           fi
