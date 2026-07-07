@@ -21,7 +21,11 @@ import pytest
 if TYPE_CHECKING:
     from pathlib import Path
 
-_RAW_MARKERS = ("{% raw %}", "{% endraw %}")
+
+def _is_raw_marker(line: str) -> bool:
+    """A `{% raw %}` / `{% endraw %}` tag on its own line, in any whitespace-control variant."""
+    stripped = line.strip()
+    return stripped.startswith(("{% raw", "{%- raw", "{% endraw", "{%- endraw"))
 
 
 def _render_script(template_dir: Path, dest: Path) -> Path:
@@ -29,7 +33,7 @@ def _render_script(template_dir: Path, dest: Path) -> Path:
     src = template_dir / "template" / "scripts" / "check_copier_src_path.py.jinja"
     out_lines: list[str] = []
     for line in src.read_text(encoding="utf-8").splitlines(keepends=True):
-        if line.strip() in _RAW_MARKERS:
+        if _is_raw_marker(line):
             continue
         rendered = (
             line.replace("{{ year }}", "2026")

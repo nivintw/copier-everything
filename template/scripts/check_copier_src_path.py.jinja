@@ -43,7 +43,9 @@ _REMEDY = (
 def _strip_quotes(value: str) -> str:
     """Drop a single matching pair of surrounding single/double quotes, if present."""
     value = value.strip()
-    if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+    # `value != value[:1]` means "at least two chars" without a magic length literal — so a lone
+    # quote isn't mistaken for an empty quoted string.
+    if value[:1] in ("'", '"') and value[-1:] == value[:1] and value != value[:1]:
         return value[1:-1]
     return value
 
@@ -51,14 +53,12 @@ def _strip_quotes(value: str) -> str:
 def is_remote(value: str) -> bool:
     """True when `value` is a remote template location `copier update` can resolve anywhere."""
     return bool(
-        _REMOTE_SCHEME_RE.match(value)
-        or _SHORTHAND_RE.match(value)
-        or _SCP_RE.match(value)
+        _REMOTE_SCHEME_RE.match(value) or _SHORTHAND_RE.match(value) or _SCP_RE.match(value)
     )
 
 
 def check_file(path: str) -> bool:
-    """Return True when `path`'s `_src_path` is remote; print the reason and return False otherwise."""
+    """True if `path`'s `_src_path` is remote; else print the reason and return False."""
     file = Path(path)
     if not file.exists():
         print(
@@ -108,9 +108,11 @@ def check_file(path: str) -> bool:
 def main(argv: list[str]) -> int:
     """Check each path given (pre-commit passes them), or the default answers file."""
     paths = argv[1:] or [_DEFAULT_ANSWERS]
-    return 0 if all([check_file(path) for path in paths]) else 1
+    # A list (not a generator) so every path is checked and its error printed — no short-circuit.
+    results = [check_file(path) for path in paths]
+    return 0 if all(results) else 1
 
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv))
-{% endraw %}
+{% endraw -%}
