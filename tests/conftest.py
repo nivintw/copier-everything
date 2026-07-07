@@ -9,13 +9,10 @@ template` from there. `render_template` is the shared render helper both test mo
 
 from __future__ import annotations
 
-import warnings
 from typing import TYPE_CHECKING
 
 import pytest
 import yaml
-from copier import run_copy
-from copier.errors import DirtyLocalWarning
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -82,28 +79,12 @@ def output_dir_module_scope(tmp_path_factory: pytest.TempPathFactory) -> Path:
 
 @pytest.fixture(scope="session")
 def render_template() -> Callable[..., Path]:
-    """Return a helper that renders the template into a directory and returns that directory.
+    """Return the shared render helper (see tests/render_support.py::render).
 
-    With ``vcs_ref="HEAD"`` against a dirty local checkout, copier renders the current
-    **working-tree** state (uncommitted and untracked template changes included) and emits a
-    DirtyLocalWarning saying so; the warning is suppressed (not asserted). Because the sync
-    tests read the root side off the working tree too, both sides reflect the working tree and
-    stay consistent whether or not it's clean. (On a clean checkout — e.g. CI — working tree
-    and HEAD coincide.)
+    Delegates to the importable module rather than re-implementing the render, so non-test code
+    (scripts/resync_twins.py) renders through the exact same invariants. tests/test_render_module.py
+    guards against this fixture drifting away from the module.
     """
+    from render_support import render  # noqa: PLC0415
 
-    def _render(template_dir: Path, output_dir: Path, *, data: dict, skip_tasks: bool) -> Path:
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=DirtyLocalWarning)
-            run_copy(
-                str(template_dir),
-                str(output_dir),
-                data=data,
-                defaults=True,
-                unsafe=True,
-                vcs_ref="HEAD",
-                skip_tasks=skip_tasks,
-            )
-        return output_dir
-
-    return _render
+    return render

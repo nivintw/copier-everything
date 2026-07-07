@@ -26,6 +26,14 @@ path = ".github/ISSUE_TEMPLATE/**"
 SPDX-FileCopyrightText = "© {{ year }} {{ author_name }}"
 SPDX-License-Identifier = "{{ license }}"
 
+# The Claude Code guard hooks ship verbatim from the template (no per-file templating), so they
+# carry no inline SPDX header and are excluded from hawkeye (see .config/licenserc.toml) —
+# licensed here instead.
+[[annotations]]
+path = ".claude/hooks/**"
+SPDX-FileCopyrightText = "© {{ year }} {{ author_name }}"
+SPDX-License-Identifier = "{{ license }}"
+
 # Files that can't carry an SPDX header (no comment syntax / generated). Everything
 # else gets a real header from hawkeye (see .config/licenserc.toml).
 {%- if markdown_has_frontmatter %}

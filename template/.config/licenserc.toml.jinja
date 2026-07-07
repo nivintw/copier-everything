@@ -40,6 +40,9 @@ excludes = [
   # falls back to a blank issue), so ISSUE_TEMPLATE/*.yml must start with the form keys and
   # can't carry an inline SPDX header — excluded here and licensed via REUSE.toml instead.
   ".github/ISSUE_TEMPLATE/**",
+  # The Claude Code guard hooks ship verbatim from the template (no per-file templating), so
+  # they carry no inline header — excluded here and licensed via REUSE.toml instead.
+  ".claude/hooks/**",
 {%- if include_helm %}
   "**/Chart.lock",
 {%- endif %}

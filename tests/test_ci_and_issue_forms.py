@@ -39,7 +39,7 @@ def project(
 
 
 def test_ci_has_full_history_pinned_gitleaks_scan(project: Path) -> None:
-    """#232: CI runs a full-history, checksum-pinned, --redact gitleaks scan with a shallow guard."""
+    """#232: CI runs a full-history, checksum-pinned, --redact gitleaks scan + shallow guard."""
     ci = yaml.safe_load((project / ".github" / "workflows" / "ci.yml").read_text())
     assert "secret-scan" in ci["jobs"], "no secret-scan job — CI ships no effective secret scan"
     steps = ci["jobs"]["secret-scan"]["steps"]
@@ -48,9 +48,13 @@ def test_ci_has_full_history_pinned_gitleaks_scan(project: Path) -> None:
     assert checkout["with"]["fetch-depth"] == 0, "gitleaks needs full history (fetch-depth: 0)"
 
     scan = next(s for s in steps if "gitleaks" in s.get("name", "").lower())
-    assert re.fullmatch(r"[0-9a-f]{64}", scan["env"]["GITLEAKS_SHA256"]), "gitleaks not SHA256-pinned"
+    assert re.fullmatch(r"[0-9a-f]{64}", scan["env"]["GITLEAKS_SHA256"]), (
+        "gitleaks not SHA256-pinned"
+    )
     run = scan["run"]
-    assert "is-shallow-repository" in run, "no shallow-checkout guard — a shallow clone scans nothing"
+    assert "is-shallow-repository" in run, (
+        "no shallow-checkout guard — a shallow clone scans nothing"
+    )
     assert "sha256sum -c" in run, "gitleaks download not checksum-verified"
     assert "git --redact --verbose" in run, "expected a --redact full-history `gitleaks git` scan"
 

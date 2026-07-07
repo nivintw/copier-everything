@@ -263,9 +263,7 @@ def _function_region(script: Path) -> str:
 def _run_region(
     script: Path, body: str, *, repo: Path, bash_bin: str = "bash", base_ref: str = ""
 ) -> subprocess.CompletedProcess[str]:
-    program = (
-        f'set -euo pipefail\nBASE_REF="{base_ref}"\n{_function_region(script)}\n{body}'
-    )
+    program = f'set -euo pipefail\nBASE_REF="{base_ref}"\n{_function_region(script)}\n{body}'
     return subprocess.run(  # noqa: S603
         [bash_bin, "-c", program],
         cwd=repo,
@@ -352,7 +350,7 @@ def test_commit_pin_is_refreshed(template_dir: Path, workflow_repo: Path, bash_b
     where /bin/bash isn't 3.2) — proving the 3.2-safe rewrite (no associative arrays, no `${,,}`)
     actually executes there, not just parses.
     """
-    version = subprocess.run(
+    version = subprocess.run(  # noqa: S603
         [bash_bin, "--version"], capture_output=True, text=True, check=False
     )
     if bash_bin == "/bin/bash" and "version 3.2" not in version.stdout:
@@ -385,10 +383,8 @@ def test_fetch_commit_prefers_dereferenced_annotated_tag(
     script = template_dir / "scripts" / "refresh-binary-checksums.sh"
     tag, deref, plain = "3" * 40, "d" * 40, "e" * 40
     # Annotated: both rows present → the ^{} (deref) commit is the real one.
-    annotated = (
-        f'git() {{ printf "%s\\trefs/tags/v1.13.0\\n%s\\trefs/tags/v1.13.0^{{}}\\n" "{plain}" "{deref}"; }}\n'
-        'fetch_commit BATS 1.13.0\n'
-    )
+    rows = f'%s\\trefs/tags/v1.13.0\\n%s\\trefs/tags/v1.13.0^{{}}\\n" "{plain}" "{deref}'
+    annotated = f'git() {{ printf "{rows}"; }}\nfetch_commit BATS 1.13.0\n'
     r1 = _run_region(script, annotated, repo=workflow_repo)
     assert r1.returncode == 0, r1.stderr
     assert r1.stdout.strip() == deref

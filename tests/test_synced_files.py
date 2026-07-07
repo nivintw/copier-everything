@@ -57,6 +57,13 @@ TRIVIALLY_EQUAL = {
     # header (which matches like every other file here, since the fixture supplies this
     # repo's real author identity).
     "docs/stylesheets/extra.css",
+    # The Claude Code guard hooks + their wiring ship verbatim (no per-repo templating), so the
+    # repo's own copies must stay byte-identical to what a generated project receives.
+    ".claude/settings.json",
+    ".claude/hooks/_hooklib.py",
+    ".claude/hooks/guard_version_bumps.py",
+    ".claude/hooks/guard_managed_files.py",
+    ".claude/hooks/guard_config_drift.py",
 }
 
 # Legitimately differs; the named test subtracts the documented deviation and compares the rest.
@@ -109,6 +116,9 @@ NOT_SYNCED = {
     # The template ships a smoke test; this repo has its own suite (you are reading it).
     "tests/conftest.py",
     "tests/test_smoke.py",
+    # A pre-commit hook that validates a GENERATED project's .copier-answers.yml — payload-only,
+    # since the template repo itself has no .copier-answers.yml to check.
+    "scripts/check_copier_src_path.py",
     # Real, bespoke landing-page content authored by the generate-docs skill (issue #157) —
     # the template only ever scaffolds a placeholder here, so the two are meant to diverge.
     "docs/index.md",
@@ -214,7 +224,10 @@ def test_trivially_equal_files(template_dir: Path, generated_project_dir: Path) 
     for relative_path in sorted(TRIVIALLY_EQUAL):
         root_text = (template_dir / relative_path).read_text()
         render_text = (generated_project_dir / relative_path).read_text()
-        assert root_text == render_text, f"{relative_path} is not synced (raw content differs)!"
+        assert root_text == render_text, (
+            f"{relative_path} is not synced (raw content differs)! "
+            "Run `python scripts/resync_twins.py` to copy the render over root."
+        )
 
 
 def test_editorconfig(template_dir: Path, generated_project_dir: Path) -> None:
@@ -239,9 +252,9 @@ def test_refresh_binary_checksums_sh(template_dir: Path, generated_project_dir: 
         # unquoted glob) and in tool_version_at_base's identity-search pathspec (a quoted one).
         # Normalize both forms away so the rest can compare equal.
         def strip(line: str) -> str:
-            return line.replace(
-                " 'template/.github/workflows/*.jinja'", ""
-            ).replace(" template/.github/workflows/*.jinja", "")
+            return line.replace(" 'template/.github/workflows/*.jinja'", "").replace(
+                " template/.github/workflows/*.jinja", ""
+            )
 
         return [strip(line) for line in _non_comment_lines(path)]
 
