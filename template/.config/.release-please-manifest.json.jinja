@@ -1,3 +1,10 @@
 {
+{%- if release_model == 'multi-package' %}
+{%- set pkgs = release_packages.split(',') | map('trim') | select | list %}
+{%- for p in pkgs %}
+  {{ p | tojson }}: "0.0.0"{{ "," if not loop.last }}
+{%- endfor %}
+{%- else %}
   ".": "0.0.0"
+{%- endif %}
 }
