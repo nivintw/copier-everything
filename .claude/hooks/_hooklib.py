@@ -6,9 +6,13 @@ event on stdin and decides allow / deny / fail-open-loud. This module is the thi
 I/O + path-resolution layer so the three guards stay consistent.
 
 Portability note: Claude Code runs these via whatever `python3` is on PATH, which may be
-older than the project's own interpreter — so `except (...)` tuples stay PARENTHESIZED
-(Python 3.14's PEP 758 made the parens optional, but < 3.14 still requires them) and nothing
-here uses newer-than-3.9 syntax.
+older than the project's own interpreter, so the hooks target Python 3.9+ (verified running
+under 3.9). Two things that would otherwise break that: `except (...)` tuples stay
+PARENTHESIZED (Python 3.14's PEP 758 made the parens optional, but < 3.14 still requires
+them); and every PEP 604 `X | Y` union appears ONLY in a type annotation, which
+`from __future__ import annotations` (PEP 563) keeps as an unevaluated string — so it never
+hits the runtime `types.UnionType` machinery that needs 3.10+ (the only runtime `|` here is a
+plain set union, valid everywhere).
 """
 
 from __future__ import annotations
