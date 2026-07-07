@@ -302,6 +302,13 @@ def test_pyproject_toml(template_dir: Path, generated_project_dir: Path) -> None
         "pyproject dev dependency floors are not synced (template has a dep the root lacks)!"
     )
 
+    # Deviation: the own suite is render-heavy, so it adds pytest-xdist parallelization + coverage
+    # aggregation (issue #227) that a generated project's smaller suite doesn't need. Subtract
+    # those own-only additions (the pytest addopts and the whole [tool.coverage] table) so the
+    # rest of the shared tooling config still compares by value.
+    root["tool"]["pytest"]["ini_options"].pop("addopts", None)
+    root["tool"].pop("coverage", None)
+
     # Everything else (the [tool.*] tables that actually configure the shared tooling) must match.
     del root["project"], render["project"]
     del root["dependency-groups"], render["dependency-groups"]

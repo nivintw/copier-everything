@@ -22,16 +22,21 @@ dependencies = []
 # Test deps for the template's own suite: copier renders the template in the tests, pyjson5
 # parses the json5/.vscode configs and pyyaml the workflow YAML in the sync tests. ruff/ty/pytest
 # mirror what a generated project gets. (pyyaml is declared directly — not leaned on transitively
-# via copier — so the suite's needs don't break if copier's deps change.)
+# via copier — so the suite's needs don't break if copier's deps change.) pytest-xdist
+# parallelizes the render-heavy suite; pytest-cov aggregates coverage across its workers;
+# validate-pyproject validates the rendered pyproject offline (tests/test_pyproject_schema.py).
 dev = [
   "copier>=9.11.0",
   "pyjson5>=2.0.0",
   "pytest>=8",
+  "pytest-cov>=7.1.0",
+  "pytest-xdist>=3.8.0",
   "pyyaml>=6",
   "ruff>=0.12",
   # ty is pre-1.0 and evolves quickly, so ">=0.0.1" is a permissive floor, not a meaningful one
   # — Renovate keeps the resolved version current regardless.
   "ty>=0.0.1",
+  "validate-pyproject>=0.25",
 ]
 
 [tool.uv]
@@ -39,6 +44,21 @@ package = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# The suite is render-heavy and embarrassingly parallel — each render writes its own tmp dir —
+# so run it under pytest-xdist. --dist=loadscope keeps a module's tests on one worker (they share
+# module-scoped render fixtures); --maxprocesses bounds the fan-out on big machines. Coverage
+# aggregates correctly across the workers via [tool.coverage.run] below; pass --cov (and
+# --junit-xml=<path> for JUnit) on the CI invocation, kept out of the default addopts so local
+# runs stay fast and litter-free.
+addopts = "-n=auto --dist=loadscope --maxprocesses=8"
+
+[tool.coverage.run]
+# xdist workers each write a separate coverage data file that `coverage combine` merges, so a
+# `--cov` run aggregates correctly across the parallel workers rather than reporting one worker's
+# slice. Measure this repo's own Python (the test suite + helper scripts).
+parallel = true
+concurrency = ["multiprocessing"]
+source = ["tests", "scripts"]
 
 [tool.ruff]
 target-version = "py314"
