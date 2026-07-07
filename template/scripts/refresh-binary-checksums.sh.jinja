@@ -251,12 +251,15 @@ pinned_value_at_base() { # <VAR> <file> <baseref> -> value at base or empty
   printf '%s\n' "$blob" | _extract_pinned_value "$1" pinned_value_at_base "$3:$2"
 }
 
-tool_version_at_base() { # <TOOL> <baseref> -> the tool's *_VERSION at base (any file) or empty
+tool_versions_at_base() { # <TOOL> <baseref> -> EVERY version the tool is pinned at at base (one/line)
   # The tamper gate's continuity check, keyed on TOOL IDENTITY rather than a fixed file path:
   # find where ${tool}_VERSION lives at BASE_REF across ALL workflow files, so a pin that moved
   # between files since BASE_REF is still matched to its history. Without this, `git mv old.yml
   # new.yml` (or a copier update renaming a generated workflow) makes the pin look brand-new and
   # silently bypasses the same-version/changed-hash tamper check (issue #211).
+  # Emits EVERY base version for the tool (not just the first file's), so the caller can test
+  # whether the CURRENT version is AMONG them — a tool pinned at DIFFERENT versions in two files
+  # at base must not let the first-listed version stand in for the file actually being checked.
   local tool="$1" baseref="$2" files rc f val
   # `git grep -l <pattern> <ref> -- <pathspec>` lists "<ref>:<path>" for each matching file at
   # the ref. Exit 1 == no matches (a legitimately never-pinned tool → empty), exit >1 == a real
@@ -264,7 +267,7 @@ tool_version_at_base() { # <TOOL> <baseref> -> the tool's *_VERSION at base (any
   files="$(git grep -lE "^[[:space:]]*${tool}_VERSION: \"" "$baseref" -- \
     '.github/workflows/*.yml' '.github/workflows/*.yaml')" && rc=0 || rc=$?
   if [ "$rc" -gt 1 ]; then
-    echo "ERROR: tool_version_at_base: git grep failed (exit $rc) for ${tool} at ${baseref}" >&2
+    echo "ERROR: tool_versions_at_base: git grep failed (exit $rc) for ${tool} at ${baseref}" >&2
     exit 1
   fi
   [ -n "$files" ] || return 0
@@ -274,10 +277,7 @@ tool_version_at_base() { # <TOOL> <baseref> -> the tool's *_VERSION at base (any
     [ -n "$f" ] || continue
     f="${f#"${baseref}":}" # strip the "<ref>:" prefix git grep -l prepends
     val="$(pinned_value_at_base "${tool}_VERSION" "$f" "$baseref")"
-    if [ -n "$val" ]; then
-      printf '%s\n' "$val"
-      return 0
-    fi
+    [ -n "$val" ] && printf '%s\n' "$val"
   done <<EOF
 $files
 EOF
@@ -290,7 +290,7 @@ processed=0
 # fetch function, and the accepted value format differ.
 refresh_pin() { # <file> <TOOL> <suffix> <fetch_fn> <valid-regex> <label>
   local file="$1" tool="$2" suffix="$3" fetch_fn="$4" valid_re="$5" label="$6"
-  local version old_pin new_pin base_version tmp
+  local version old_pin new_pin base_versions tmp
   # NOTE: reads the first *_VERSION but rewrites every *_<suffix> (sed /g). That is correct
   # because a tool pinned more than once in a file shares one version; do not pin the same
   # tool to two different versions in one file.
@@ -310,8 +310,13 @@ refresh_pin() { # <file> <TOOL> <suffix> <fetch_fn> <valid-regex> <label>
   fi
 
   if [ -n "$BASE_REF" ] && [ "$new_pin" != "$old_pin" ]; then
-    base_version="$(tool_version_at_base "$tool" "$BASE_REF")"
-    if [ -n "$base_version" ] && [ "$base_version" = "$version" ]; then
+    # Tamper iff this EXACT version was pinned somewhere at BASE_REF (same version + changed pin
+    # = a swapped asset/tag). Captured to a variable first (not piped into grep) so a git-grep
+    # error inside the function still aborts loudly under set -e; membership (`grep -qxF`), not
+    # equality against one arbitrarily-chosen version, so a tool pinned at different versions in
+    # two files at base can't let a same-version tamper in the OTHER file slip through.
+    base_versions="$(tool_versions_at_base "$tool" "$BASE_REF")"
+    if printf '%s\n' "$base_versions" | grep -qxF "$version"; then
       echo "TAMPER ALERT: ${tool} ${version} in ${file}: pinned ${label} ${old_pin} != upstream" >&2
       echo "  ${new_pin}, but the version is unchanged vs ${BASE_REF}. Refusing to auto-update —" >&2
       echo "  investigate the upstream release (a fixed tag's asset/commit should never change)." >&2
