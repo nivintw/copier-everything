@@ -227,18 +227,25 @@ jobs:
             # (which can gain new commits over time) rather than trusting the PR-level `author`
             # field (fixed once the PR opens, so it can't reflect who pushed a later fixup
             # commit — it stays the release bot's login either way).
-            # Branch explicitly on a null/absent `.commits` (a degraded API response) so it
-            # resolves to a non-empty "unknown-authors" marker and takes the warn-and-leave-open
-            # path below — a naive `.commits[]?` would instead silently read as "verified
-            # bot-only" and auto-close a PR this check couldn't actually verify, the opposite of
-            # the fail-safe direction the rest of this guard is built around.
-            # A commit author with no linked GitHub account comes back with a null OR
-            # empty-string `.login` AND/OR `.email`; jq's `//` treats "" as truthy, so guard
-            # both null and "" on EACH field before falling through, or a `login: null,
+            # Fail SAFE (leave open) on any degraded shape this check can't verify, resolving it
+            # to a non-empty "unknown-authors" marker rather than an empty string:
+            #   - a null/absent `.commits` (whole response degraded), and
+            #   - a commit whose `.authors` is empty/null/absent (per-commit degraded) — without
+            #     this, that commit's authors iterate to nothing, the list collapses to "", and
+            #     the [ -n ] check below reads "" as "verified bot-only" and auto-closes the PR,
+            #     discarding a human's commit (the opposite of this guard's fail-safe direction).
+            # A naive `.commits[]?`/`.authors[]?` would silently swallow both into "verified
+            # bot-only" instead. A commit author with no linked GitHub account comes back with a
+            # null OR empty-string `.login` AND/OR `.email`; jq's `//` treats "" as truthy, so
+            # guard both null and "" on EACH field before falling through, or a `login: null,
             # email: ""` human commit would collapse to "" and be misread as bot-only.
             non_bot_logins="$(printf '%s' "$commits_json" | jq -r --arg app "${CI_APP_SLUG}[bot]" \
-              'if .commits == null then "unknown-authors (commits field missing from API response)" else ([.commits[].authors[]? | select(.login != $app) | ((.login | select(. != null and . != "")) // (.email | select(. != null and . != "")) // .name // "unknown-author")] | unique | join(", ")) end')"
+              'if .commits == null then "unknown-authors (commits field missing from API response)" elif any(.commits[]; (.authors // []) | length == 0) then "unknown-authors (a commit is missing author data)" else ([.commits[].authors[]? | select(.login != $app) | ((.login | select(. != null and . != "")) // (.email | select(. != null and . != "")) // .name // "unknown-author")] | unique | join(", ")) end')"
             if [ -n "$non_bot_logins" ]; then
+              # Strip CR/LF from the (attacker-influenceable) author string before echoing it
+              # into a ::warning:: — a forged commit author name containing a newline could
+              # otherwise inject spurious GitHub Actions workflow-command annotations (log spoof).
+              non_bot_logins="${non_bot_logins//[$'\r\n']/ }"
               echo "::warning::Release PR #${num} is DIRTY but carries a commit from ${non_bot_logins} (not just ${CI_APP_SLUG}[bot]) — leaving it open rather than auto-closing, since that would discard those commits. Resolve the conflict manually."
               continue
             fi

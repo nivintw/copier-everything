@@ -74,7 +74,19 @@ def test_multi_package_model_declares_each_package(
     assert _manifest(project) == {"packages/api": "0.0.0", "packages/cli": "0.0.0"}
 
 
-@pytest.mark.parametrize("bad", ["", "  ", "/abs/path", "../escape", "has space"])
+@pytest.mark.parametrize(
+    "bad",
+    [
+        "",
+        "  ",
+        "/abs/path",
+        "../escape",
+        "has space",
+        "packages/a, packages/a",  # duplicate → would silently overwrite one entry
+        ".",  # collides with the single-package root marker
+        "packages/a/",  # trailing slash → off-by-one release-please key
+    ],
+)
 def test_release_packages_is_validated(
     bad: str,
     template_dir: Path,

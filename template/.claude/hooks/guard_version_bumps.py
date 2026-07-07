@@ -87,6 +87,36 @@ def version_in(content: str, file: Path) -> str | None:
     return None
 
 
+def _decide_manifest_edit(root: Path, content: str) -> tuple[str, str]:
+    """Guard an edit to the manifest by comparing the WHOLE dict — single AND multi-package.
+
+    The manifest is the version-of-record; a per-package canonical can't be expressed as one
+    value, so compare every package's version rather than a single one. Deny when any managed
+    version changes (a hand bump); allow an identical rewrite.
+    """
+    try:
+        current = json.loads((root / MANIFEST_REL).read_text())
+    except (OSError, json.JSONDecodeError) as exc:
+        return (
+            "warn_allow",
+            f"guard_version_bumps: can't read the current manifest ({exc}); allowing the edit (fail-open).",
+        )
+    try:
+        new = json.loads(content)
+    except (json.JSONDecodeError, TypeError):
+        return "allow", ""  # the edit doesn't leave valid JSON — not a version change to adjudicate
+    if not isinstance(new, dict):
+        return "allow", ""
+    changed = sorted(pkg for pkg in set(current) | set(new) if current.get(pkg) != new.get(pkg))
+    if not changed:
+        return "allow", ""
+    return "deny", (
+        f"Blocked: this edit changes the release-please-managed version of {', '.join(changed)} "
+        f"in {MANIFEST_REL.name}. release-please owns version bumps — don't hand-edit the manifest "
+        f"(rewriting the same values is fine). To release, let release-please's Release PR bump it."
+    )
+
+
 def decide(event: dict) -> tuple[str, str]:
     """Pure decision: returns (action, message) where action is allow|deny|warn_allow."""
     path = edited_path(event)
@@ -96,21 +126,25 @@ def decide(event: dict) -> tuple[str, str]:
     root = project_root(file.parent)
     if root is None or file not in version_carriers(root):
         return "allow", ""
+    content = resulting_content(event, file)
+    if content is None:
+        return "allow", ""
+    # The manifest carries every package's version-of-record, so compare it whole — this is what
+    # makes the guard cover a multi-package (monorepo) manifest, not just a single `.` package.
+    if file == (root / MANIFEST_REL).resolve():
+        return _decide_manifest_edit(root, content)
+    # A non-manifest carrier (pyproject/galaxy) mirrors the single-package canonical version.
     canonical, error = canonical_version(root)
     if canonical is None:
         return (
             "warn_allow",
             f"guard_version_bumps: can't resolve the canonical version ({error}); allowing the edit (fail-open).",
         )
-    content = resulting_content(event, file)
-    if content is None:
-        return "allow", ""
     new_version = version_in(content, file)
     if new_version is None or new_version == canonical:
         return "allow", ""
-    rel = file.name
     return "deny", (
-        f"Blocked: this edit sets the version in {rel} to {new_version}, but release-please's "
+        f"Blocked: this edit sets the version in {file.name} to {new_version}, but release-please's "
         f"canonical version is {canonical}. release-please owns version bumps — don't hand-edit "
         f"the version (rewriting the same value is fine). To release, let release-please's PR bump it."
     )

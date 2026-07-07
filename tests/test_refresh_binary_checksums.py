@@ -245,7 +245,7 @@ def test_pinned_value_at_base_fails_loudly_on_unresolvable_ref(
 
 # --- Harness for the offline-testable slice of the full script (issues #211, #236, #233) ------
 #
-# refresh_pin()/tool_version_at_base()/fetch_commit()'s tag-parsing are only reachable through
+# refresh_pin()/tool_versions_at_base()/fetch_commit()'s tag-parsing are only reachable through
 # the whole run, whose real fetches hit the network. Source the script's function region (every
 # def + module-level state, minus the network-bound CLI driver), then stub the fetches / `git
 # ls-remote`, so the tamper gate, the *_COMMIT rewrite, and bash-3.2 execution can be driven
@@ -313,6 +313,34 @@ def test_tamper_gate_survives_file_rename(template_dir: Path, workflow_repo: Pat
     body = (
         f'fetch_sha() {{ printf "%s" "{_SHA_C}"; }}\n'
         'refresh_pin ".github/workflows/new.yml" TRIVY SHA256 fetch_sha '
+        "'^[0-9a-f]{64}$' SHA256\n"
+    )
+    result = _run_region(script, body, repo=workflow_repo, base_ref=base)
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "TAMPER ALERT" in result.stderr
+
+
+def test_tamper_gate_catches_sibling_file_version_mismatch(
+    template_dir: Path, workflow_repo: Path
+) -> None:
+    """A same-version tamper is caught even when a SIBLING file pins the tool at another version.
+
+    The identity search must test whether the CURRENT version is AMONG all base versions, not
+    equal to the first file's — otherwise a tool pinned at 0.60.0 in one file and 0.71.2 in
+    another lets a 0.71.2 same-version/changed-hash tamper slip through.
+    """
+    script = template_dir / "scripts" / "refresh-binary-checksums.sh"
+    wf = workflow_repo / ".github" / "workflows"
+    run = functools.partial(subprocess.run, cwd=workflow_repo, check=True, capture_output=True)
+    (wf / "a.yml").write_text(f'TRIVY_VERSION: "0.60.0"\nTRIVY_SHA256: "{_SHA_A}"\n')
+    (wf / "b.yml").write_text(f'TRIVY_VERSION: "0.71.2"\nTRIVY_SHA256: "{_SHA_A}"\n')
+    run(["git", "add", "."])
+    run(["git", "commit", "-q", "-m", "pin trivy at two versions in two files"])
+    base = run(["git", "rev-parse", "HEAD"]).stdout.decode().strip()
+    # b.yml's version is UNCHANGED (0.71.2); upstream hash is tampered.
+    body = (
+        f'fetch_sha() {{ printf "%s" "{_SHA_C}"; }}\n'
+        'refresh_pin ".github/workflows/b.yml" TRIVY SHA256 fetch_sha '
         "'^[0-9a-f]{64}$' SHA256\n"
     )
     result = _run_region(script, body, repo=workflow_repo, base_ref=base)

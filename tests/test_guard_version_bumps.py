@@ -103,3 +103,40 @@ def test_broken_manifest_fails_open_with_a_warning(repo: Path) -> None:
     action, message = _decide(event)
     assert action == "warn_allow"
     assert "can't resolve the canonical" in message
+
+
+@pytest.fixture
+def multi_package_repo(tmp_path: Path) -> Path:
+    """A multi-package (monorepo) repo: the manifest carries several packages' versions."""
+    root = tmp_path / "monorepo"
+    (root / ".git").mkdir(parents=True)
+    config = root / ".config"
+    config.mkdir()
+    (config / ".release-please-manifest.json").write_text(
+        json.dumps({"packages/api": "1.4.0", "packages/cli": "2.1.0"})
+    )
+    (config / "release-please-config.json").write_text(
+        json.dumps({"packages": {"packages/api": {}, "packages/cli": {}}})
+    )
+    return root
+
+
+def test_multi_package_manifest_bump_is_denied(multi_package_repo: Path) -> None:
+    """A hand-edit changing ONE package's version in a multi-package manifest is denied.
+
+    The guard compares the whole manifest dict, so it covers a monorepo manifest (many non-`.`
+    keys) — not just a single `.` package where an earlier version resolved a lone canonical.
+    """
+    manifest = multi_package_repo / ".config" / ".release-please-manifest.json"
+    event = write_event(manifest, json.dumps({"packages/api": "9.9.9", "packages/cli": "2.1.0"}))
+
+    assert run_hook(HOOK, event).outcome == "deny"
+    assert "packages/api" in run_hook(HOOK, event).message
+    assert _decide(event)[0] == "deny"
+
+
+def test_multi_package_manifest_identical_rewrite_is_allowed(multi_package_repo: Path) -> None:
+    """Rewriting the multi-package manifest with the same versions is allowed."""
+    manifest = multi_package_repo / ".config" / ".release-please-manifest.json"
+    event = write_event(manifest, json.dumps({"packages/api": "1.4.0", "packages/cli": "2.1.0"}))
+    assert run_hook(HOOK, event).outcome == "allow"

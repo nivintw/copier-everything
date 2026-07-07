@@ -247,11 +247,15 @@ release_packages:
     {%- set items = release_packages.split(',') | map('trim') | select | list %}
     {% if items | length == 0 %}
     release_packages must list at least one package path for the multi-package model.
+    {% elif items | length != (items | unique | list | length) %}
+    release_packages has duplicate paths — each package renders one release-please entry, so a
+    repeat would silently overwrite it. List each package exactly once.
     {% else %}
     {%- for p in items %}
-    {%- if p.startswith('/') or '..' in p or not (p | regex_search('^[A-Za-z0-9._/-]+$')) %}
-    release_packages entry "{{ p }}" must be a repo-relative path (letters, digits, ., _, -, /;
-    no leading slash, no "..").
+    {%- if p == '.' or p.startswith('/') or p.endswith('/') or '..' in p
+       or not (p | regex_search('^[A-Za-z0-9._/-]+$')) %}
+    release_packages entry "{{ p }}" must be a repo-relative directory: letters, digits, ., _, -,
+    /; no leading/trailing slash, no "..", and not "." (the single-package root marker).
     {%- endif %}
     {%- endfor %}
     {% endif %}

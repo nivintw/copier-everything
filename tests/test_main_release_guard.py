@@ -115,6 +115,22 @@ def test_author_extractor_null_commits_is_fail_safe(template_dir: Path) -> None:
     assert "unknown-authors" in _run_jq(extractor, {"commits": None})
 
 
+@pytest.mark.parametrize(
+    "commit",
+    [{"authors": []}, {"authors": None}, {"oid": "abc"}],
+    ids=["empty-authors", "null-authors", "absent-authors"],
+)
+def test_author_extractor_empty_authors_is_fail_safe(template_dir: Path, commit: dict) -> None:
+    """A commit with empty/null/absent `authors` must NOT collapse to "verified bot-only".
+
+    Without a per-commit degraded-shape guard, such a commit's authors iterate to nothing, the
+    list joins to "", and the caller reads "" as bot-only and auto-closes the PR — discarding a
+    human's commit. It must instead resolve to a non-empty "unknown-authors" marker (leave open).
+    """
+    _, extractor = _jq_filters(template_dir)
+    assert "unknown-authors" in _run_jq(extractor, {"commits": [commit]})
+
+
 def test_author_extractor_real_login_is_reported(template_dir: Path) -> None:
     """A human commit with a real login reports that login (→ leave the PR open)."""
     _, extractor = _jq_filters(template_dir)
