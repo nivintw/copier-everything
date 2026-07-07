@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: © 2026 Tyler Nivin
+# SPDX-License-Identifier: MIT
+
+# Shape: the multi-package (monorepo) release model — release-please declaring more than one
+# independently-versioned package. Exercises the release_model/release_packages config side
+# (#234); the language-agnostic baseline otherwise, so the gate runs without per-package scaffold.
+project_name: Multi Package Demo
+project_description: a monorepo with several release-please packages
+test_frameworks: []
+contains_python: false
+release_model: multi-package
+release_packages: "packages/api, packages/cli"

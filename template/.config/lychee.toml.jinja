@@ -13,4 +13,12 @@ exclude = [
   # The REUSE badge's /info/ endpoint 404s until this repo is registered/crawled by
   # reuse.software (the /badge/ SVG still renders); self-heals once registered.
   "api\\.reuse\\.software/info/",
+  # Documentation universals — safe to exclude in any project's docs.
+  # Loopback / local-dev hosts that never resolve in CI.
+  "^https?://(localhost|127\\.0\\.0\\.1)([:/]|$)",
+  # RFC 2606 reserved example domains — placeholders, never real links.
+  "^https?://([^/@]+\\.)?example\\.(com|org|net)([:/]|$)",
+  # A not-yet-published private GitHub Pages site. The `([:/]|$)` boundary after `pages.github.io`
+  # keeps a spoof host like `evil-pages.github.io.attacker.com` from matching.
+  "^https?://([^/@]+\\.)?pages\\.github\\.io([:/]|$)",
 ]

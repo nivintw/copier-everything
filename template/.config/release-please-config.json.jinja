@@ -3,7 +3,15 @@
   "release-type": "simple",
   "separate-pull-requests": true,
   "packages": {
-{%- if has_python or (has_ansible and ansible_kind == 'collection') %}
+{%- if release_model == 'multi-package' %}
+{#- Multi-package (monorepo): one entry per declared path, each an independently-versioned
+    package. extra-files are per-package and layout-specific, so they're left for the consumer
+    to add (the single-package `.` branch below shows the pyproject/uv.lock/galaxy shape). #}
+{%- set pkgs = release_packages.split(',') | map('trim') | select | list %}
+{%- for p in pkgs %}
+    {{ p | tojson }}: {}{{ "," if not loop.last }}
+{%- endfor %}
+{%- elif has_python or (has_ansible and ansible_kind == 'collection') %}
     ".": {
       "extra-files": [
 {%- set sep = joiner(",") %}

@@ -19,8 +19,16 @@ readme = "README.md"
 classifiers = [
   "Programming Language :: Python :: 3",
   "Operating System :: OS Independent",
+{%- if not publish_to_pypi %}
+  # Server-side upload guard: PyPI itself REJECTS any distribution carrying this classifier, so
+  # an accidental `uv publish` / `twine upload` of this deliberately-unpublished package (a
+  # fat-fingered command, a misconfigured CI job) fails at the index instead of leaking it.
+  # Emitted only when publish_to_pypi is false — a real release would otherwise be rejected too.
+  "Private :: Do Not Upload",
+{%- endif %}
 ]
 {%- else %}
+# A non-package (no build-system, nothing to `uv publish`) needs no upload guard.
 classifiers = ["Programming Language :: Python :: 3"]
 {%- endif %}
 dependencies = []

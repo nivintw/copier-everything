@@ -215,6 +215,48 @@ initialize_repository:
   default: true
 
 # ----------------------------------------------------------------------------- #
+#  Release model — single package (default) or a multi-package monorepo
+#  The template's auto-merge/reconcile flow (main.yml) is already N-package generic; this is
+#  the config side — letting a project DECLARE more than one release-please package.
+# ----------------------------------------------------------------------------- #
+release_model:
+  type: str
+  help: >-
+    release-please model — one package at the repo root (default), or several packages each
+    versioned and released independently (a monorepo).
+  choices:
+    single — one package at the repo root: single
+    multi-package — several packages, each released independently: multi-package
+  default: single
+
+release_packages:
+  type: str
+  # Comma-separated so it stays a single str answer (no list question needed); split + trimmed
+  # wherever it's rendered. Each path becomes an independently-versioned release-please package
+  # in the manifest (bootstrapped at 0.0.0); wire each one's own version-sync extra-files for
+  # its layout (the single-package `.` default already shows the pyproject/uv.lock/galaxy shape).
+  help: >-
+    Comma-separated package paths (relative to the repo root, e.g. "packages/api, packages/cli")
+    for the multi-package model.
+  default: ""
+  when: "{{ release_model == 'multi-package' }}"
+  # Only asked (and validated) for the multi-package model, so it needs at least one entry, and
+  # each must be a repo-relative path — no leading slash, no "..", no odd characters — since the
+  # values are spliced straight into release-please-config.json/.release-please-manifest.json.
+  validator: >-
+    {%- set items = release_packages.split(',') | map('trim') | select | list %}
+    {% if items | length == 0 %}
+    release_packages must list at least one package path for the multi-package model.
+    {% else %}
+    {%- for p in items %}
+    {%- if p.startswith('/') or '..' in p or not (p | regex_search('^[A-Za-z0-9._/-]+$')) %}
+    release_packages entry "{{ p }}" must be a repo-relative path (letters, digits, ., _, -, /;
+    no leading slash, no "..").
+    {%- endif %}
+    {%- endfor %}
+    {% endif %}
+
+# ----------------------------------------------------------------------------- #
 #  Testing & Python shape — three decoupled levers
 #    test_frameworks  →  what test suites to scaffold (none / pytest / bats / both)
 #    python_source    →  is there a src/<pkg> of Python source code
