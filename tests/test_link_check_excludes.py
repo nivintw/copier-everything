@@ -54,6 +54,8 @@ def test_private_pages_excluded_but_spoof_is_not(excludes: list[str]) -> None:
     assert _matches(excludes, "https://myproject.pages.github.io/")
     assert _matches(excludes, "https://myproject.pages.github.io")
     assert not _matches(excludes, "https://evil-pages.github.io.attacker.com/phish")
+    # The bare Pages home (no subdomain label) is a real, checkable site — must NOT be excluded.
+    assert not _matches(excludes, "https://pages.github.io/")
 
 
 def test_no_work_specific_host(excludes: list[str]) -> None:
