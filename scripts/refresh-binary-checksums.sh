@@ -184,10 +184,12 @@ _extract_pinned_value() { # <VAR> <caller> <location> -> value or empty (reads s
 
 pinned_value() { # <VAR> <file> -> value or empty
   # Fail loudly on a bad path instead of masking it as "no pin found": the guard below
-  # catches a missing file up front; reading it via `cat` under `set -e` catches any other
-  # read failure (e.g. a file that exists but isn't readable) by aborting the assignment.
-  # _extract_pinned_value() separately guards grep's own exit code against the piped
-  # content (conflating "no match" — the intended empty-return case — with a real read
+  # catches a missing file up front; the explicit exit-status check on `cat` catches any other
+  # read failure (e.g. a file that exists but isn't readable) with a labeled `pinned_value:`
+  # error, rather than bash's bare `set -e` aborting the assignment with only cat's raw OS
+  # message ("cat: <file>: Permission denied") and no context — matching every other failure
+  # mode in this file. _extract_pinned_value() separately guards grep's own exit code against
+  # the piped content (conflating "no match" — the intended empty-return case — with a real read
   # error would be the same class of bug this whole file exists to avoid).
   [ -f "$2" ] || {
     echo "ERROR: pinned_value: no such file: $2" >&2
@@ -197,7 +199,10 @@ pinned_value() { # <VAR> <file> -> value or empty
   # passed as an argument — shellcheck's SC2094 (read-and-write-same-file) fires on that
   # syntactic shape even though nothing here is written, only read.
   local content
-  content="$(cat "$2")"
+  if ! content="$(cat "$2")"; then
+    echo "ERROR: pinned_value: read failed: $2" >&2
+    exit 1
+  fi
   printf '%s' "$content" | _extract_pinned_value "$1" pinned_value "$2"
 }
 pinned_value_at_base() { # <VAR> <file> <baseref> -> value at base or empty

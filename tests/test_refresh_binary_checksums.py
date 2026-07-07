@@ -15,6 +15,7 @@ downstream of a passing `cat-file -e`, were both swallowed too.
 from __future__ import annotations
 
 import functools
+import os
 import subprocess
 from typing import TYPE_CHECKING
 
@@ -36,6 +37,32 @@ def test_pinned_value_fails_loudly_on_missing_file(template_dir: Path) -> None:
     )
     assert result.returncode == 1
     assert "no such file: some/typo/path.yml" in result.stderr
+
+
+def test_pinned_value_fails_loudly_on_unreadable_file(template_dir: Path, tmp_path: Path) -> None:
+    """A file that exists but can't be read must exit with a LABELED error, not cat's raw one.
+
+    Regression guard for the diagnostics gap: the read is checked explicitly so the failure
+    carries `pinned_value:` context like every other failure mode here, instead of bash's bare
+    `set -e` abort surfacing only `cat: <file>: Permission denied`.
+    """
+    if os.geteuid() == 0:
+        pytest.skip("root bypasses file mode bits, so the file stays readable")
+    script = template_dir / "scripts" / "refresh-binary-checksums.sh"
+    unreadable = tmp_path / "wf.yml"
+    unreadable.write_text('TRIVY_VERSION: "1.2.3"\nTRIVY_SHA256: "' + "a" * 64 + '"\n')
+    unreadable.chmod(0o000)
+    try:
+        result = subprocess.run(  # noqa: S603
+            ["bash", str(script), str(unreadable)],  # noqa: S607
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    finally:
+        unreadable.chmod(0o644)
+    assert result.returncode == 1
+    assert "pinned_value: read failed" in result.stderr
 
 
 def _extract_shell_function(script: Path, name: str) -> str:
