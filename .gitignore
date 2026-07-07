@@ -28,5 +28,12 @@ site/
 !.vscode/settings.json
 !.vscode/extensions.json
 
+### Test artifacts — coverage/junit output (pytest-cov + --junit-xml, see pyproject) ###
+.coverage
+.coverage.*
+coverage.xml
+junit.xml
+htmlcov/
+
 ### macOS ###
 .DS_Store
