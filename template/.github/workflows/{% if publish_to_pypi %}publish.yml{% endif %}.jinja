@@ -187,8 +187,16 @@ jobs:
               if ep.dist and ep.dist.name == "{{ project_slug }}"
           ]
           if entry_points:
-              subprocess.run([entry_points[0].name, "--help"], check=True)
+              entry_point = entry_points[0]
+              print(f"::notice::Exercising console script '{entry_point.name}'")
+              subprocess.run([entry_point.name, "--help"], check=True)
           else:
+              # A package with no console script is legitimate, so this stays a pass — but a
+              # package that's SUPPOSED to ship one and doesn't (a mistyped/deleted
+              # [project.scripts] entry, a build-backend regression that drops
+              # entry_points.txt) would otherwise pass the smoke test silently. The warning
+              # makes that visible in the job log without changing pass/fail semantics.
+              print("::warning::No console_scripts entry point found; smoke-testing via import only")
               import {{ python_package }}
           PY
 

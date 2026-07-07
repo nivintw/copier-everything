@@ -423,7 +423,9 @@ def test_mkdocs_yml(template_dir: Path, generated_project_dir: Path) -> None:
     assert root["edit_uri"] == render["edit_uri"], "mkdocs.yml edit_uri is not synced!"
     assert root["exclude_docs"] == render["exclude_docs"], "mkdocs.yml exclude_docs is not synced!"
     assert root["extra_css"] == render["extra_css"], "mkdocs.yml extra_css is not synced!"
-    assert root["extra_javascript"] == render["extra_javascript"], (
+    # `.get`, not `[...]`: the asciinema-player wiring was dropped (#206/#172), so neither side
+    # carries an extra_javascript key until a repo embeds its first cast — both resolve to None.
+    assert root.get("extra_javascript") == render.get("extra_javascript"), (
         "mkdocs.yml extra_javascript is not synced!"
     )
 

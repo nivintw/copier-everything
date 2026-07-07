@@ -31,6 +31,23 @@ _exclude:
   - ".svn"
   - "{% if license != 'MIT' %}LICENSES/MIT.txt{% endif %}"
   - "{% if license != 'Apache-2.0' %}LICENSES/Apache-2.0.txt{% endif %}"
+  # One-time SEED files — rendered on first `copy`, but excluded on `update` so copier's 3-way
+  # merge never re-patches a seed the user has since grown, replaced, or deleted. Without this,
+  # a routine `copier update` resurrects a deleted sample test, clobbers the release-please-owned
+  # CHANGELOG, and litters `.rej` files. `_copier_operation` IS in scope when copier renders
+  # `_exclude`, so gate each seed on it; `_skip_if_exists` below is the complementary lever for
+  # the adopt-into-existing-repo copy path. Keep these two lists in sync.
+  - "{% if _copier_operation == 'update' %}CHANGELOG.md{% endif %}"
+  - "{% if _copier_operation == 'update' %}tests/test_smoke.py{% endif %}"
+  - "{% if _copier_operation == 'update' %}tests/smoke.bats{% endif %}"
+
+# Seeds a user owns after the first copy: never overwrite one that already exists (adoption into
+# a repo that already has a CHANGELOG or sample test), complementing the update-time `_exclude`
+# entries above. On a fresh greenfield copy the files don't exist yet, so they still render.
+_skip_if_exists:
+  - "CHANGELOG.md"
+  - "tests/test_smoke.py"
+  - "tests/smoke.bats"
 
 # Post-copy setup. Only runs with `copier copy --trust`; the message below lists the
 # same steps for anyone who skips trust. Each task is gated to the initial copy. The three

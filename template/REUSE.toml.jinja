@@ -17,6 +17,15 @@ SPDX-FileCopyrightText = "© {{ year }} {{ author_name }}"
 SPDX-License-Identifier = "{{ license }}"
 {% endif %}
 
+# The issue-form templates: GitHub's issue-form parser silently rejects a form whose YAML
+# begins with a comment (falling back to a blank issue), so these must start with the form
+# keys and can't carry an inline SPDX header — hawkeye is told to skip them (see
+# .config/licenserc.toml) and they're licensed here instead.
+[[annotations]]
+path = ".github/ISSUE_TEMPLATE/**"
+SPDX-FileCopyrightText = "© {{ year }} {{ author_name }}"
+SPDX-License-Identifier = "{{ license }}"
+
 # Files that can't carry an SPDX header (no comment syntax / generated). Everything
 # else gets a real header from hawkeye (see .config/licenserc.toml).
 {%- if markdown_has_frontmatter %}

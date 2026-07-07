@@ -52,16 +52,16 @@ def test_docs_site_files_present_by_default(
     # exclude_docs is mkdocs' PathSpec option: a gitignore-style multiline STRING, not a
     # YAML list (a list is a config error mkdocs rejects outright — see mkdocs.yml.jinja).
     assert mkdocs_yaml["exclude_docs"] == "superpowers/\nincludes/\n"
-    # extra_css is wired to a real, always-vendored fix (table code spans mangling long
-    # identifiers) — this file always exists, so it's safe to wire unconditionally.
-    # asciinema-player's CSS/JS aren't vendored by default (a repo drops them in only once
-    # it embeds its first cast, per castify's convention) — but referencing a not-yet-present
-    # path costs nothing: mkdocs emits the <link>/<script> tag regardless of whether the file
-    # exists, and doesn't fail --strict on a missing extra_css/extra_javascript path (verified
-    # empirically; #196). So both are wired unconditionally rather than gated behind a repo
-    # actually having a cast yet.
-    assert mkdocs_yaml["extra_css"] == ["stylesheets/extra.css", "assets/asciinema-player.css"]
-    assert mkdocs_yaml["extra_javascript"] == ["assets/asciinema-player.min.js"]
+    # #206/#172 regression guard: the asciinema-player assets are deliberately NOT wired here.
+    # extra_css/extra_javascript load site-wide on EVERY page, and no template task vendors the
+    # asset files, so wiring them unconditionally 404s both requests on every page of every
+    # cast-less docs site (#172 — which #196 briefly re-broke by "restoring" the wiring). They're
+    # added, together with their vendored asset files, only when a repo embeds its first cast
+    # (castify's convention). extra_css keeps just the always-present table-code fix; there's no
+    # extra_javascript key at all until a cast needs one. Assert both so a future re-wiring fails.
+    assert mkdocs_yaml["extra_css"] == ["stylesheets/extra.css"]
+    assert not any("asciinema" in entry for entry in mkdocs_yaml["extra_css"])
+    assert "extra_javascript" not in mkdocs_yaml
     assert (project_dir / "docs" / "stylesheets" / "extra.css").is_file()
     # pymdownx.snippets' base_path needs a real starter fragment to include from.
     assert (project_dir / "docs" / "includes" / "install.md").is_file()
