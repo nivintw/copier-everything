@@ -61,9 +61,9 @@ WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
 
 # The asset-bearing release binaries CI installs by hand, each pinned by a SHA256 of its
-# published asset. trivy/osv-scanner/hawkeye/kubeconform publish a checksum file we read; taplo
-# publishes none, so we download the asset and hash it ourselves.
-SHA256_TOOLS=(TRIVY OSV HAWKEYE TAPLO KUBECONFORM)
+# published asset. trivy/osv-scanner/hawkeye/kubeconform/gitleaks publish a checksum file we
+# read; taplo publishes none, so we download the asset and hash it ourselves.
+SHA256_TOOLS=(TRIVY OSV HAWKEYE TAPLO KUBECONFORM GITLEAKS)
 # Asset-less tools installed from a git tag, pinned by the commit id the tag points at (there's
 # no release asset to hash). See the *_COMMIT note in the header.
 COMMIT_TOOLS=(BATS)
@@ -101,6 +101,10 @@ fetch_sha() { # <TOOL> <version> -> bare hex digest on stdout
   KUBECONFORM)
     curl -fsSL "${retry[@]}" "https://github.com/yannh/kubeconform/releases/download/v${version}/CHECKSUMS" |
       awk '$2 == "kubeconform-linux-amd64.tar.gz" {print $1}'
+    ;;
+  GITLEAKS)
+    curl -fsSL "${retry[@]}" "https://github.com/gitleaks/gitleaks/releases/download/v${version}/gitleaks_${version}_checksums.txt" |
+      awk -v a="gitleaks_${version}_linux_x64.tar.gz" '$2 == a {print $1}'
     ;;
   TAPLO)
     # taplo ships no checksum file, so hash the asset (no `v` prefix on taplo tags).

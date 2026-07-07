@@ -37,7 +37,7 @@
       // itself fails (e.g. no origin/HEAD symref in the runner's clone), rather than letting
       // a silently-empty BASE_REF degrade back to the gate being off.
       "description": "Only re-run the checksum refresh when one of the pinned tools (SHA256 or COMMIT class) actually changed.",
-      "matchPackageNames": ["aquasecurity/trivy", "google/osv-scanner", "korandoru/hawkeye", "tamasfe/taplo", "yannh/kubeconform", "bats-core/bats-core"],
+      "matchPackageNames": ["aquasecurity/trivy", "google/osv-scanner", "korandoru/hawkeye", "tamasfe/taplo", "yannh/kubeconform", "bats-core/bats-core", "gitleaks/gitleaks"],
       "postUpgradeTasks": {
         "commands": ["BASE_REF=\"$(git merge-base HEAD origin/HEAD)\" || { echo 'ERROR: could not compute BASE_REF via git merge-base — refusing to run with the tamper gate silently disabled' >&2; exit 1; }; export BASE_REF; scripts/refresh-binary-checksums.sh"],
         "fileFilters": [".github/workflows/**", "template/.github/workflows/**"],

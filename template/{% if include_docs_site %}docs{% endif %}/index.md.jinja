@@ -1,9 +1,9 @@
-<!--
+{% if not markdown_has_frontmatter %}<!--
 SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
 SPDX-License-Identifier: {{ license }}
 -->
 
-# {{ project_name }}
+{% endif %}# {{ project_name }}
 
 {% if project_description -%}
 {{ project_description }}

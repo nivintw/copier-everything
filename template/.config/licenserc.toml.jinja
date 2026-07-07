@@ -36,6 +36,10 @@ excludes = [
   "**/.vscode/*",
   # CODEOWNERS has no extension hawkeye maps; it carries its own `#` header (reuse-verified).
   "**/CODEOWNERS",
+  # GitHub's issue-form parser silently rejects a form whose YAML begins with a comment (it
+  # falls back to a blank issue), so ISSUE_TEMPLATE/*.yml must start with the form keys and
+  # can't carry an inline SPDX header — excluded here and licensed via REUSE.toml instead.
+  ".github/ISSUE_TEMPLATE/**",
 {%- if include_helm %}
   "**/Chart.lock",
 {%- endif %}
