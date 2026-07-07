@@ -25,6 +25,8 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 APP = "myapp[bot]"
+# The stranded-PR step embeds two jq programs: candidate selector + author extractor.
+EXPECTED_JQ_PROGRAMS = 2
 
 pytestmark = pytest.mark.skipif(shutil.which("jq") is None, reason="jq not installed")
 
@@ -35,7 +37,9 @@ def _jq_filters(template_dir: Path) -> tuple[str, str]:
     # Each program is a single-quoted jq string on the line after its `jq -r --arg app ... \`.
     # The programs contain no single quotes, so a non-greedy '([^']*)' capture is unambiguous.
     programs = re.findall(r"jq -r --arg app[^\n]*\\\n\s*'([^']*)'", text)
-    assert len(programs) == 2, f"expected 2 jq programs in main.yml, found {len(programs)}"
+    assert len(programs) == EXPECTED_JQ_PROGRAMS, (
+        f"expected {EXPECTED_JQ_PROGRAMS} jq programs in main.yml, found {len(programs)}"
+    )
     return programs[0], programs[1]
 
 
@@ -50,7 +54,9 @@ def _run_jq(program: str, payload: object) -> str:
     return result.stdout.strip()
 
 
-def _pr(number: int, *, login: str = APP, label: str = "autorelease: pending", state: str = "DIRTY") -> dict:
+def _pr(
+    number: int, *, login: str = APP, label: str = "autorelease: pending", state: str = "DIRTY"
+) -> dict:
     return {
         "number": number,
         "author": {"login": login},

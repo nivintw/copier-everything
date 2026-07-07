@@ -32,6 +32,10 @@ excludes = [
   "**/CODEOWNERS",
   # The Copier template tree — its headers resolve at render time (see REUSE.toml).
   "template/**",
+  # The Claude Code guard hooks ship VERBATIM to generated projects (byte-identical twins of
+  # template/.claude/hooks/**), so they can't carry a per-repo templated header — licensed via
+  # REUSE.toml instead, and kept out of hawkeye so it doesn't add one and break the twin.
+  ".claude/hooks/**",
 ]
 
 # '#'-comment files hawkeye doesn't map by default. .envrc is this repo's own root .envrc;

@@ -21,9 +21,26 @@ path = [".gitignore", "**/.gitignore"]
 SPDX-FileCopyrightText = "© 2026 Tyler Nivin"
 SPDX-License-Identifier = "MIT"
 
-# JSON has no comment syntax for an inline SPDX header (release-please's config + manifest).
+# JSON has no comment syntax for an inline SPDX header (release-please's config + manifest,
+# the Claude Code .claude/settings.json).
 [[annotations]]
 path = ["**/*.json"]
+SPDX-FileCopyrightText = "© 2026 Tyler Nivin"
+SPDX-License-Identifier = "MIT"
+
+# The Claude Code guard hooks ship verbatim to generated projects (byte-identical twins of the
+# template payload), so they carry no per-repo templated header and are excluded from hawkeye
+# (see .config/licenserc.toml) — licensed here instead.
+[[annotations]]
+path = ".claude/hooks/**"
+SPDX-FileCopyrightText = "© 2026 Tyler Nivin"
+SPDX-License-Identifier = "MIT"
+
+# Claude Code agent definitions are frontmatter-first markdown (YAML on line 1), so an inline
+# SPDX comment would break the frontmatter. Markdown is in hawkeye's default excludes, so these
+# are licensed here.
+[[annotations]]
+path = ".claude/agents/**"
 SPDX-FileCopyrightText = "© 2026 Tyler Nivin"
 SPDX-License-Identifier = "MIT"
 
