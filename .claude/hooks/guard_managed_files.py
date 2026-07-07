@@ -13,7 +13,7 @@ from __future__ import annotations
 from pathlib import Path
 
 # _hooklib is the sibling module on sys.path (script dir when run, harness-inserted when imported).
-from _hooklib import allow, deny, edited_path, project_root, read_event
+from _hooklib import dispatch, edited_path, project_root, read_event
 
 # Tool-owned files at the project root (compared case-insensitively).
 MANAGED_ROOT_FILES = frozenset({"uv.lock", "changelog.md", ".copier-answers.yml"})
@@ -61,8 +61,7 @@ def decide(event: dict) -> tuple[str, str]:
 
 
 def main() -> None:
-    action, message = decide(read_event())
-    deny(message) if action == "deny" else allow()
+    dispatch(*decide(read_event()))
 
 
 if __name__ == "__main__":

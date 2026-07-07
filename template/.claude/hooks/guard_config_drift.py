@@ -26,13 +26,11 @@ from pathlib import Path
 
 # _hooklib is the sibling module on sys.path (script dir when run, harness-inserted when imported).
 from _hooklib import (
-    allow,
-    deny,
+    dispatch,
     edited_path,
     project_root,
     read_event,
     resulting_content,
-    warn_allow,
 )
 
 # Files kept in sync between the repo root and their `template/` source — copier-everything's own
@@ -142,12 +140,7 @@ def decide(event: dict) -> tuple[str, str]:
 
 
 def main() -> None:
-    action, message = decide(read_event())
-    {
-        "allow": lambda: allow(),
-        "deny": lambda: deny(message),
-        "warn_allow": lambda: warn_allow(message),
-    }[action]()
+    dispatch(*decide(read_event()))
 
 
 if __name__ == "__main__":
