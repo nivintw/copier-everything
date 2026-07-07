@@ -82,6 +82,15 @@ def run_hook(hook_name: str, event: dict, cwd: str | Path | None = None) -> Deci
         cwd=None if cwd is None else str(cwd),
         check=False,
     )
+    # A guard always exits 0 (allow == no output; deny/warn == JSON + exit 0), so a non-zero exit
+    # is a CRASH — surface it instead of letting empty stdout masquerade as a silent "allow" and
+    # a broken hook pass an allow-case test.
+    if result.returncode != 0:
+        msg = (
+            f"{hook_name} crashed (exit {result.returncode}) — a guard hook must always exit 0.\n"
+            f"stderr:\n{result.stderr}"
+        )
+        raise AssertionError(msg)
     return _classify(result.stdout)
 
 
