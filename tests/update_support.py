@@ -148,8 +148,10 @@ def _archive_worktree_head(worktree_root: Path, dst: Path) -> None:
         dst: Destination directory (created if absent).
     """
     dst.mkdir(parents=True, exist_ok=True)
+    # Archive ONLY what a copier template needs — `copier.yml` + `template/` — not the whole repo,
+    # so the throwaway carries nothing incidental (matching the docstring, and less I/O).
     archive = subprocess.run(
-        ["git", "archive", "HEAD"],  # noqa: S607 - `git` resolved off PATH, no untrusted input
+        ["git", "archive", "HEAD", "copier.yml", "template"],  # noqa: S607
         cwd=worktree_root,
         check=True,
         capture_output=True,
