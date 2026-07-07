@@ -91,7 +91,11 @@ if [ "${1:-}" = "--one" ]; then
   run "reuse lint" reuse lint
   run "hawkeye check" hawkeye check --config .config/licenserc.toml
   run "taplo fmt --check" taplo fmt --check
-  run "prek (all hooks)" env SKIP=taplo,hawkeye-format,no-commit-to-branch uvx prek run --all-files
+  # check-copier-src-path is SKIP'd here: the matrix renders each shape from a LOCAL template
+  # checkout, so the generated .copier-answers.yml legitimately records a local `_src_path` —
+  # exactly what that hook exists to reject in a REAL project. Its own unit tests
+  # (tests/test_check_copier_src_path.py) cover its behavior directly.
+  run "prek (all hooks)" env SKIP=taplo,hawkeye-format,no-commit-to-branch,check-copier-src-path uvx prek run --all-files
 
   # Python checks, only if the render produced a pyproject.
   if [ -f "$out/pyproject.toml" ]; then
