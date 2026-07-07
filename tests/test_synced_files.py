@@ -234,12 +234,16 @@ def test_refresh_binary_checksums_sh(template_dir: Path, generated_project_dir: 
     """
 
     def code_lines(path: Path) -> list[str]:
-        # The one documented functional deviation: root's glob loop additionally scans
-        # template/.github/workflows/*.jinja. Normalize it away so the rest can compare equal.
-        return [
-            line.replace(" template/.github/workflows/*.jinja", "")
-            for line in _non_comment_lines(path)
-        ]
+        # The one documented functional deviation: root additionally scans
+        # template/.github/workflows/*.jinja — both in the glob loop that picks targets (an
+        # unquoted glob) and in tool_version_at_base's identity-search pathspec (a quoted one).
+        # Normalize both forms away so the rest can compare equal.
+        def strip(line: str) -> str:
+            return line.replace(
+                " 'template/.github/workflows/*.jinja'", ""
+            ).replace(" template/.github/workflows/*.jinja", "")
+
+        return [strip(line) for line in _non_comment_lines(path)]
 
     root_path = template_dir / "scripts/refresh-binary-checksums.sh"
     render_path = generated_project_dir / "scripts/refresh-binary-checksums.sh"
