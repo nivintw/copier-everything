@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.12.0](https://github.com/nivintw/copier-everything/compare/v1.11.2...v1.12.0) (2026-07-07)
+
+
+### Features
+
+* **hooks:** ship a guard-hooks + twin-sync enforcement toolkit ([71187d6](https://github.com/nivintw/copier-everything/commit/71187d6f65f906ca2da8f94979ab3ada5fe43adf))
+* **template:** PyPI upload guard, multi-package release model, generic link excludes ([2768242](https://github.com/nivintw/copier-everything/commit/27682428a33e9d42f3112204d460cdf1d8f36195))
+
+
+### Bug Fixes
+
+* **ci:** make the generated check_copier_src_path.py lint/format-clean ([7766d6b](https://github.com/nivintw/copier-everything/commit/7766d6b029780cf448d8a7efdf29971a90723586))
+* **ci:** unbreak the render-matrix gate for the new src-path hook + taplo formatting ([6eddbbd](https://github.com/nivintw/copier-everything/commit/6eddbbd5a295abe4bae51254e587caf95aed34f2))
+* **hooks:** fail the harness on a crashed hook; clarify the 3.9 union-annotation note (Copilot) ([1b556ba](https://github.com/nivintw/copier-everything/commit/1b556baa890494736c0ddabfd424669e9fd2f9c4))
+* **hooks:** keep the guard except-clauses parenthesized (portable) + share a dispatch helper ([18858d9](https://github.com/nivintw/copier-everything/commit/18858d90fd2c429afac6c7adcce5157c8ee06f85))
+* **lychee:** require a subdomain on the pages.github.io exclude (Copilot review) ([a85d945](https://github.com/nivintw/copier-everything/commit/a85d945f3c9c7e8174d2ee3f2b3c51ef3443777c))
+* **main:** split the stranded-Release-PR query and close the jq authorship gaps ([b4168db](https://github.com/nivintw/copier-everything/commit/b4168dbfadf1a3e3186e4859ea4c9c50c740d861))
+* **refresh-checksums:** harden the tamper gate, port to bash 3.2, add a commit-pin class ([cfcee2d](https://github.com/nivintw/copier-everything/commit/cfcee2d54b2a820a46db48e7dea9a89d789e86af))
+* **review:** close a tamper-gate bypass, a multi-package guard gap, and a close data-loss path ([cad4794](https://github.com/nivintw/copier-everything/commit/cad47949ef2e5e3355716f57b064726619f6c430))
+* **template:** six generated-project correctness fixes (docs, forms, CI, updates) ([d16870b](https://github.com/nivintw/copier-everything/commit/d16870b0c6d95a040b756bfb8a8c31e4b237657e))
+
 ## [1.11.2](https://github.com/nivintw/copier-everything/compare/v1.11.1...v1.11.2) (2026-07-06)
 
 
