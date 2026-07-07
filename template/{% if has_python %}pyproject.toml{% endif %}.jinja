@@ -83,8 +83,8 @@ ignore = ["D203", "D212", "D401", "COM812", "ISC001"]
 convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
-# CLI scripts print their output to the user.
-"scripts/**" = ["T201"]
+# CLI scripts print to the user (T201) and aren't an importable package (INP001).
+"scripts/**" = ["T201", "INP001"]
 {% if 'pytest' in test_frameworks %}# Tests use assert; the dir isn't an importable package.
 "tests/**" = ["S101", "INP001"]
 {% endif -%}
