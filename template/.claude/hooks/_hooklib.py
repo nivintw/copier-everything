@@ -4,6 +4,11 @@ Each guard is a standalone module: importable (its functions unit-tested directl
 `__main__` side effects) and runnable as a `command` hook that reads the PreToolUse JSON
 event on stdin and decides allow / deny / fail-open-loud. This module is the thin, shared
 I/O + path-resolution layer so the three guards stay consistent.
+
+Portability note: Claude Code runs these via whatever `python3` is on PATH, which may be
+older than the project's own interpreter — so `except (...)` tuples stay PARENTHESIZED
+(Python 3.14's PEP 758 made the parens optional, but < 3.14 still requires them) and nothing
+here uses newer-than-3.9 syntax.
 """
 
 from __future__ import annotations
@@ -20,7 +25,7 @@ def read_event() -> dict:
     """Parse the PreToolUse JSON event from stdin; an empty/invalid payload → {}."""
     try:
         return json.loads(sys.stdin.read() or "{}")
-    except json.JSONDecodeError, ValueError:
+    except (json.JSONDecodeError, ValueError):
         return {}
 
 
@@ -107,3 +112,13 @@ def warn_allow(message: str) -> None:
     print(json.dumps({"systemMessage": message}))
     print(message, file=sys.stderr)
     sys.exit(0)
+
+
+def dispatch(action: str, message: str) -> None:
+    """Carry out the decision a guard's `decide()` returned — the shared tail of every main()."""
+    if action == "deny":
+        deny(message)
+    elif action == "warn_allow":
+        warn_allow(message)
+    else:
+        allow()

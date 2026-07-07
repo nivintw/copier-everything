@@ -17,13 +17,11 @@ from pathlib import Path
 # as a script (the script's dir is on sys.path) and when the test harness imports it after
 # putting this dir on sys.path.
 from _hooklib import (
-    allow,
-    deny,
+    dispatch,
     edited_path,
     project_root,
     read_event,
     resulting_content,
-    warn_allow,
 )
 
 MANIFEST_REL = Path(".config") / ".release-please-manifest.json"
@@ -60,7 +58,7 @@ def version_carriers(root: Path) -> set[Path]:
     carriers = {(root / MANIFEST_REL).resolve()}
     try:
         config = json.loads((root / CONFIG_REL).read_text())
-    except OSError, json.JSONDecodeError:
+    except (OSError, json.JSONDecodeError):
         return carriers
     for package in (config.get("packages") or {}).values():
         for extra in package.get("extra-files") or []:
@@ -76,7 +74,7 @@ def version_in(content: str, file: Path) -> str | None:
     if name == MANIFEST_REL.name:
         try:
             return _manifest_version(json.loads(content))
-        except json.JSONDecodeError, AttributeError:
+        except (json.JSONDecodeError, AttributeError):
             return None
     if name == "pyproject.toml":
         # `$.project.version` — the first line-anchored `version = "..."` (the [project] one;
@@ -119,12 +117,7 @@ def decide(event: dict) -> tuple[str, str]:
 
 
 def main() -> None:
-    action, message = decide(read_event())
-    {
-        "allow": lambda: allow(),
-        "deny": lambda: deny(message),
-        "warn_allow": lambda: warn_allow(message),
-    }[action]()
+    dispatch(*decide(read_event()))
 
 
 if __name__ == "__main__":
