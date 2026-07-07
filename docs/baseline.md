@@ -45,8 +45,9 @@ releases, hardened CI with integrity-verified binaries, and continuous dependenc
 
     ---
 
-    Always-on. Five system binaries installed by CI are each verified against a committed
-    SHA256 before extraction. Kept current by Renovate + a dedicated workflow.
+    Always-on. Six release binaries installed by CI are each verified against a committed
+    SHA256 before extraction; an asset-less tool (bats) is pinned by commit. Kept current by
+    Renovate + a dedicated workflow.
 
 -   :material-update:{ .lg .middle } **[Renovate](#renovate)**
 
@@ -54,6 +55,13 @@ releases, hardened CI with integrity-verified binaries, and continuous dependenc
 
     Always-on. Keeps actions digests, pre-commit hook revs, and pinned binary versions
     current in automated PRs.
+
+-   :material-robot-outline:{ .lg .middle } **[Claude Code guard hooks](#claude-code-guard-hooks)**
+
+    ---
+
+    Always-on. A `.claude/` PreToolUse set blocks hand-edits that fight the automation —
+    version bumps, tool-owned files, misplaced config. Deletable; fail-open without Claude Code.
 
 </div>
 
@@ -76,6 +84,7 @@ Full hook inventory:
 | --- | --- | --- | --- |
 | Meta | `check-useless-excludes` | `repo: meta` | Warn about hook excludes that match no file in the repo. |
 | Meta | `prek-validate-config` | local (`language: system`) | Validate `.pre-commit-config.yaml` with prek itself whenever the file changes. |
+| Copier | `check-copier-src-path` | local (`language: system`) | Assert `.copier-answers.yml`'s `_src_path` records a **remote** template URL, not a local filesystem path — a local path silently breaks `copier update` for every other clone and in CI. Stdlib-only regex check (no PyYAML dependency), runs when the answers file changes. |
 | Git hygiene | `check-added-large-files` | builtin | Block files larger than 1 MB from being committed. |
 | Git hygiene | `check-merge-conflict` | builtin | Detect unresolved merge-conflict markers. |
 | Git hygiene | `no-commit-to-branch` | builtin | Prevent direct commits to `main`. |
@@ -187,7 +196,7 @@ exact same checks, defined once.
 
 | Workflow file | Trigger | Role |
 | --- | --- | --- |
-| `ci.yml` | `on: workflow_call` | The reusable quality gate. Runs the prek hook set, plus dedicated steps for system-binary tools (hawkeye, taplo) and the full *online* zizmor workflow audit (with a GH token, for the advisory-database audits that the offline hook skips). Module-specific steps (Terraform setup, Docker image scan, Helm kubeconform) also live here, gated by module presence. |
+| `ci.yml` | `on: workflow_call` | The reusable quality gate. A dedicated `secret-scan` job checks out with `fetch-depth: 0` and runs a checksum-pinned `gitleaks git --redact` over the **full git history** (guarded to fail loudly on a shallow checkout, which would silently scan only a partial history) — distinct from the prek `gitleaks` hook, which scans only *staged* changes and is a no-op in CI's clean checkout. The `lint-and-test` job runs the prek hook set, plus dedicated steps for system-binary tools (hawkeye, taplo) and the full *online* zizmor workflow audit (with a GH token, for the advisory-database audits that the offline hook skips). Module-specific steps (Terraform setup, Docker image scan, Helm kubeconform) also live here, gated by module presence. |
 | `pr.yml` | `on: pull_request` | Calls `ci.yml`. The open-PR pipeline: no releases, no write access. Require the `ci / lint-and-test` check in branch protection or a ruleset. |
 | `main.yml` | `on: push` to `main`, `workflow_dispatch` | Calls `ci.yml`, then — gated on `needs: ci` — runs release-please. Passes `skip-quality-gate: true` for release-please's own bump commit (it was already validated as the Release PR), avoiding doubled CI minutes without ever skipping a real change. |
 | `link-check.yml` | `on: pull_request` (Markdown paths only), `workflow_dispatch` | Runs [lychee](https://lychee.cli.rs/) on all `**/*.md` files to detect dead links. Kept separate from `ci.yml` because link checking is a network operation — inherently flaky and dependent on third-party uptime. Make `ci` required in branch protection; treat `link-check` as advisory. Excludes live in `.config/lychee.toml` (passed via `--config`), so a repo can add its own unverifiable hosts there without editing the workflow — which a `copier update` would otherwise overwrite. |
@@ -202,14 +211,16 @@ credential accessible to later steps).
 
 ## Checksum-verified binaries
 
-Five release binaries that CI installs by hand are each verified against a committed SHA256
+Six release binaries that CI installs by hand are each verified against a committed SHA256
 before use. They cannot self-bootstrap like pip-backed hooks, so a compromised or MITM'd
-download must fail closed rather than execute.
+download must fail closed rather than execute. A seventh tool with no downloadable asset (bats)
+is pinned by commit instead — see the pinning scheme below.
 
 | Binary | Used for | Active when | Upstream checksum? |
 | --- | --- | --- | --- |
 | `hawkeye` | SPDX header enforcement (`hawkeye check`) | Always | Yes — reads upstream checksum file |
 | `taplo` | TOML formatting (`taplo fmt --check`) | Always | No — taplo publishes no checksum file. The SHA is computed from the downloaded asset at pin time (trust-on-first-use), then re-verified on every subsequent CI run. Tampering or MITM after the pin is set is still caught; the pin itself lacks independent attestation. |
+| `gitleaks` | Full-history secret scan (`gitleaks git --redact`) in the `secret-scan` CI job | Always | Yes — reads upstream checksum file |
 | `osv-scanner` | Dependency CVE scan against the OSV database (`uv.lock`) | Python shapes | Yes |
 | `trivy` | Dockerfile misconfig scan (`trivy config`) and image CVE scan (`trivy image`); IaC misconfig scan for Terraform | Docker or Terraform module | Yes |
 | `kubeconform` | Kubernetes manifest validation against upstream schemas (`helm template \| kubeconform`) | Helm module | Yes |
@@ -231,10 +242,20 @@ Renovate's custom regex manager reads the `# renovate:` annotation and bumps `*_
 Because the `github-releases` datasource has no asset-digest concept, it cannot update
 `*_SHA256` — a stale hash would fail CI closed. A Renovate `postUpgradeTask` closes this gap.
 
+**Asset-less tools — a `*_COMMIT` pin.** bats-core publishes no downloadable release asset to
+checksum, so there is nothing to SHA256. It is installed from the exact git commit its release
+tag points at — a `*_COMMIT` pin (`BATS_VERSION` + adjacent `BATS_COMMIT`), refreshed with the
+version by the same script. This closes the unpinned, mutable `apt-get install bats`
+supply-chain gap the previous CI install carried; before installing, CI verifies the pinned
+commit really is `v${BATS_VERSION}`'s tag and fails loudly on any mismatch. The `postUpgradeTask`
+tamper gate covers it identically — a `*_COMMIT` that changes while `*_VERSION` is unchanged is a
+moved tag, the same supply-chain signal as a swapped asset.
+
 !!! note "Keeping hashes current automatically"
     `scripts/refresh-binary-checksums.sh` recomputes each SHA256 from its pinned version —
-    reading the upstream-published checksum file for trivy, osv-scanner, hawkeye, and
-    kubeconform; hashing the asset directly for taplo (which publishes none). `renovate.json`
+    reading the upstream-published checksum file for trivy, osv-scanner, hawkeye, kubeconform,
+    and gitleaks; hashing the asset directly for taplo (which publishes none), and resolving the
+    tag's commit id for the asset-less `*_COMMIT` pin (bats). `renovate.json`
     wires the script as a `postUpgradeTask` (`executionMode: branch`), so the central
     self-hosted Renovate runner runs it during the upgrade and folds the refreshed hash into
     Renovate's **own** commit — no separate bot pushing onto the Renovate branch.
@@ -259,12 +280,40 @@ hook revisions, and pinned binary versions current in automated PRs.
 | --- | --- |
 | GitHub Actions digests | `helpers:pinGitHubActionDigests` preset — keeps `uses:` SHA digests current while preserving the human-readable `# vX.Y.Z` comment. |
 | Pre-commit hook revisions | Built-in pre-commit manager (`"pre-commit": {"enabled": true}`) — bumps `rev:` values in `.pre-commit-config.yaml`. |
-| Pinned binary versions | Custom regex manager that reads `# renovate: datasource=... depName=...` annotations on `*_VERSION` env vars in workflow files. Covers all five system binaries. |
+| Pinned binary versions | Custom regex manager that reads `# renovate: datasource=... depName=...` annotations on `*_VERSION` env vars in workflow files. Covers all six SHA256-pinned binaries plus the bats `*_COMMIT` pin. |
 | Ruff | Grouped into a single PR so a new lint rule landing under `extend-select = ALL` is one reviewable change rather than a surprise red gate. |
 
 After Renovate bumps a binary version, a `postUpgradeTask` automatically updates the adjacent
 SHA256 in the same commit so CI stays green — see
 [checksum-verified binaries](#checksum-verified-binaries).
+
+## Claude Code guard hooks
+
+Every generated project ships a small set of
+[Claude Code](https://docs.claude.com/en/docs/claude-code) **guard hooks** under `.claude/` —
+always-on, and aimed at the one class of mistake the other gates catch only *after* the fact:
+an edit that fights the repo's own automation. They are wired in `.claude/settings.json` as
+`PreToolUse` hooks on `Edit`/`Write`/`MultiEdit`, so they run before a write lands and can
+block it with an explanation. Each derives what it protects from *this* repo's own config
+(the release-please manifest, `release-please-config.json`'s `extra-files`), so they track
+whatever a given project actually generates.
+
+| Guard | Behavior |
+| --- | --- |
+| `guard_version_bumps` | Blocks an edit that sets the version-of-record (the `.config/.release-please-manifest.json` value, or any file release-please mirrors it into via `extra-files` — `pyproject.toml`, `galaxy.yml`) to anything **other** than the canonical version. release-please owns the bump; rewriting the identical value is allowed. Fails open (warns) if canonical can't be resolved. |
+| `guard_managed_files` | Blocks a hand-edit to a tool-owned file: `uv.lock` (uv), the root `CHANGELOG.md` (release-please), `.copier-answers.yml` (copier), and anything under `LICENSES/` (the license tooling). Root-anchored on the file's nearest `.git`, so a `docs/CHANGELOG.md` you authored is untouched. |
+| `guard_config_drift` | **Blocks** a language-agnostic config table (`[tool.typos]`, `[tool.rumdl]`, `[tool.lychee]`, `[tool.yamllint]`) written into `pyproject.toml` — that config belongs in its `.config/` home, since Python is optional here. Also **warns** on `template/`-vs-root twin drift, but that half fires only in this template's own dogfood repo (it needs a `template/` dir), so a generated project never sees it. |
+
+A companion prek hook, `check-copier-src-path` (in the
+[hook inventory](#the-quality-gate-prek-hooks) above), guards the same "don't break the
+automation" theme from the commit side — asserting `.copier-answers.yml`'s `_src_path` is a
+remote template URL rather than a local path.
+
+!!! note "Deletable, and fail-open without Claude Code"
+    The hooks are plain files a project can delete (each block message says as much). They are
+    invoked only by Claude Code's own Edit/Write tooling, so a repo whose contributors don't
+    use Claude Code simply never triggers them — they add nothing to CI or the local gate and
+    can't fail a build.
 
 ## Security scanning
 
@@ -273,7 +322,7 @@ everywhere; the rest activate with their module.
 
 | Tool | Scope | Where | Condition |
 | --- | --- | --- | --- |
-| **gitleaks** | Detects committed secrets — API keys, tokens, credentials | prek hook | Always |
+| **gitleaks** | Detects committed secrets — API keys, tokens, credentials | prek hook (staged changes) + CI `secret-scan` job (`gitleaks git --redact`, full git history) | Always |
 | **zizmor** | Audits GitHub Actions workflows: template injection, excessive permissions, artipacked, ref-confusion, known-vulnerable-actions | prek hook (`--offline` AST audits) + CI dedicated step (full online audit with GH token) | Always |
 | **uv audit** | Checks resolved Python dependencies against the PyPA advisory database | prek hook (gates on `pyproject.toml` or `uv.lock` changes) | Python shapes |
 | **osv-scanner** | Scans `uv.lock` against the OSV vulnerability database (broader coverage than PyPA alone) | prek hook + CI binary install | Python shapes |

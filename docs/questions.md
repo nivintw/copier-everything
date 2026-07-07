@@ -9,7 +9,7 @@ Full reference for every question in `copier.yml` — type, default, when it app
 validator, and what the answer drives in the generated project. Expand a row for the full
 detail.
 
-Questions are grouped into three sections matching the sections in `copier.yml`, followed by
+Questions are grouped into sections matching the sections in `copier.yml`, followed by
 a short note on the Copier meta-settings that govern post-copy automation. For the broader
 copy/update flow see [Usage & adoption](usage.md); for what each module actually scaffolds see
 [Modules & levers](modules.md).
@@ -148,6 +148,49 @@ generated file derives from them: SPDX headers, `README.md`, `pyproject.toml`,
       regardless of this setting (they are idempotent). Set to `false` when layering the
       template onto a repository that already has git history — see the
       [adoption guide](usage.md#adopting-into-an-existing-repo) for the full procedure.
+
+## Release model
+
+Two questions declare how many packages release-please versions in the repo. The default —
+`single` — is the one-package-at-the-repo-root shape every other page describes; `multi-package`
+turns the repo into a monorepo where each declared path is versioned and released independently.
+The auto-merge/reconcile flow in `main.yml` was already N-package generic; these two questions
+add the config side. See [Design model](design.md#release-please-and-commitizen) for the rationale.
+
+| Question | Type | Default | When shown |
+| --- | --- | --- | --- |
+| `release_model` | str | `single` | Always |
+| `release_packages` | str | *empty string* | `when: {{ release_model == 'multi-package' }}` |
+
+??? note "`release_model` — str. release-please model — single package or a multi-package monorepo"
+    - default: `single`; choices: `single` (one package at the repo root), `multi-package`
+      (several packages, each released independently)
+    - Help: release-please model — one package at the repo root (default), or several packages
+      each versioned and released independently (a monorepo).
+    - Drives: The shape of `.config/release-please-config.json` and
+      `.config/.release-please-manifest.json`. `single` renders the one `.` package with the
+      layout-appropriate `extra-files` version-sync (`pyproject.toml` + `uv.lock` for Python,
+      `galaxy.yml` for an Ansible collection). `multi-package` instead renders one config +
+      manifest entry per path in `release_packages`, each bootstrapped at `0.0.0` with an empty
+      `extra-files` — per-package version-sync is layout-specific, so it is left for you to wire
+      (the single-package `.` branch shows the shape). `separate-pull-requests: true` is set
+      regardless, so each package gets its own Release PR.
+
+??? note "`release_packages` — str. Comma-separated package paths for the multi-package model"
+    - default: empty string; when: `{{ release_model == 'multi-package' }}`
+    - validator: Only asked and validated for the multi-package model. The value is split on
+      commas and trimmed; it must list at least one path, and each entry must be a repo-relative
+      path matching `^[A-Za-z0-9._/-]+$` — no leading slash, no `..`, no odd characters. The
+      values are spliced straight into `release-please-config.json` /
+      `.release-please-manifest.json`, so the strict pattern guards against a malformed path
+      corrupting the generated JSON.
+    - Help: Comma-separated package paths (relative to the repo root, e.g.
+      `packages/api, packages/cli`) for the multi-package model.
+    - Drives: Each path becomes an independently-versioned release-please package in both the
+      config and the manifest (each bootstrapped at `0.0.0`, with an empty `extra-files` you
+      fill in per package layout). Kept as a single comma-separated `str` answer rather than a
+      list question; it is split and trimmed wherever it is rendered. Only shown for the
+      `multi-package` model.
 
 ## Testing & Python shape
 
@@ -491,7 +534,7 @@ prints the equivalent manual steps. All tasks are gated to the initial copy
 | `git commit -m "chore: scaffold <slug>"` | `copy` + `initialize_repository` | Makes the first commit using `author_name`/`author_email` as the git author identity so the commit is correct even without a global git config. Runs *before* `prek install` so the no-commit-to-branch hook cannot block the first commit to main. Guarded by `git diff --cached --quiet ||` to be idempotent on re-runs. |
 | `uvx prek@0.4.8 install` | `copy` only | Installs the pre-commit hooks. Gracefully no-ops (prints a message) when there is no `.git` directory — i.e. when `initialize_repository: false` is used into a directory that has not yet been initialised as a git repo. |
 
-### `_exclude` — drop the unchosen license text
+### `_exclude` — drop the unchosen license text and one-time seeds
 
 In addition to Copier's built-in defaults (`.git`, `*.pyc`, `~*`, etc.), `_exclude` uses
 Jinja conditionals to drop the license text that was not chosen:
@@ -504,6 +547,37 @@ Jinja conditionals to drop the license text that was not chosen:
 Both texts stay in the template source (the `LICENSE.jinja` includes the Apache text via
 `{% include %}`); they are simply not copied to the output so `reuse lint` does not flag an
 unused license file.
+
+`_exclude` also gates three **one-time SEED files** on `_copier_operation`, which *is* in scope
+when Copier renders `_exclude`:
+
+```jinja
+{% if _copier_operation == 'update' %}CHANGELOG.md{% endif %}
+{% if _copier_operation == 'update' %}tests/test_smoke.py{% endif %}
+{% if _copier_operation == 'update' %}tests/smoke.bats{% endif %}
+```
+
+`CHANGELOG.md`, `tests/test_smoke.py`, and `tests/smoke.bats` render on the first `copy`, but
+are excluded on `update` — so Copier's 3-way merge never re-patches a seed the user has since
+grown, replaced, or deleted. Without this, a routine `copier update` would resurrect a deleted
+sample test, clobber the release-please-owned `CHANGELOG.md`, and litter `.rej` files.
+
+### `_skip_if_exists` — protect the seeds on adoption
+
+The complementary lever for the adopt-into-existing-repo copy path. `_skip_if_exists` lists the
+same three seeds so a `copier copy` into a repo that already has a `CHANGELOG.md` or a sample
+test never overwrites one that exists:
+
+```yaml
+_skip_if_exists:
+  - "CHANGELOG.md"
+  - "tests/test_smoke.py"
+  - "tests/smoke.bats"
+```
+
+On a fresh greenfield copy the files don't exist yet, so they still render. The two lists —
+the `update`-gated `_exclude` entries above and this `_skip_if_exists` — are kept in sync so a
+seed a user owns after the first copy is never re-patched by `update` nor clobbered on adoption.
 
 ### `_message_after_copy` — post-copy guidance
 

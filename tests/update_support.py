@@ -207,6 +207,9 @@ def build_two_version_template(
     git("commit", "-q", "-m", "v1: template snapshot", cwd=dst)
     git("tag", V1_TAG, cwd=dst)
 
+    # REUSE-IgnoreStart — this writes a template .jinja whose SPDX header carries Jinja
+    # placeholders; without the guard, `reuse lint` tries to parse `{{ license }}` (in this
+    # file's own source) as an SPDX expression and fails.
     (dst / "template" / f"{SENTINEL_FILENAME}.jinja").write_text(
         "<!--\n"
         "SPDX-FileCopyrightText: © {{ year }} {{ author_name }}\n"
@@ -214,6 +217,7 @@ def build_two_version_template(
         "-->\n\n"
         f"{SENTINEL_MARKER}\n"
     )
+    # REUSE-IgnoreEnd
     if migration_command is not None:
         _append_migration(dst / "copier.yml", migration_command)
     git("add", "-A", cwd=dst)

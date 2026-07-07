@@ -148,7 +148,7 @@ receive the language-agnostic baseline; only the Ansible-specific scaffolding di
 
 </div>
 
-## release-please + commitizen
+## release-please and commitizen
 
 The versioning design deliberately splits responsibilities between two tools that each do
 one thing well.
@@ -160,6 +160,15 @@ continuous releases. On merge it cuts the `vX.Y.Z` tag and GitHub Release. Confi
 lives in `.config/release-please-config.json` (`release-type: simple`) and
 `.config/.release-please-manifest.json`. For Python shapes, an `extra-files` TOML updater
 mirrors the version into `pyproject.toml [project].version` — what a wheel build reads.
+
+**Single or multi-package.** The default `release_model: single` declares one package at the
+repo root — the `.` shape above. `release_model: multi-package` (with `release_packages`, a
+comma-separated list of repo-relative paths) instead declares each path as an
+independently-versioned release-please package, bootstrapped at `0.0.0`; `separate-pull-requests`
+is set so each gets its own Release PR. This adds only the config side — the auto-merge/reconcile
+flow in `main.yml` was already N-package generic. Per-package `extra-files` version-sync is
+layout-specific and left for the consumer to wire. See
+[template questions](questions.md#release-model).
 
 **commitizen is the commit-message linter only.** It enforces Conventional Commit format
 locally via a pre-commit hook (`.cz.toml`, `cz_conventional_commits`) — plain Conventional
@@ -235,17 +244,23 @@ with no detection.
 
 Each is now verified against a committed SHA256 that fails the step closed on mismatch. The
 download pattern changed to download-to-file, `sha256sum -c`, then extract — a bad byte never
-reaches `tar` or the executable. Every step runs `set -euo pipefail`. All five normalize to a
+reaches `tar` or the executable. Every step runs `set -euo pipefail`. They normalize to a
 `# renovate:`-annotated `*_VERSION` + adjacent `*_SHA256` env-var pair, covered by a single
-`customManager`.
+`customManager`. A sixth SHA256-verified binary, **gitleaks**, later joined the set for the
+full-history secret-scan CI job. A seventh tool, **bats**, publishes no downloadable asset to
+hash, so it's pinned instead by the git commit its release tag points at (`BATS_VERSION` +
+adjacent `BATS_COMMIT`, a `*_COMMIT` pin) — closing the previous unpinned, mutable
+`apt-get install bats` gap; CI verifies the pinned commit really is `v${BATS_VERSION}`'s tag
+before installing.
 
 ### Keeping hashes fresh
 
 Renovate's `github-releases` datasource has no concept of asset digests, so it can bump
 `*_VERSION` but cannot update `*_SHA256`. A version bump with a stale hash would fail CI on
 the mismatch. `scripts/refresh-binary-checksums.sh` recomputes each SHA from its pinned
-version — reading the upstream checksum file for trivy, osv-scanner, hawkeye, and
-kubeconform; hashing the asset directly for taplo, which publishes no checksum file. Renovate
+version — reading the upstream checksum file for trivy, osv-scanner, hawkeye, kubeconform, and
+gitleaks; hashing the asset directly for taplo, which publishes no checksum file; and resolving
+the tag's commit id for the asset-less `*_COMMIT` pin (bats). Renovate
 runs the script as a `postUpgradeTask` (`executionMode: branch`), so the refreshed hash folds
 into Renovate's **own** commit — no separate bot pushing onto the Renovate branch, which is
 exactly what previously caused the self-re-trigger and `branchIsModified` rebase-halt
