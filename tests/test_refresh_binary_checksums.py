@@ -192,3 +192,183 @@ def test_pinned_value_at_base_does_not_swallow_a_show_failure(
     )
     assert result.returncode == 1
     assert "ERROR: pinned_value_at_base: git show" in result.stderr
+
+
+def test_pinned_value_at_base_fails_loudly_on_unresolvable_ref(
+    template_dir: Path, git_repo_with_pin: Path
+) -> None:
+    """#208: an unresolvable baseref must fail loudly, not collapse to "path absent → empty".
+
+    A stale/GC'd SHA, a typo, or a shallow clone missing the commit makes `git cat-file -e
+    <ref>:<path>` emit the SAME "exists on disk, but not in <ref>" text as a legitimately
+    absent path — so without the ref-resolves-to-a-commit guard at the top of the function,
+    the caller silently gets an empty value (gate disabled) instead of a hard error.
+    """
+    script = template_dir / "scripts" / "refresh-binary-checksums.sh"
+    result = _run_pinned_value_at_base(
+        script,
+        git_repo_with_pin,
+        var="TRIVY_VERSION",
+        file="pinned.yml",
+        base_ref="deadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+    )
+    assert result.returncode == 1
+    assert "does not resolve to a commit" in result.stderr
+
+
+# --- Harness for the offline-testable slice of the full script (issues #211, #236, #233) ------
+#
+# refresh_pin()/tool_version_at_base()/fetch_commit()'s tag-parsing are only reachable through
+# the whole run, whose real fetches hit the network. Source the script's function region (every
+# def + module-level state, minus the network-bound CLI driver), then stub the fetches / `git
+# ls-remote`, so the tamper gate, the *_COMMIT rewrite, and bash-3.2 execution can be driven
+# deterministically offline.
+
+
+def _function_region(script: Path) -> str:
+    """The script's function defs + module-level state, minus the network-bound CLI driver."""
+    text = script.read_text()
+    start = text.index("\nlower() {")
+    end = text.index('\nif [ "$#" -gt 0 ]; then')
+    return text[start:end]
+
+
+def _run_region(
+    script: Path, body: str, *, repo: Path, bash_bin: str = "bash", base_ref: str = ""
+) -> subprocess.CompletedProcess[str]:
+    program = (
+        f'set -euo pipefail\nBASE_REF="{base_ref}"\n{_function_region(script)}\n{body}'
+    )
+    return subprocess.run(  # noqa: S603
+        [bash_bin, "-c", program],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+@pytest.fixture
+def workflow_repo(tmp_path: Path) -> Path:
+    """An empty one-commit git repo with a .github/workflows/ dir, for full-script tests."""
+    repo = tmp_path / "wf"
+    (repo / ".github" / "workflows").mkdir(parents=True)
+    run = functools.partial(subprocess.run, cwd=repo, check=True, capture_output=True)
+    run(["git", "init", "-q"])
+    run(["git", "config", "user.email", "test@example.com"])
+    run(["git", "config", "user.name", "test"])
+    (repo / "seed").write_text("seed\n")
+    run(["git", "add", "."])
+    run(["git", "commit", "-q", "-m", "seed"])
+    return repo
+
+
+_SHA_A = "a" * 64
+_SHA_C = "c" * 64
+
+
+def test_tamper_gate_survives_file_rename(template_dir: Path, workflow_repo: Path) -> None:
+    """#211: a same-version, changed-hash swap is still caught after the pinning file is renamed.
+
+    The tamper gate keys on TOOL IDENTITY (the tool's *_VERSION anywhere at BASE_REF), so a pure
+    `git mv old.yml new.yml` no longer makes a same-version/changed-hash re-pin look like a
+    brand-new pin and slip past the gate.
+    """
+    script = template_dir / "scripts" / "refresh-binary-checksums.sh"
+    wf = workflow_repo / ".github" / "workflows"
+    run = functools.partial(subprocess.run, cwd=workflow_repo, check=True, capture_output=True)
+    (wf / "old.yml").write_text(f'TRIVY_VERSION: "0.55.0"\nTRIVY_SHA256: "{_SHA_A}"\n')
+    run(["git", "add", "."])
+    run(["git", "commit", "-q", "-m", "pin trivy in old.yml"])
+    base = run(["git", "rev-parse", "HEAD"]).stdout.decode().strip()
+    # Innocent rename; version + SHA untouched in the working tree.
+    run(["git", "mv", ".github/workflows/old.yml", ".github/workflows/new.yml"])
+    run(["git", "commit", "-q", "-m", "rename old.yml -> new.yml"])
+    # Stub the fetch to stand in for a compromised re-upload of the same v0.55.0 asset.
+    body = (
+        f'fetch_sha() {{ printf "%s" "{_SHA_C}"; }}\n'
+        'refresh_pin ".github/workflows/new.yml" TRIVY SHA256 fetch_sha '
+        "'^[0-9a-f]{64}$' SHA256\n"
+    )
+    result = _run_region(script, body, repo=workflow_repo, base_ref=base)
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "TAMPER ALERT" in result.stderr
+
+
+def test_genuinely_new_pin_is_not_flagged_as_tamper(
+    template_dir: Path, workflow_repo: Path
+) -> None:
+    """#211: a tool never pinned anywhere at BASE_REF is a legitimate new pin, not a tamper."""
+    script = template_dir / "scripts" / "refresh-binary-checksums.sh"
+    wf = workflow_repo / ".github" / "workflows"
+    run = functools.partial(subprocess.run, cwd=workflow_repo, check=True, capture_output=True)
+    base = run(["git", "rev-parse", "HEAD"]).stdout.decode().strip()  # TRIVY absent here
+    (wf / "ci.yml").write_text(f'TRIVY_VERSION: "0.55.0"\nTRIVY_SHA256: "{_SHA_A}"\n')
+    run(["git", "add", "."])
+    run(["git", "commit", "-q", "-m", "add trivy pin"])
+    body = (
+        f'fetch_sha() {{ printf "%s" "{_SHA_C}"; }}\n'
+        'refresh_pin ".github/workflows/ci.yml" TRIVY SHA256 fetch_sha '
+        "'^[0-9a-f]{64}$' SHA256\n"
+    )
+    result = _run_region(script, body, repo=workflow_repo, base_ref=base)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "TAMPER" not in result.stderr
+    assert (wf / "ci.yml").read_text().count(_SHA_C) == 1  # rewritten to the new hash
+
+
+@pytest.mark.parametrize("bash_bin", ["bash", "/bin/bash"])
+def test_commit_pin_is_refreshed(template_dir: Path, workflow_repo: Path, bash_bin: str) -> None:
+    """#236 + #233: a *_COMMIT pin is rewritten by the script, verified running under bash 3.2.
+
+    Runs once under PATH bash (CI's 5.x) and once under /bin/bash (macOS's system 3.2.57, skipped
+    where /bin/bash isn't 3.2) — proving the 3.2-safe rewrite (no associative arrays, no `${,,}`)
+    actually executes there, not just parses.
+    """
+    version = subprocess.run(
+        [bash_bin, "--version"], capture_output=True, text=True, check=False
+    )
+    if bash_bin == "/bin/bash" and "version 3.2" not in version.stdout:
+        pytest.skip("/bin/bash is not the bash-3.2 this test targets")
+    script = template_dir / "scripts" / "refresh-binary-checksums.sh"
+    wf = workflow_repo / ".github" / "workflows"
+    old_commit, new_commit = "1" * 40, "2" * 40
+    (wf / "ci.yml").write_text(f'BATS_VERSION: "1.13.0"\nBATS_COMMIT: "{old_commit}"\n')
+    # No BASE_REF (local run), so the gate just recomputes; stub the network commit resolution.
+    body = (
+        f'fetch_commit() {{ printf "%s" "{new_commit}"; }}\n'
+        'refresh_pin ".github/workflows/ci.yml" BATS COMMIT fetch_commit '
+        "'^([0-9a-f]{40}|[0-9a-f]{64})$' \"commit id\"\n"
+    )
+    result = _run_region(script, body, repo=workflow_repo, bash_bin=bash_bin)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert f"BATS 1.13.0 -> {new_commit}" in result.stdout
+    assert f'BATS_COMMIT: "{new_commit}"' in (wf / "ci.yml").read_text()
+
+
+def test_fetch_commit_prefers_dereferenced_annotated_tag(
+    template_dir: Path, workflow_repo: Path
+) -> None:
+    """#236: fetch_commit resolves an annotated tag to its underlying commit (the `^{}` row).
+
+    `git` is stubbed to emit a canned `git ls-remote` for both an annotated tag (a `^{}` deref
+    row is present → that commit wins) and a lightweight tag (no deref row → the plain row's
+    commit). No network.
+    """
+    script = template_dir / "scripts" / "refresh-binary-checksums.sh"
+    tag, deref, plain = "3" * 40, "d" * 40, "e" * 40
+    # Annotated: both rows present → the ^{} (deref) commit is the real one.
+    annotated = (
+        f'git() {{ printf "%s\\trefs/tags/v1.13.0\\n%s\\trefs/tags/v1.13.0^{{}}\\n" "{plain}" "{deref}"; }}\n'
+        'fetch_commit BATS 1.13.0\n'
+    )
+    r1 = _run_region(script, annotated, repo=workflow_repo)
+    assert r1.returncode == 0, r1.stderr
+    assert r1.stdout.strip() == deref
+    # Lightweight: only the plain row → its commit.
+    lightweight = (
+        f'git() {{ printf "%s\\trefs/tags/v1.13.0\\n" "{tag}"; }}\nfetch_commit BATS 1.13.0\n'
+    )
+    r2 = _run_region(script, lightweight, repo=workflow_repo)
+    assert r2.returncode == 0, r2.stderr
+    assert r2.stdout.strip() == tag

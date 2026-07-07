@@ -181,10 +181,31 @@ jobs:
 {% endif %}{% if 'bats' in test_frameworks %}
       - name: Shell tests (bats)
         if: inputs.skip-quality-gate != true
+        # bats publishes no downloadable release asset to checksum, so it's pinned by the git
+        # commit its release tag points at (a *_COMMIT pin, refreshed with the version by
+        # scripts/refresh-binary-checksums.sh) and installed from that exact commit — closing the
+        # unpinned/mutable `apt-get install bats` supply-chain gap. The checkout verifies the
+        # pinned commit actually is v${BATS_VERSION}'s tag before installing.
+        env:
+          # renovate: datasource=github-releases depName=bats-core/bats-core
+          BATS_VERSION: "1.13.0"
+          # Commit that v${BATS_VERSION}'s tag points at — refreshed with the version by
+          # scripts/refresh-binary-checksums.sh (a *_COMMIT pin, not a *_SHA256).
+          BATS_COMMIT: "3bca150ec86275d6d9d5a4fd7d48ab8b6c6f3d87"  # gitleaks:allow
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq bats
-          bats tests/
+          set -euo pipefail
+          git clone --quiet --filter=blob:none --no-checkout \
+            https://github.com/bats-core/bats-core "$RUNNER_TEMP/bats-core"
+          git -C "$RUNNER_TEMP/bats-core" checkout --quiet "$BATS_COMMIT"
+          # Fail loudly if the pinned commit isn't the one v${BATS_VERSION} tags — a mismatch
+          # means the pin drifted from its version (re-run the refresh script).
+          tag_commit="$(git -C "$RUNNER_TEMP/bats-core" rev-list -n 1 "v${BATS_VERSION}")"
+          if [ "$tag_commit" != "$BATS_COMMIT" ]; then
+            echo "::error::BATS_COMMIT ${BATS_COMMIT} != v${BATS_VERSION} tag commit ${tag_commit}"
+            exit 1
+          fi
+          "$RUNNER_TEMP/bats-core/install.sh" "$RUNNER_TEMP/bats-install"
+          "$RUNNER_TEMP/bats-install/bin/bats" tests/
 {% endif %}{% if include_docker %}
       - name: Build image + scan for CVEs (trivy image)
         if: inputs.skip-quality-gate != true
