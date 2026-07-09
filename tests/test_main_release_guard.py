@@ -115,6 +115,19 @@ def test_author_extractor_null_commits_is_fail_safe(template_dir: Path) -> None:
     assert "unknown-authors" in _run_jq(extractor, {"commits": None})
 
 
+def test_author_extractor_empty_commits_array_is_fail_safe(template_dir: Path) -> None:
+    """The #240 gap: an empty `.commits: []` array must resolve to a non-empty "unknown" marker.
+
+    A real PR always has >=1 commit, so `[]` is a degraded shape the check can't verify. Without
+    folding it into the null branch, `.commits == null` is false, `any(.commits[]; ...)` is
+    vacuously false over the empty array, and the else-branch list joins to "" — which the caller
+    reads as "verified bot-only" and auto-closes the PR (the opposite of the step's fail-safe
+    intent). It must take the warn-and-leave-open path instead.
+    """
+    _, extractor = _jq_filters(template_dir)
+    assert "unknown-authors" in _run_jq(extractor, {"commits": []})
+
+
 @pytest.mark.parametrize(
     "commit",
     [{"authors": []}, {"authors": None}, {"oid": "abc"}],

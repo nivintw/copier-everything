@@ -104,6 +104,63 @@ jobs:
           config-file: .config/release-please-config.json
           manifest-file: .config/.release-please-manifest.json
 
+      # release-please's default changelog renderer normalizes EVERY issue reference in a
+      # bundled commit (a `Refs #N`, a bare `#N`, anything) into a `closes #N` entry in the
+      # Release PR body — regardless of the keyword the author actually used. When this PR
+      # auto-merges below, GitHub's native parser would then close every one of those issues,
+      # including ones a commit merely *referenced*. The genuine closes already fired from the
+      # feature PRs at their own merge time, so the Release PR body's closing keywords are all
+      # redundant here: defuse them before auto-merge by rewriting any closing keyword that
+      # precedes an issue reference to the non-keyword "refs". Only the PR BODY is touched (what
+      # GitHub parses for auto-close); CHANGELOG.md keeps its `closes [#N]` links, since GitHub
+      # never parses the changelog. Runs every push right after release-please regenerates the
+      # body, so the body is always defused at the moment auto-merge lands it. `prs` travels via
+      # env (never inline `${{ }}`), same as the auto-merge step.
+      - name: Defuse closing keywords in the Release PR bodies (don't auto-close referenced issues)
+        if: ${{ steps.release.outputs.prs && steps.release.outputs.prs != '[]' }}
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_PRS: ${{ steps.release.outputs.prs }}
+        run: |
+          set -euo pipefail
+          # A closing keyword sitting directly before an issue reference — every shape GitHub's
+          # native auto-close acts on: `#N` / `[#N]` (what release-please emits), a `GH-N`, a
+          # cross-repo `owner/repo#N`, or a full issues URL. Used twice below: the perl rewrite
+          # neutralizes the `#N`/`[#N]` forms release-please actually produces (plus an optional
+          # `:` trailer), and this same pattern is the CANARY that fails the step loud if ANY
+          # closing keyword+ref survives the rewrite — a form we don't cover, or a future
+          # release-please format change — rather than letting auto-merge wrongly close a
+          # merely-referenced issue. Matched with perl below (not grep -E, whose `\b` support
+          # isn't portable), so `\b`/`[[:space:]]` behave the same everywhere.
+          close_ref='\b(clos(e|es|ed)|fix(es|ed)?|resolv(e|es|ed))\b:?[[:space:]]+(\[?#[0-9]|GH-[0-9]|[A-Za-z0-9._-]+/[A-Za-z0-9._-]+#[0-9]|https?://[^[:space:]]+/issues/[0-9])'
+          # Capture jq's output first (not `jq | while`) so a jq failure trips set -e loudly
+          # instead of being swallowed by the pipe (same rationale as the auto-merge step below).
+          numbers="$(printf '%s' "$RELEASE_PRS" | jq -r '.[].number')"
+          for num in $numbers; do
+            body="$(gh pr view "$num" --json body --jq '.body')"
+            # Rewrite each closing keyword (close/closes/closed, fix/fixes/fixed,
+            # resolve/resolves/resolved), with an optional `:` trailer, that immediately precedes a
+            # `#N` or `[#N]` reference to the non-keyword "refs". \b stops it mangling words like
+            # "prefixes"; only a keyword+ref pair is touched, so the PR's own `([#N])` self-link
+            # (no keyword) is left intact. Body passed via --body-file on stdin, never interpolated.
+            defused="$(printf '%s' "$body" | perl -0777 -pe 's/\b(clos(?:e|es|ed)|fix(?:es|ed)?|resolv(?:e|es|ed))\b:?(\s+\[?#\d)/refs$2/gi')"
+            if [ "$defused" != "$body" ]; then
+              printf '%s' "$defused" | gh pr edit "$num" --body-file -
+              echo "Defused closing keywords in Release PR #${num} (referenced issues won't auto-close on merge)."
+            fi
+            # CANARY: after the rewrite, no closing keyword may still sit before an issue reference.
+            # If one survives, FAIL LOUD — the erroring step makes the `if:`-less auto-merge step
+            # below skip (it's implicitly `success()`-gated), so the Release PR is left open for a
+            # human instead of auto-closing a referenced issue. Checked with perl (grep -E's `\b`
+            # isn't portable); perl exits 0 on a match. The pattern travels via the environment so
+            # its own `/` characters can't break the match delimiter.
+            if printf '%s' "$defused" | CLOSE_REF="$close_ref" perl -0777 -ne 'exit($_ =~ /$ENV{CLOSE_REF}/i ? 0 : 1)'; then
+              echo "::error::Release PR #${num} still has a closing keyword before an issue reference after defusing (an unhandled form, or a release-please format change). Refusing to auto-merge and wrongly close a referenced issue — update the defuse step's regex." >&2
+              exit 1
+            fi
+          done
+
       # Continuous release: when release-please opens/updates a Release PR, enable
       # auto-merge so it lands (rebase) once required checks pass — no standing PR, no
       # manual step. Because separate-pull-requests is on, release-please emits `prs` (a
