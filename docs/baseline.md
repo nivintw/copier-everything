@@ -167,6 +167,15 @@ assuming a package manager. For Python shapes, an `extra-files` TOML updater mir
 version into `pyproject.toml [project].version` (what a wheel build reads); for non-Python
 shapes the version lives only in the manifest and the git tag.
 
+!!! note "Referenced issues aren't auto-closed at release"
+    release-please's changelog renders *every* issue reference in a bundled commit as `closes #N`
+    in the Release PR body — which GitHub's native parser would act on when the Release PR
+    auto-merges, closing issues a commit merely *referenced*. `main.yml` defuses this: after
+    release-please updates the Release PR, a step rewrites those closing keywords in the PR
+    **body** (never `CHANGELOG.md`, which GitHub doesn't parse) so only a genuine `Closes #N` on
+    a feature PR — at its own merge — closes anything. A bare `Refs #N` in a commit is safe: it
+    links without closing.
+
 ### Release authentication
 
 The release job authenticates as a GitHub App rather than using the default `GITHUB_TOKEN`.
@@ -202,6 +211,7 @@ exact same checks, defined once.
 | `link-check.yml` | `on: pull_request` (Markdown paths only), `workflow_dispatch` | Runs [lychee](https://lychee.cli.rs/) on all `**/*.md` files to detect dead links. Kept separate from `ci.yml` because link checking is a network operation — inherently flaky and dependent on third-party uptime. Make `ci` required in branch protection; treat `link-check` as advisory. Excludes live in `.config/lychee.toml` (passed via `--config`), so a repo can add its own unverifiable hosts there without editing the workflow — which a `copier update` would otherwise overwrite. |
 | `label-hygiene.yml` | `on: issues` (closed) | Strips the `status:*` progression labels (`status:triage`, `status:ready`, `status:in-progress`, `status:in-review`, `status:blocked`) from an issue when it closes, so a closed issue never keeps wearing a stale open-state label. Self-disabling: it removes only the labels actually present, so a repo that doesn't use the taxonomy (the template doesn't provision these labels) gets a clean no-op. Leaves `type:*`/`priority:*` intact as historical record. Re-checks the issue is still closed immediately before stripping — reopening emits no event to cancel an already-scheduled run, so this guards against a reopen racing the label removal. |
 | `approve-bot-prs.yml` | `on: pull_request_target` (opened, reopened, synchronize) | Auto-approves PRs authored by the repo's own CI App — Renovate dependency PRs and release-please Release PRs — so those unattended flows keep landing if a ruleset later requires approving reviews. The trusted identity is the `CI_APP_SLUG` repository *variable* (the App's slug; its bot login is `<slug>[bot]`): both the PR's author *and* the pushing actor must match, and only same-repo heads qualify — a fork, another bot, or a human pushing onto a bot branch is never approved. Triggers on `pull_request_target` (not `pull_request`) so the workflow DEFINITION is anchored to the base branch — a same-repo PR editing the trust-gate condition can't have its own weakened copy execute for its own approval. Safe here specifically because the workflow holds no secrets, does no checkout, and runs no third-party actions. The approval comes from the workflow's `GITHUB_TOKEN`, since an App cannot approve its own PR; that requires the repo setting *"Allow GitHub Actions to create and approve pull requests"*, and with it off the run warns and stays green. Approval is not merge: required status checks still gate every merge. Self-disabling until `CI_APP_SLUG` is set. |
+| `dependabot-auto-merge.yml` | `on: pull_request_target` (opened, reopened, synchronize) | The **security floor** (see [Dependabot security floor](#dependabot-security-floor)). Severity-gates Dependabot *security* PRs and enables native auto-merge (`--auto --rebase`) for **critical/high** advisories (CVSS ≥ 7.0) once required checks pass; medium/low security PRs and all version updates are left open. Reading an advisory's CVSS needs a token with *Dependabot alerts: read*, which `GITHUB_TOKEN` cannot have — so it reuses the release App (`CI_CLIENT_ID` + `CI_APP_PRIVATE_KEY`, granted *Dependabot alerts: read*) via `dependabot/fetch-metadata`'s `alert-lookup`. Uses `pull_request_target` (like `approve-bot-prs.yml`) because a Dependabot `pull_request` run is denied the write token + secret access this needs; safe here for the same reasons — no secrets in PR code, no checkout. Fail-closed: gated to `dependabot[bot]` same-repo PRs, self-disables until `CI_CLIENT_ID` is set, and warns cleanly if *"Allow auto-merge"* is off. The template ships **no `dependabot.yml`** — the floor is security-only; version freshness stays Renovate's job. |
 
 All `uses:` action references are SHA-pinned with a human-readable version comment — for
 example, `actions/checkout@df4cb1c... # v6.0.3` — so Renovate can update the digest while a
@@ -286,6 +296,26 @@ hook revisions, and pinned binary versions current in automated PRs.
 After Renovate bumps a binary version, a `postUpgradeTask` automatically updates the adjacent
 SHA256 in the same commit so CI stays green — see
 [checksum-verified binaries](#checksum-verified-binaries).
+
+## Dependabot security floor
+
+Renovate is the freshness *ceiling* — broad, scheduled dependency currency. Dependabot is the
+security *floor* — the fast, event-driven path for vulnerability remediation. The two divide the
+work deliberately and don't overlap: the template ships **no `dependabot.yml`**, so Dependabot
+opens only *security* PRs (once you enable *"Dependabot security updates"* in repo settings),
+never version-update PRs that would collide with Renovate.
+
+`dependabot-auto-merge.yml` (see the [CI architecture](#ci-architecture) table) makes a
+critical/high security fix *land* fast, not just open fast: it reads the advisory's CVSS via
+`dependabot/fetch-metadata` and enables GitHub-native auto-merge for **CVSS ≥ 7.0** once required
+checks pass. Lower-severity security PRs open and wait for review.
+
+!!! tip "Inert until you opt in"
+    Like the release App, this floor self-disables until it's configured: it does nothing until
+    you enable Dependabot security updates *and* grant the release App (`CI_CLIENT_ID` +
+    `CI_APP_PRIVATE_KEY`) the *Dependabot alerts: read* permission it needs to read advisory
+    severity. Until then it's a clean no-op — the workflow ships to every project but merges
+    nothing.
 
 ## Claude Code guard hooks
 
