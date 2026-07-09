@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.13.0](https://github.com/nivintw/copier-everything/compare/v1.12.0...v1.13.0) (2026-07-09)
+
+
+### Features
+
+* **template:** severity-gated auto-merge for Dependabot security PRs ([8851f46](https://github.com/nivintw/copier-everything/commit/8851f4612ad71e5ede3bfff1994c94377301dbd7)), closes [#241](https://github.com/nivintw/copier-everything/issues/241)
+
+
+### Bug Fixes
+
+* **release:** defuse Release PR auto-close and fail-safe the empty-commits guard ([0ada9a7](https://github.com/nivintw/copier-everything/commit/0ada9a79d973e3ba91fec4e3256c1ecd4f376bf3)), closes [#242](https://github.com/nivintw/copier-everything/issues/242) [#240](https://github.com/nivintw/copier-everything/issues/240)
+
 ## [1.12.0](https://github.com/nivintw/copier-everything/compare/v1.11.2...v1.12.0) (2026-07-07)
 
 
