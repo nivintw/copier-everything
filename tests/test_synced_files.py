@@ -46,6 +46,7 @@ TRIVIALLY_EQUAL = {
     ".config/rumdl.toml",
     ".config/yamllint.yaml",
     ".github/workflows/approve-bot-prs.yml",
+    ".github/workflows/dependabot-auto-merge.yml",
     ".github/workflows/label-hygiene.yml",
     "LICENSE",
     "LICENSES/MIT.txt",
