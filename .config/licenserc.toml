@@ -1,21 +1,24 @@
 # SPDX-FileCopyrightText: © 2026 Tyler Nivin
 # SPDX-License-Identifier: MIT
 
-# hawkeye (https://github.com/korandoru/hawkeye) maintains SPDX headers on THIS repo's own
-# files (run: `hawkeye format`, or `check`). The header text is templated from [properties]
+# hawkeye (https://github.com/fast/hawkeye) maintains SPDX headers on THIS repo's own
+# files (run: `hawkeye format`, or `check`). The header text is templated from [props]
 # so year/holder/license live in one place. The template/ tree is excluded: its .jinja
 # files carry render-deliberate SPDX headers + EOF that hawkeye must not rewrite — reuse
 # covers them via REUSE.toml's override. Markdown keeps its existing HTML-comment headers
-# (reuse-verified), so it stays in hawkeye's default excludes.
+# (reuse-verified), so it is explicitly excluded below.
 
 # REUSE-IgnoreStart — this file literally contains an SPDX-License-Identifier line; without
 # the guard, `reuse lint` tries to parse the placeholder below as a license.
-inlineHeader = """
-SPDX-FileCopyrightText: © {{ props["inceptionYear"] }} {{ props["copyrightHolder"] }}
-SPDX-License-Identifier: {{ props["spdxLicenseIdentifier"] }}
+[header]
+text = """
+SPDX-FileCopyrightText: © {{ props.inception_year }} {{ props.copyright_holder }}
+SPDX-License-Identifier: {{ props.spdx_license_identifier }}
 """
 # REUSE-IgnoreEnd
 
+[files]
+root = ".."
 excludes = [
   "LICENSE",
   "LICENSES/**",
@@ -23,6 +26,9 @@ excludes = [
   "**/*.json",
   # renovate.json5 carries its own `//` SPDX header (reuse-verified); hawkeye has no json5 map.
   "**/*.json5",
+  "**/*.md",
+  "**/.gitignore",
+  "docs/assets/favicon.svg",
   # CODEOWNERS has no extension hawkeye maps; it carries its own `#` header (reuse-verified).
   # Not present in this repo's own tree yet — nivintw/repo-management's automation adds one —
   # kept ready for when it lands rather than dropped and re-added later. (The general policy
@@ -41,12 +47,13 @@ excludes = [
 # '#'-comment files hawkeye doesn't map by default. .envrc is this repo's own root .envrc;
 # .dockerignore is kept defensively for if Docker tooling is ever added at the root (mirrors
 # the generated template's own .dockerignore, which this repo doesn't otherwise need).
-# (.gitignore stays in hawkeye's default excludes and is licensed via REUSE.toml instead.)
-[mapping.SCRIPT_STYLE]
+# (.gitignore is explicitly excluded and licensed via REUSE.toml instead.)
+[[rules]]
 extensions = ["txt", "fish", "bats"]
 filenames = [".envrc", ".dockerignore"]
+style_out = "script"
 
-[properties]
-inceptionYear = "2026"
-spdxLicenseIdentifier = "MIT"
-copyrightHolder = "Tyler Nivin"
+[props]
+inception_year = "2026"
+spdx_license_identifier = "MIT"
+copyright_holder = "Tyler Nivin"

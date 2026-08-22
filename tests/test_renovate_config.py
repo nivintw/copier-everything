@@ -3,9 +3,9 @@
 
 """Guard against the checksum-tracked tool list silently drifting between its three copies.
 
-The 5 release binaries with a `# renovate: ... depName=X` annotation in ci.yml.jinja (trivy,
-osv-scanner, hawkeye, taplo, kubeconform) must match the `matchPackageNames` list on the
-checksum-refresh `packageRules` entry in BOTH renovate configs — otherwise a 6th tool added to
+The release binaries with a `# renovate: ... depName=X` annotation in ci.yml.jinja (trivy,
+osv-scanner, taplo, kubeconform) must match the `matchPackageNames` list on the
+checksum-refresh `packageRules` entry in BOTH renovate configs — otherwise a new tool added to
 one place goes untracked (postUpgradeTasks never fires for it) or the scoping silently widens.
 """
 

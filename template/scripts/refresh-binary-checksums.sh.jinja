@@ -9,7 +9,7 @@
 # lands in Renovate's own commit); run it by hand after a manual version bump.
 #
 # Two pin classes, one refresh model:
-#   *_SHA256 — asset-bearing tools (trivy/osv/hawkeye/taplo/kubeconform). Pins the SHA256 of
+#   *_SHA256 — asset-bearing tools (trivy/osv/taplo/kubeconform). Pins the SHA256 of
 #     the published release asset (most publish a checksum file we read; taplo ships none, so
 #     we download the asset and hash it).
 #   *_COMMIT — asset-less tools (bats), installed from a git tag with NO downloadable release
@@ -61,9 +61,9 @@ WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
 
 # The asset-bearing release binaries CI installs by hand, each pinned by a SHA256 of its
-# published asset. trivy/osv-scanner/hawkeye/kubeconform/gitleaks publish a checksum file we
+# published asset. trivy/osv-scanner/kubeconform/gitleaks publish a checksum file we
 # read; taplo publishes none, so we download the asset and hash it ourselves.
-SHA256_TOOLS=(TRIVY OSV HAWKEYE TAPLO KUBECONFORM GITLEAKS)
+SHA256_TOOLS=(TRIVY OSV TAPLO KUBECONFORM GITLEAKS)
 # Asset-less tools installed from a git tag, pinned by the commit id the tag points at (there's
 # no release asset to hash). See the *_COMMIT note in the header.
 COMMIT_TOOLS=(BATS)
@@ -93,10 +93,6 @@ fetch_sha() { # <TOOL> <version> -> bare hex digest on stdout
   OSV)
     curl -fsSL "${retry[@]}" "https://github.com/google/osv-scanner/releases/download/v${version}/osv-scanner_SHA256SUMS" |
       awk '$2 == "osv-scanner_linux_amd64" {print $1}'
-    ;;
-  HAWKEYE)
-    curl -fsSL "${retry[@]}" "https://github.com/korandoru/hawkeye/releases/download/v${version}/hawkeye-x86_64-unknown-linux-gnu.tar.xz.sha256" |
-      awk '{print $1}'
     ;;
   KUBECONFORM)
     curl -fsSL "${retry[@]}" "https://github.com/yannh/kubeconform/releases/download/v${version}/CHECKSUMS" |

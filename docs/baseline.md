@@ -45,7 +45,7 @@ releases, hardened CI with integrity-verified binaries, and continuous dependenc
 
     ---
 
-    Always-on. Six release binaries installed by CI are each verified against a committed
+    Always-on. Five release binaries installed by CI are each verified against a committed
     SHA256 before extraction; an asset-less tool (bats) is pinned by commit. Kept current by
     Renovate + a dedicated workflow.
 
@@ -134,7 +134,7 @@ Two tools enforce this together:
 
 - **hawkeye** (`hawkeye format`) adds and maintains the `SPDX-FileCopyrightText` and
   `SPDX-License-Identifier` header on every source file. Config lives in
-  `.config/licenserc.toml`, which reads the year, holder, and license from a `[properties]`
+  `.config/licenserc.toml`, which reads the year, holder, and license from a `[props]`
   block so they change in one place.
 - **reuse lint** validates full REUSE compliance after hawkeye runs. It catches files that
   can't carry an inline header (binary assets, generated files, files with no comment
@@ -221,14 +221,16 @@ credential accessible to later steps).
 
 ## Checksum-verified binaries
 
-Six release binaries that CI installs by hand are each verified against a committed SHA256
+Five release binaries that CI installs by hand are each verified against a committed SHA256
 before use. They cannot self-bootstrap like pip-backed hooks, so a compromised or MITM'd
-download must fail closed rather than execute. A seventh tool with no downloadable asset (bats)
+download must fail closed rather than execute. A sixth tool with no downloadable asset (bats)
 is pinned by commit instead — see the pinning scheme below.
+
+HawkEye is separate from this table: CI requests `hawkeye` without a version from a SHA-pinned
+`taiki-e/install-action`, so every migration run picks up the latest stable release.
 
 | Binary | Used for | Active when | Upstream checksum? |
 | --- | --- | --- | --- |
-| `hawkeye` | SPDX header enforcement (`hawkeye check`) | Always | Yes — reads upstream checksum file |
 | `taplo` | TOML formatting (`taplo fmt --check`) | Always | No — taplo publishes no checksum file. The SHA is computed from the downloaded asset at pin time (trust-on-first-use), then re-verified on every subsequent CI run. Tampering or MITM after the pin is set is still caught; the pin itself lacks independent attestation. |
 | `gitleaks` | Full-history secret scan (`gitleaks git --redact`) in the `secret-scan` CI job | Always | Yes — reads upstream checksum file |
 | `osv-scanner` | Dependency CVE scan against the OSV database (`uv.lock`) | Python shapes | Yes |
@@ -243,9 +245,9 @@ byte never reaches `tar` or the shell.
 **Pinning scheme.** Each binary uses a pair of env vars annotated for Renovate:
 
 ```text
-# renovate: datasource=github-releases depName=korandoru/hawkeye
-HAWKEYE_VERSION: "6.5.1"
-HAWKEYE_SHA256: "d6eb0505..."
+# renovate: datasource=github-releases depName=aquasecurity/trivy
+TRIVY_VERSION: "0.71.2"
+TRIVY_SHA256: "0510e71e..."
 ```
 
 Renovate's custom regex manager reads the `# renovate:` annotation and bumps `*_VERSION`.
@@ -263,7 +265,7 @@ moved tag, the same supply-chain signal as a swapped asset.
 
 !!! note "Keeping hashes current automatically"
     `scripts/refresh-binary-checksums.sh` recomputes each SHA256 from its pinned version —
-    reading the upstream-published checksum file for trivy, osv-scanner, hawkeye, kubeconform,
+    reading the upstream-published checksum file for trivy, osv-scanner, kubeconform,
     and gitleaks; hashing the asset directly for taplo (which publishes none), and resolving the
     tag's commit id for the asset-less `*_COMMIT` pin (bats). `renovate.json`
     wires the script as a `postUpgradeTask` (`executionMode: branch`), so the central
@@ -290,7 +292,7 @@ hook revisions, and pinned binary versions current in automated PRs.
 | --- | --- |
 | GitHub Actions digests | `helpers:pinGitHubActionDigests` preset — keeps `uses:` SHA digests current while preserving the human-readable `# vX.Y.Z` comment. |
 | Pre-commit hook revisions | Built-in pre-commit manager (`"pre-commit": {"enabled": true}`) — bumps `rev:` values in `.pre-commit-config.yaml`. |
-| Pinned binary versions | Custom regex manager that reads `# renovate: datasource=... depName=...` annotations on `*_VERSION` env vars in workflow files. Covers all six SHA256-pinned binaries plus the bats `*_COMMIT` pin. |
+| Pinned binary versions | Custom regex manager that reads `# renovate: datasource=... depName=...` annotations on `*_VERSION` env vars in workflow files. Covers all five SHA256-pinned binaries plus the bats `*_COMMIT` pin. |
 | Ruff | Grouped into a single PR so a new lint rule landing under `extend-select = ALL` is one reviewable change rather than a surprise red gate. |
 
 After Renovate bumps a binary version, a `postUpgradeTask` automatically updates the adjacent

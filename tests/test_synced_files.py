@@ -113,7 +113,6 @@ NOT_SYNCED = {
     ".github/ISSUE_TEMPLATE/config.yml",
     ".github/ISSUE_TEMPLATE/feature_request.yml",
     ".github/PULL_REQUEST_TEMPLATE.md",
-    ".config/markdown-header.toml",
     # The template ships a smoke test; this repo has its own suite (you are reading it).
     "tests/conftest.py",
     "tests/test_smoke.py",

@@ -56,7 +56,7 @@ The cross-cutting quality infrastructure, lifted from
 | --- | --- |
 | **prek hooks** (`.pre-commit-config.yaml`) | Git hygiene, secret scanning (gitleaks), spelling (typos), markdown (rumdl), YAML style (yamllint), license headers, shell lint + format (shellcheck, shfmt), and workflow lint + security-audit (actionlint, zizmor) — run identically locally and in CI. |
 | **REUSE licensing** (`.config/licenserc.toml`, `REUSE.toml`, `LICENSES/`) | Every file carries an SPDX header; `hawkeye` maintains them, `reuse` verifies. |
-| **CI** (`.github/workflows/`) | Each generated repo gets a reusable `ci.yml` gate called by `pr.yml` (every PR) and `main.yml` (push to main → release-please). Every action is SHA-pinned with a version comment, and each hand-installed release binary (trivy, osv-scanner, hawkeye, taplo, kubeconform) is pinned **and SHA256-verified** before use (a Renovate `postUpgradeTask` runs `scripts/refresh-binary-checksums.sh` to keep the hashes in sync on bumps, folding the fix into Renovate's own commit). The template itself uses the same shape — a reusable root `ci.yml` called by `pr.yml` and `main.yml` (which also runs release-please) (see `tests/`). |
+| **CI** (`.github/workflows/`) | Each generated repo gets a reusable `ci.yml` gate called by `pr.yml` (every PR) and `main.yml` (push to main → release-please). Every action is SHA-pinned with a version comment; HawkEye is installed at its latest release through the pinned install action, while each hand-installed release binary (trivy, osv-scanner, taplo, kubeconform) is pinned **and SHA256-verified** before use (a Renovate `postUpgradeTask` runs `scripts/refresh-binary-checksums.sh` to keep the hashes in sync on bumps, folding the fix into Renovate's own commit). The template itself uses the same shape — a reusable root `ci.yml` called by `pr.yml` and `main.yml` (which also runs release-please) (see `tests/`). |
 | **Renovate** (`.github/renovate.json`) | Automates the pins (pre-commit hook revs + action digests) and groups `ruff` bumps so a new lint rule lands as a reviewable PR, not a surprise red. An `approve-bot-prs.yml` workflow auto-approves the repo's own bot PRs (Renovate, release-please; keyed to the `CI_APP_SLUG` repo variable) so those unattended flows survive a ruleset that requires approving reviews — approval isn't merge; required checks still gate (self-disabling until the variable is set). Complementing it, `dependabot-auto-merge.yml` is the *security floor* to Renovate's freshness ceiling: it severity-gates Dependabot security PRs and auto-merges critical/high (CVSS ≥ 7.0) advisories once checks pass (no `dependabot.yml` ships — security-only; inert until you enable Dependabot security updates). |
 | **Security scanning** | Dependency-CVE scanning (`uv audit`, `osv-scanner`), Terraform IaC misconfig (`checkov`, `trivy`), Dockerfile lint + misconfig (`hadolint`, `trivy config`) and image-layer CVEs (`trivy image`, in CI), Ansible playbook lint (`ansible-lint`) — wired wherever the matching shape/module is present. |
 | **Link checking** (`link-check.yml`) | `lychee` checks the Markdown docs for dead links. A separate CI workflow (not the deterministic gate) since it's a network operation — make `ci` required in branch protection, leave `link-check` advisory. |
@@ -114,9 +114,9 @@ uvx prek@0.4.8 run --all-files    # run the gate on demand (version pinned to ma
 > **Two system tools:** the `taplo` and `hawkeye` hooks are `language: system`, so install
 > both locally before running the gate — those hooks fail without them. `taplo`
 > (`brew install taplo` / `cargo install taplo-cli`) and `hawkeye`
-> (`brew install korandoru/tap/hawkeye` / [release binary](https://github.com/korandoru/hawkeye/releases)).
-> Every other hook self-bootstraps. (CI installs both as their own steps — pinned and
-> SHA256-verified.)
+> (`cargo install hawkeye --locked` / [latest release](https://github.com/fast/hawkeye/releases/latest)).
+> Every other hook self-bootstraps. CI installs HawkEye's latest release through a SHA-pinned
+> action and installs Taplo from its checksum-pinned binary.
 
 Commits use plain Conventional Commits (no gitmoji — release-please can't parse a leading
 emoji). The template repo itself is versioned by `main.yml` (release-please): push to `main`
