@@ -1,37 +1,37 @@
 # SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
 # SPDX-License-Identifier: {{ license }}
 
-# hawkeye (https://github.com/korandoru/hawkeye) — inserts & maintains SPDX license
+# hawkeye (https://github.com/fast/hawkeye) — inserts & maintains SPDX license
 # headers for REUSE compliance. Run: `hawkeye format` (or `check`). Header text is
-# templated from [properties] so year/holder/license live in one place. Only files
+# templated from [props] so year/holder/license live in one place. Only files
 # with no usable comment syntax stay in REUSE.toml (strict JSON, lockfiles).
 
 # REUSE-IgnoreStart — this template literally contains an SPDX-License-Identifier line;
 # without the guard, `reuse lint` tries to parse the placeholder as a license.
-inlineHeader = """
-SPDX-FileCopyrightText: © {{ '{{' }} props["inceptionYear"] {{ '}}' }} {{ '{{' }} props["copyrightHolder"] {{ '}}' }}
-SPDX-License-Identifier: {{ '{{' }} props["spdxLicenseIdentifier"] {{ '}}' }}
+[header]
+text = """
+SPDX-FileCopyrightText: © {{ '{{' }} props.inception_year {{ '}}' }} {{ '{{' }} props.copyright_holder {{ '}}' }}
+SPDX-License-Identifier: {{ '{{' }} props.spdx_license_identifier {{ '}}' }}
 """
 # REUSE-IgnoreEnd
 
-# Negations cancel hawkeye's built-in default excludes (which skip **/*.md) so those get
-# headered too.
+[files]
+root = ".."
 {%- if markdown_has_frontmatter %}
 # This project has frontmatter-first markdown (YAML on line 1 — Claude Code skills,
-# Jekyll/Hugo), so markdown stays in hawkeye's default excludes (a line-1 SPDX comment
-# would break the frontmatter) and is licensed via REUSE.toml instead. Note hawkeye
-# can't re-exclude a file once an include (`!`) matches it, so there's no `!**/*.md`.
-# For the same reason the markdown-header mapping (additionalHeaders + MARKDOWN_CUSTOM)
-# is omitted below — it would never fire — and markdown-header.toml isn't shipped.
+# Jekyll/Hugo), so markdown is explicitly excluded (a line-1 SPDX comment would break
+# the frontmatter) and is licensed via REUSE.toml instead.
 {%- endif %}
 excludes = [
   "LICENSE",
   "LICENSES/**",
   "uv.lock",
   "**/*.json",
-{%- if not markdown_has_frontmatter %}
-  "!**/*.md",
+{%- if markdown_has_frontmatter %}
+  "**/*.md",
 {%- endif %}
+  "**/.gitignore",
+  "docs/assets/favicon.svg",
   "**/.python-version",
   "**/.vscode/*",
   # CODEOWNERS has no extension hawkeye maps; it carries its own `#` header (reuse-verified).
@@ -53,22 +53,22 @@ excludes = [
 {%- endif %}
 ]
 {% if not markdown_has_frontmatter %}
-additionalHeaders = ["markdown-header.toml"]
-
-[mapping.MARKDOWN_CUSTOM]
+[[rules]]
 extensions = ["md"]
+style_out = "xml"
 {% endif %}
-# '#'-comment files hawkeye doesn't map by default. (.gitignore stays in hawkeye's default
-# excludes and is licensed via REUSE.toml instead — see that file.)
-[mapping.SCRIPT_STYLE]
-extensions = ["txt", "fish", "bats"{% if include_terraform %}, "tf"{% endif %}{% if has_ansible %}, "cfg"{% endif %}]
+# '#'-comment files hawkeye doesn't map by default. (.gitignore is explicitly excluded and
+# licensed via REUSE.toml instead — see that file.)
+[[rules]]
+extensions = ["txt", "fish", "bats"{% if include_terraform %}, "tf"{% endif %}{% if has_ansible %}, "cfg"{% endif %}{% if include_helm %}, "tpl"{% endif %}]
 {%- set script_style_filenames = [] %}
 {%- if has_python %}{% set _ = script_style_filenames.append('".envrc"') %}{% endif %}
 {%- if include_docker %}{% set _ = script_style_filenames.append('".dockerignore"') %}{% endif %}
 {%- if include_helm %}{% set _ = script_style_filenames.append('".helmignore"') %}{% endif %}
 filenames = [{{ script_style_filenames|join(", ") }}]
+style_out = "script"
 
-[properties]
-inceptionYear = "{{ year }}"
-spdxLicenseIdentifier = "{{ license }}"
-copyrightHolder = "{{ author_name }}"
+[props]
+inception_year = "{{ year }}"
+spdx_license_identifier = "{{ license }}"
+copyright_holder = "{{ author_name }}"

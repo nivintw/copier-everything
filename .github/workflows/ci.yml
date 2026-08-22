@@ -28,15 +28,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # hawkeye + taplo are installed via the composite actions below (.github/actions/) in both
-  # jobs; the version/checksum pins stay HERE (not in the composite actions) because
-  # Renovate's regex customManager only scans .github/workflows/*.yml and
-  # template/.github/workflows/*.jinja for the `# renovate:`-annotated pins — moving them into
-  # .github/actions/** would silently stop tracking them. SHAs are kept current with the
-  # versions by scripts/refresh-binary-checksums.sh.
-  # renovate: datasource=github-releases depName=korandoru/hawkeye
-  HAWKEYE_VERSION: "6.5.1"
-  HAWKEYE_SHA256: "d6eb0505a45a15244f4f789158aafe5e3f1a7dc86c9dc1d7651f3cb1e1b321e0"  # gitleaks:allow
+  # Taplo is installed via the composite action below. The version/checksum pin stays HERE
+  # because Renovate's regex customManager only scans workflow files.
   # renovate: datasource=github-releases depName=tamasfe/taplo
   TAPLO_VERSION: "0.10.0"
   # taplo ships no upstream checksum file; this SHA is computed from the asset.
@@ -88,11 +81,10 @@ jobs:
           terraform_wrapper: false
       - uses: terraform-linters/setup-tflint@b480b8fcdaa6f2c577f8e4fa799e89e756bb7c93 # v6.2.2
 
-      - name: Install hawkeye (pinned + checksum-verified, matching the template's CI)
-        uses: ./.github/actions/install-hawkeye
+      - name: Install latest HawkEye
+        uses: taiki-e/install-action@82cd3e7658a6f96c86c0234aeeda1748937cb0a1 # v2.85.13
         with:
-          version: ${{ env.HAWKEYE_VERSION }}
-          sha256: ${{ env.HAWKEYE_SHA256 }}
+          tool: hawkeye
 
       - name: Install taplo (pinned + checksum-verified, matching the template's CI)
         uses: ./.github/actions/install-taplo
@@ -171,11 +163,10 @@ jobs:
       - name: Check TOML formatting (taplo)
         run: taplo fmt --check --diff
 
-      - name: Install hawkeye (pinned + checksum-verified)
-        uses: ./.github/actions/install-hawkeye
+      - name: Install latest HawkEye
+        uses: taiki-e/install-action@82cd3e7658a6f96c86c0234aeeda1748937cb0a1 # v2.85.13
         with:
-          version: ${{ env.HAWKEYE_VERSION }}
-          sha256: ${{ env.HAWKEYE_SHA256 }}
+          tool: hawkeye
 
       - name: Check SPDX license headers (hawkeye)
         run: hawkeye check --config .config/licenserc.toml

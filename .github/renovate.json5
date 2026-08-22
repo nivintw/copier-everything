@@ -37,7 +37,7 @@
       // itself fails (e.g. no origin/HEAD symref in the runner's clone), rather than letting
       // a silently-empty BASE_REF degrade back to the gate being off.
       "description": "Only re-run the checksum refresh when one of the pinned tools (SHA256 or COMMIT class) actually changed.",
-      "matchPackageNames": ["aquasecurity/trivy", "google/osv-scanner", "korandoru/hawkeye", "tamasfe/taplo", "yannh/kubeconform", "bats-core/bats-core", "gitleaks/gitleaks"],
+      "matchPackageNames": ["aquasecurity/trivy", "google/osv-scanner", "tamasfe/taplo", "yannh/kubeconform", "bats-core/bats-core", "gitleaks/gitleaks"],
       "postUpgradeTasks": {
         "commands": ["BASE_REF=\"$(git merge-base HEAD origin/HEAD)\" || { echo 'ERROR: could not compute BASE_REF via git merge-base — refusing to run with the tamper gate silently disabled' >&2; exit 1; }; export BASE_REF; scripts/refresh-binary-checksums.sh"],
         "fileFilters": [".github/workflows/**", "template/.github/workflows/**"],
@@ -66,7 +66,7 @@
     },
     {
       "customType": "regex",
-      "description": "Release binaries pinned by a `# renovate:`-annotated *_VERSION env var (trivy, osv-scanner, hawkeye, taplo, kubeconform, and bats) — own + generated workflows. Renovate bumps the version; the adjacent pin (*_SHA256 for asset-bearing tools, *_COMMIT for asset-less bats) is refreshed by scripts/refresh-binary-checksums.sh, run as a postUpgradeTask (below) so the fix lands in Renovate's own commit, since github-releases has no asset-digest datasource.",
+      "description": "Release binaries pinned by a `# renovate:`-annotated *_VERSION env var (trivy, osv-scanner, taplo, kubeconform, and bats) — own + generated workflows. Renovate bumps the version; the adjacent pin (*_SHA256 for asset-bearing tools, *_COMMIT for asset-less bats) is refreshed by scripts/refresh-binary-checksums.sh, run as a postUpgradeTask (below) so the fix lands in Renovate's own commit, since github-releases has no asset-digest datasource.",
       "managerFilePatterns": [
         "/^\\.github/workflows/.+\\.ya?ml$/",
         "/^template/\\.github/workflows/.+\\.jinja$/",

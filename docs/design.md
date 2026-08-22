@@ -237,8 +237,8 @@ regex entry covers those separately.
 
 ### Checksum-verified CI binaries
 
-Five release binaries CI installs by hand — trivy, osv-scanner, hawkeye, taplo, and
-kubeconform — were previously pinned by version but fetched over streaming pipes
+Four release binaries CI installs by hand — trivy, osv-scanner, taplo, and kubeconform —
+were previously pinned by version but fetched over streaming pipes
 (`curl | tar`) with no integrity check. A tampered or MITM'd asset would have executed in CI
 with no detection.
 
@@ -246,8 +246,8 @@ Each is now verified against a committed SHA256 that fails the step closed on mi
 download pattern changed to download-to-file, `sha256sum -c`, then extract — a bad byte never
 reaches `tar` or the executable. Every step runs `set -euo pipefail`. They normalize to a
 `# renovate:`-annotated `*_VERSION` + adjacent `*_SHA256` env-var pair, covered by a single
-`customManager`. A sixth SHA256-verified binary, **gitleaks**, later joined the set for the
-full-history secret-scan CI job. A seventh tool, **bats**, publishes no downloadable asset to
+`customManager`. A fifth SHA256-verified binary, **gitleaks**, later joined the set for the
+full-history secret-scan CI job. A sixth tool, **bats**, publishes no downloadable asset to
 hash, so it's pinned instead by the git commit its release tag points at (`BATS_VERSION` +
 adjacent `BATS_COMMIT`, a `*_COMMIT` pin) — closing the previous unpinned, mutable
 `apt-get install bats` gap; CI verifies the pinned commit really is `v${BATS_VERSION}`'s tag
@@ -258,7 +258,7 @@ before installing.
 Renovate's `github-releases` datasource has no concept of asset digests, so it can bump
 `*_VERSION` but cannot update `*_SHA256`. A version bump with a stale hash would fail CI on
 the mismatch. `scripts/refresh-binary-checksums.sh` recomputes each SHA from its pinned
-version — reading the upstream checksum file for trivy, osv-scanner, hawkeye, kubeconform, and
+version — reading the upstream checksum file for trivy, osv-scanner, kubeconform, and
 gitleaks; hashing the asset directly for taplo, which publishes no checksum file; and resolving
 the tag's commit id for the asset-less `*_COMMIT` pin (bats). Renovate
 runs the script as a `postUpgradeTask` (`executionMode: branch`), so the refreshed hash folds
