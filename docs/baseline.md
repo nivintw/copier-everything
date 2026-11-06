@@ -274,8 +274,8 @@ moved tag, the same supply-chain signal as a swapped asset.
     stays stale and the fail-closed mismatch stands — re-pin by hand with the script, then
     commit.
 
-    The `postUpgradeTask` command also sets `BASE_REF` to the branch's merge-base with the
-    default branch, activating a tamper gate: the script refuses to re-pin a SHA whose
+    The central runner also sets `BASE_REF=origin/HEAD` for every repo, activating a tamper
+    gate: the script refuses to re-pin a SHA whose
     adjacent `*_VERSION` is unchanged versus that ref — an upstream asset swapped on an
     already-published tag — and exits with a `TAMPER ALERT` instead. A human re-pinning
     locally (no `BASE_REF`) skips this gate by design; there's no reliable base ref to diff
