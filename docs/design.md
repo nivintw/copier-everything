@@ -270,8 +270,8 @@ stale and the fail-closed mismatch stands — re-pin by hand with the script.
 
 A second gate catches a different failure mode: a swapped asset on an already-published,
 unchanged version (the release stays at the same tag but its uploaded binary changes
-underneath it). The `postUpgradeTask` command sets `BASE_REF` to the branch's merge-base with
-the default branch, and the script refuses to re-pin a SHA whose adjacent `*_VERSION` is
+underneath it). The central runner sets `BASE_REF=origin/HEAD` for every repo (a repo can't
+override it), and the script refuses to re-pin a SHA whose adjacent `*_VERSION` is
 unchanged versus that ref — it exits with a `TAMPER ALERT` instead of silently accepting the
 new hash. Run without `BASE_REF` (a human re-pinning locally after a deliberate bump), the
 gate is off by design, since there's no reliable base to diff against outside the automated
