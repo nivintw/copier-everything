@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.13.0](https://github.com/nivintw/copier-everything/compare/v1.12.0...v1.13.0) (2026-11-06)
+
+
+### Features
+
+* **template:** severity-gated auto-merge for Dependabot security PRs ([8851f46](https://github.com/nivintw/copier-everything/commit/8851f4612ad71e5ede3bfff1994c94377301dbd7)), closes [#241](https://github.com/nivintw/copier-everything/issues/241)
+
+
+### Bug Fixes
+
+* Keep the root pyproject's CPY001 pattern in sync with the template ([7d57892](https://github.com/nivintw/copier-everything/commit/7d57892ca882470834daa568ce473ce32ace8c88))
+* **release:** defuse Release PR auto-close and fail-safe the empty-commits guard ([0ada9a7](https://github.com/nivintw/copier-everything/commit/0ada9a79d973e3ba91fec4e3256c1ecd4f376bf3)), closes [#242](https://github.com/nivintw/copier-everything/issues/242) [#240](https://github.com/nivintw/copier-everything/issues/240)
+* **renovate:** Let the central runner own BASE_REF for the checksum refresh ([139f2ea](https://github.com/nivintw/copier-everything/commit/139f2ea31024f78b3b41c03655581bb410cb67ca))
+* **template:** Accept SPDX copyright headers in ruff's CPY001 ([f0e890e](https://github.com/nivintw/copier-everything/commit/f0e890e20e26bff2c8636bbf24ec0a9c5fd7806e))
+
 ## [1.12.0](https://github.com/nivintw/copier-everything/compare/v1.11.2...v1.12.0) (2026-07-07)
 
 
