@@ -97,10 +97,10 @@ jobs:
         if: inputs.skip-quality-gate != true
         env:
           # renovate: datasource=github-releases depName=aquasecurity/trivy
-          TRIVY_VERSION: "0.71.2"
+          TRIVY_VERSION: "0.76.1"
           # SHA256 of trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz — refreshed with the version
           # by scripts/refresh-binary-checksums.sh (run as a Renovate postUpgradeTask).
-          TRIVY_SHA256: "0510e71e2fd39bf863856d499c8dc19feb4e7336546394c502a8f5cc7ab27460"  # gitleaks:allow
+          TRIVY_SHA256: "c7cbe3137fb8a48a17574bede3dd6beb16742d1e9772929940fc90082c39d9c0"  # gitleaks:allow
         run: |
           set -euo pipefail
           curl -fsSL --retry 5 --retry-all-errors --retry-delay 2 --retry-max-time 60 \
