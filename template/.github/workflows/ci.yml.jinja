@@ -140,7 +140,7 @@ jobs:
 {% endif %}{% if include_terraform %}
       - name: Set up Terraform (backs the terraform_fmt/validate prek hooks)
         if: inputs.skip-quality-gate != true
-        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
           # The default wrapper rewrites `terraform` to emit extra output, which breaks the
           # terraform_validate hook's JSON parsing. Disable it so the hook sees raw output.
