@@ -21,4 +21,8 @@ concurrency:
 jobs:
   ci:
     uses: $/.github/workflows/ci.yml
-{% endraw %}
+{% endraw %}{% if has_ansible %}
+    # Lets ci.yml read private Galaxy dependencies (see its deps-token step).
+    secrets:
+      CI_APP_PRIVATE_KEY: ${{ '{{' }} secrets.CI_APP_PRIVATE_KEY {{ '}}' }}
+{% endif %}
