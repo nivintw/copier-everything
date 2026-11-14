@@ -89,13 +89,13 @@ jobs:
       - uses: terraform-linters/setup-tflint@6ffdbaa3be476b3431f7275c26966ef32ff60337 # v6.3.2
 
       - name: Install hawkeye (pinned + checksum-verified, matching the template's CI)
-        uses: ./.github/actions/install-hawkeye
+        uses: $/.github/actions/install-hawkeye
         with:
           version: ${{ env.HAWKEYE_VERSION }}
           sha256: ${{ env.HAWKEYE_SHA256 }}
 
       - name: Install taplo (pinned + checksum-verified, matching the template's CI)
-        uses: ./.github/actions/install-taplo
+        uses: $/.github/actions/install-taplo
         with:
           version: ${{ env.TAPLO_VERSION }}
           sha256: ${{ env.TAPLO_SHA256 }}
@@ -164,7 +164,7 @@ jobs:
             prek-
 
       - name: Install taplo (pinned + checksum-verified; the taplo hook is language:system)
-        uses: ./.github/actions/install-taplo
+        uses: $/.github/actions/install-taplo
         with:
           version: ${{ env.TAPLO_VERSION }}
           sha256: ${{ env.TAPLO_SHA256 }}
@@ -182,7 +182,7 @@ jobs:
         run: taplo fmt --check --diff
 
       - name: Install hawkeye (pinned + checksum-verified)
-        uses: ./.github/actions/install-hawkeye
+        uses: $/.github/actions/install-hawkeye
         with:
           version: ${{ env.HAWKEYE_VERSION }}
           sha256: ${{ env.HAWKEYE_SHA256 }}
@@ -193,7 +193,7 @@ jobs:
       - name: Audit workflows (zizmor — online, full coverage)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: uvx zizmor@1.26.1 --no-progress .github/workflows .github/actions
+        run: uvx zizmor@1.32.0 --no-progress .github/workflows .github/actions
 
       # This repo's own Python suite. `uv run` provisions the dev env (copier, pyjson5, pytest)
       # from uv.lock; ruff/ty/pytest use the locked versions. The sync tests render the template

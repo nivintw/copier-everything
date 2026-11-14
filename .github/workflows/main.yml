@@ -52,7 +52,7 @@ jobs:
   # The same gate PRs run. The caller job is named `ci` so its check-runs report as
   # `ci / <job>` — matching what the ruleset requires and what PRs produce via pr.yml.
   ci:
-    uses: ./.github/workflows/ci.yml
+    uses: $/.github/workflows/ci.yml
 
   # Guard: the release job needs the App's Client ID + private key. A secret can't be read
   # in a job-level `if:`, so a step (which CAN see them) reports whether BOTH are present,
