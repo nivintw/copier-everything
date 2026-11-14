@@ -46,7 +46,7 @@ jobs:
         env:
           ANSIBLE_GALAXY_API_KEY: ${{ '{{' }} secrets.ANSIBLE_GALAXY_API_KEY {{ '}}' }}
           # renovate: datasource=pypi depName=ansible-core
-          ANSIBLE_CORE_VERSION: "2.21.1"
+          ANSIBLE_CORE_VERSION: "2.22.0"
         run: |
           set -euo pipefail
           if [ -z "${ANSIBLE_GALAXY_API_KEY:-}" ]; then
