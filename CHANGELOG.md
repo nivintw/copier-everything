@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.14.1](https://github.com/nivintw/copier-everything/compare/v1.14.0...v1.14.1) (2026-11-14)
+
+
+### Bug Fixes
+
+* **ci:** Use self-repository `$/` references so zizmor 1.32 passes ([04a52cf](https://github.com/nivintw/copier-everything/commit/04a52cf51ea4bd5c108308a70eeefd45889beb3e))
+
 ## [1.14.0](https://github.com/nivintw/copier-everything/compare/v1.13.0...v1.14.0) (2026-11-14)
 
 
