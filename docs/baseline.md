@@ -281,6 +281,12 @@ moved tag, the same supply-chain signal as a swapped asset.
     locally (no `BASE_REF`) skips this gate by design; there's no reliable base ref to diff
     against outside the automated branch structure.
 
+    A second, independent guard runs in CI: `scripts/check-binary-pins.sh` compares the
+    workflow files against the pull request's base commit and fails the required
+    `lint-and-test` check if any `*_SHA256` or `*_COMMIT` pin changed while its `*_VERSION`
+    didn't. That catches a hand edit as well as an automated one, and it blocks Renovate's
+    auto-merge like any other red check.
+
 ## Renovate
 
 Every generated project runs Renovate itself, with every rule kept in
@@ -309,6 +315,7 @@ once the required checks pass. The shared config's highlights:
 | Grouping | One non-major PR per ecosystem (Actions, pre-commit, Python, Docker, Ansible, Terraform); each major gets its own PR. |
 | Release-age wait | 1 day; 3 days for GitHub Actions; 14 days for the two actions that receive the release App's key. No branch exists until the wait passes. |
 | Held updates | Bare commit-hash pins (`@<sha> # main`) get a `hash-pin` label and wait for a person. |
+| Python version ranges | Widened, never narrowed. The generated `pyproject.toml` sets `[tool.uv] add-bounds` so `uv add` writes an upper bound at the next major for applications and a floor only for packages (`is_package`), and `exclude-newer = "1 day"` so uv resolves only releases at least a day old, matching Renovate's wait. |
 
 After Renovate bumps a binary version, a `postUpgradeTask` automatically updates the adjacent
 SHA256 in the same commit so CI stays green — see
