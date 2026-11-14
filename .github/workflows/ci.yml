@@ -35,8 +35,8 @@ env:
   # .github/actions/** would silently stop tracking them. SHAs are kept current with the
   # versions by scripts/refresh-binary-checksums.sh.
   # renovate: datasource=github-releases depName=korandoru/hawkeye
-  HAWKEYE_VERSION: "6.5.1"
-  HAWKEYE_SHA256: "d6eb0505a45a15244f4f789158aafe5e3f1a7dc86c9dc1d7651f3cb1e1b321e0"  # gitleaks:allow
+  HAWKEYE_VERSION: "7.3.0"
+  HAWKEYE_SHA256: "25559e6495c4af22333730892fd916fa0b16a7dd7d56af36dbafe9830b38cfcd"  # gitleaks:allow
   # renovate: datasource=github-releases depName=tamasfe/taplo
   TAPLO_VERSION: "0.10.0"
   # taplo ships no upstream checksum file; this SHA is computed from the asset.
