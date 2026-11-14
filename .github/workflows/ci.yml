@@ -176,7 +176,7 @@ jobs:
           # superset of the hook's offline pass); no-commit-to-branch is a local-only guard.
           # (reuse stays in the prek run — it's check-only.)
           SKIP: taplo,hawkeye-format,zizmor,no-commit-to-branch
-        run: uvx prek@0.4.8 run --all-files
+        run: uvx prek@0.5.10 run --all-files
 
       - name: Check TOML formatting (taplo)
         run: taplo fmt --check --diff
