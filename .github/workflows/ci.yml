@@ -138,6 +138,16 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           persist-credentials: false
+          # Full history, so the binary-pin check below can compare against the PR's base commit.
+          fetch-depth: 0
+
+      - name: Binary pins only move with their version
+        # Same check the template's lint-and-test runs: a *_SHA256 / *_COMMIT pin must not
+        # change unless its *_VERSION does.
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: scripts/check-binary-pins.sh "$BASE_SHA"
 
       - name: Set up uv
         uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0

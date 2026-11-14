@@ -77,6 +77,17 @@ jobs:
         with:
           # Read-only gate — don't leave the checkout token in .git/config (zizmor artipacked).
           persist-credentials: false
+          # Full history, so the binary-pin check below can compare against the PR's base commit.
+          fetch-depth: 0
+
+      - name: Binary pins only move with their version
+        # A *_SHA256 / *_COMMIT pin that changes while its *_VERSION doesn't is a release asset
+        # swapped on a published tag, or a hand edit hiding one. Inside this required check so
+        # it blocks the merge, Renovate's included.
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ '{{' }} github.event.pull_request.base.sha {{ '}}' }}
+        run: scripts/check-binary-pins.sh "$BASE_SHA"
 
       - name: Set up uv (+ managed Python)
         uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
