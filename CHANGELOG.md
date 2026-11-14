@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.15.0](https://github.com/nivintw/copier-everything/compare/v1.14.1...v1.15.0) (2026-11-14)
+
+
+### Features
+
+* **ansible:** Read private Galaxy dependencies in CI with a scoped App token ([05de6a1](https://github.com/nivintw/copier-everything/commit/05de6a1bec44ee0887e1032989b214984bcffbb2))
+
 ## [1.14.1](https://github.com/nivintw/copier-everything/compare/v1.14.0...v1.14.1) (2026-11-14)
 
 
