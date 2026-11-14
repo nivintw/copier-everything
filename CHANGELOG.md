@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.14.0](https://github.com/nivintw/copier-everything/compare/v1.13.0...v1.14.0) (2026-11-14)
+
+
+### Features
+
+* **renovate:** Run Renovate per repo from repo-management's shared config ([ee208c5](https://github.com/nivintw/copier-everything/commit/ee208c532460ce8b04cbe261f81d68698c00bda5))
+* **template:** uv age wait and bounds, a CI binary-pin check, and a true docs pin label ([94eca2b](https://github.com/nivintw/copier-everything/commit/94eca2b9035bd8ba4160bb408a5d7b0bff418bd8))
+
+
+### Bug Fixes
+
+* **renovate:** Pin repo-management v2.1.1, which groups regex-manager pins ([89d5e19](https://github.com/nivintw/copier-everything/commit/89d5e19f564606e8afff9b3e44fbb59f7660f9bd))
+
 ## [1.13.0](https://github.com/nivintw/copier-everything/compare/v1.12.0...v1.13.0) (2026-11-06)
 
 
