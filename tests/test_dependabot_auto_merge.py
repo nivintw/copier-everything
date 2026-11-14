@@ -1,18 +1,17 @@
 # SPDX-FileCopyrightText: © 2026 Tyler Nivin
 # SPDX-License-Identifier: MIT
 
-"""dependabot-auto-merge.yml must be a severity-gated, fail-closed security-floor merger.
+"""dependabot-auto-merge.yml must auto-merge every Dependabot PR, fail-closed, behind CI.
 
-The workflow auto-merges only CRITICAL/HIGH Dependabot *security* PRs, and only via a path
-that actually works under GitHub's Dependabot hardening. Each assertion below pins one property
-that, if it regressed, would silently break the floor (merge nothing, or merge too much):
+Dependabot PRs here are security updates only (no dependabot.yml ships) and are CVE-driven, so
+none of them waits on a severity gate or a release-age hold: each gets GitHub-native auto-merge
+and lands once its required checks pass. Each assertion pins one property that, if it regressed,
+would silently break the floor (merge nothing, or merge unchecked):
 
 - pull_request_target, not pull_request — a Dependabot `pull_request` run gets a read-only
   token and NO Actions secrets, so it can neither mint the App token nor enable auto-merge.
-- the advisory lookup uses the App token (GITHUB_TOKEN cannot read Dependabot alerts) with the
-  vulnerability-alerts read permission, and `alert-lookup: true`.
-- the merge is gated on a real advisory (ghsa-id) AND CVSS >= 7.0, so version updates and
-  Medium/Low security PRs are left open.
+- the merge goes through native auto-merge (`gh pr merge --auto`), which waits for the required
+  checks and never uses the App's ruleset bypass rights.
 - the template ships NO dependabot.yml — the floor is security-only; version freshness is
   Renovate's, and a version-updates dependabot.yml would collide with it.
 """
@@ -69,34 +68,24 @@ def test_dependabot_auto_merge_is_a_fail_closed_severity_gated_floor(
     # guard directly, since removing any one would silently break the fail-closed posture.
     app_token = next(s for s in steps if "actions/create-github-app-token@" in s.get("uses", ""))
     assert "vars.CI_CLIENT_ID != ''" in app_token["if"]
-    # The App token is what makes the advisory lookup possible, and it must carry exactly the two
-    # permissions the job needs — incl. vulnerability-alerts read, which GITHUB_TOKEN can't grant.
-    assert app_token["with"]["permission-vulnerability-alerts"] == "read"
+    # The App token is what can enable auto-merge on a Dependabot PR; it needs only this one
+    # permission.
     assert app_token["with"]["permission-pull-requests"] == "write"
 
-    # fetch-metadata must do the advisory lookup, gated on the token step, and use the App token
-    # (not GITHUB_TOKEN, which can't read Dependabot alerts).
-    meta = next(s for s in steps if "dependabot/fetch-metadata@" in s.get("uses", ""))
-    assert "app-token.outcome == 'success'" in meta["if"]
-    assert meta["with"]["alert-lookup"] is True
-    assert "app-token" in meta["with"]["github-token"]
-    assert "github.token" not in meta["with"]["github-token"]
+    # No advisory lookup and no severity gate: every Dependabot PR is CVE-driven.
+    assert not any("dependabot/fetch-metadata@" in s.get("uses", "") for s in steps)
+    assert "permission-vulnerability-alerts" not in app_token["with"]
+    assert "CVSS" not in text
+    assert "ghsa" not in text.lower()
 
-    # The merge step is gated on the metadata step, so it never runs on an unconfigured repo.
+    # The merge step is gated on the token step, so it never runs on an unconfigured repo, and it
+    # uses native auto-merge (the required checks gate it), after checking both repo settings
+    # that `gh pr merge --auto --rebase` needs, fail-closed.
     merge = next(s for s in steps if "gh pr merge" in s.get("run", ""))
-    assert "meta.outcome == 'success'" in merge["if"]
-
-    # Severity gate: a version update / unresolved advisory (empty ghsa-id) is left open; only a
-    # real advisory at CVSS >= 7.0 (High/Critical) instant-merges; "Allow auto-merge" is checked
-    # (fail-closed) before the rebase auto-merge. Assert the GUARDS themselves, not just the env
-    # wiring — `GHSA:` alone would match the env line and prove nothing about the -z guard.
-    assert '-z "${GHSA}"' in text  # empty-advisory guard → version updates left open
-    assert ">= 7.0" in text  # the High/Critical CVSS threshold
-    # Both repo settings that gate `gh pr merge --auto --rebase` are checked fail-closed.
-    assert "allow_auto_merge" in text
-    assert "allow_rebase_merge" in text
-    assert "gh pr merge" in text
-    assert "--auto --rebase" in text
+    assert "app-token.outcome == 'success'" in merge["if"]
+    assert "allow_auto_merge" in merge["run"]
+    assert "allow_rebase_merge" in merge["run"]
+    assert "--auto --rebase" in merge["run"]
 
     # The floor is security-only: no version-updates dependabot.yml anywhere in the render.
     assert not list(project_dir.rglob("dependabot.yml")), (
