@@ -32,7 +32,9 @@ jobs:
       contents: read
       pages: write
       id-token: write
-    uses: nivintw/repo-management/.github/workflows/docs.yml@e1949b798ee87018f16e1a41253ff36cf34f3b98 # main
+    # Held at the last MkDocs release on purpose: every later repo-management release needs an
+    # Astro site. The shared Renovate config disables updates to this pin until that migration.
+    uses: nivintw/repo-management/.github/workflows/docs.yml@e1949b798ee87018f16e1a41253ff36cf34f3b98 # v1.7.0
     with:
       # mkdocs.yml enables the git-revision-date-localized and llmstxt plugins
       # (nivintw/repo-management#94, #97) — neither ships with mkdocs-material, so both

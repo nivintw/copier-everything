@@ -48,6 +48,7 @@ TRIVIALLY_EQUAL = {
     ".github/workflows/approve-bot-prs.yml",
     ".github/workflows/dependabot-auto-merge.yml",
     ".github/workflows/renovate.yml",
+    "scripts/check-binary-pins.sh",
     ".github/workflows/label-hygiene.yml",
     "LICENSE",
     "LICENSES/MIT.txt",

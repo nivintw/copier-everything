@@ -41,6 +41,14 @@ dev = [
 
 [tool.uv]
 package = false
+# Resolve only releases at least a day old, the same wait Renovate applies before proposing an
+# update. uv.lock records just the span, so the lock stays stable day to day, and the cutoff only
+# moves forward, so a relock never rolls an already-locked package back.
+exclude-newer = "1 day"
+# What `uv add` writes. Applications get an upper bound at the next major (>=1.2.3,<2.0.0);
+# libraries get a floor only, so they don't box in their consumers. Renovate widens these ranges
+# and never narrows them.
+add-bounds = "major"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
