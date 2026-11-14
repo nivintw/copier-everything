@@ -3,8 +3,8 @@
 
 # Pre-commit hooks, run by prek (https://github.com/j178/prek). Designed to run
 # identically in CI — most hooks self-bootstrap a pinned env.
-#   Run on demand:  uvx prek@0.4.8 run --all-files
-#   Install hooks:  uvx prek@0.4.8 install
+#   Run on demand:  uvx prek@0.5.10 run --all-files
+#   Install hooks:  uvx prek@0.5.10 install
 
 default_install_hook_types: [pre-commit, commit-msg]
 default_stages: [pre-commit, manual]
@@ -69,7 +69,7 @@ repos:
         args: ["-s", "bash", "-x"]
 
   - repo: https://github.com/maxwinterstein/shfmt-py
-    rev: v4.0.0
+    rev: v4.2.0
     hooks:
       - id: shfmt
         name: "🐚 shell · Format shell scripts with shfmt"
@@ -156,14 +156,14 @@ repos:
         require_serial: true
 
   - repo: https://github.com/fsfe/reuse-tool
-    rev: v6.2.0
+    rev: v6.3.0
     hooks:
       - id: reuse
         name: "⚖️ license · Check REUSE compliance"
 
   # ------------------------------- ✨ Spelling -------------------------------------- #
   - repo: https://github.com/crate-ci/typos
-    rev: v1.47.2
+    rev: v1.52.2
     hooks:
       - id: typos
         name: "✨ language · Check spelling with typos"
@@ -178,7 +178,7 @@ repos:
   # hadolint is the Dockerfile analog of shellcheck. hadolint-py is pip-backed so it
   # self-bootstraps (no Docker/system install needed).
   - repo: https://github.com/AleksaC/hadolint-py
-    rev: v2.14.0
+    rev: v2.15.1
     hooks:
       - id: hadolint
         name: "🐳 docker · Lint Dockerfile with hadolint"
@@ -211,7 +211,7 @@ repos:
   # needed once you configure cloud plugins). checkov is pip-backed (self-bootstraps); trivy
   # is a system release binary (see the SYSTEM TOOLS note under Licensing).
   - repo: https://github.com/antonbabenko/pre-commit-terraform
-    rev: v1.108.0
+    rev: v1.109.5
     hooks:
       - id: terraform_fmt
         name: "🏗️ terraform · Format (terraform fmt)"
@@ -221,7 +221,7 @@ repos:
         name: "🏗️ terraform · Lint (tflint)"
 
   - repo: https://github.com/bridgecrewio/checkov
-    rev: 3.3.1
+    rev: 3.4.5
     hooks:
       - id: checkov
         name: "🏗️ terraform · Scan IaC for misconfig (checkov)"
@@ -260,7 +260,7 @@ repos:
   # bootstraps. fix first (autofix), then lint catches what can't be auto-fixed — the
   # ruff check+format pattern, for SQL.
   - repo: https://github.com/sqlfluff/sqlfluff
-    rev: 4.2.2
+    rev: 4.5.0
     hooks:
       - id: sqlfluff-fix
         name: "🗄️ sql · Fix SQL with sqlfluff"
@@ -283,7 +283,7 @@ repos:
   # via `ansible-galaxy install -r requirements.yml`. The hook is fully self-contained (no
   # pyproject/venv), which is what keeps an Ansible-only repo Python-free.
   - repo: https://github.com/ansible/ansible-lint
-    rev: v26.10.1
+    rev: v26.11.0
     hooks:
       - id: ansible-lint
         name: "🅰️ ansible · Lint playbooks/roles with ansible-lint"
@@ -299,7 +299,7 @@ repos:
         name: "🐍 python · Format with Ruff"
 
   - repo: https://github.com/abravalheri/validate-pyproject
-    rev: v0.25
+    rev: v0.27
     hooks:
       - id: validate-pyproject
         name: "🐍 python · Validate pyproject.toml"
@@ -321,7 +321,7 @@ repos:
 
   # -------------------------------- 📝 Markdown ------------------------------------- #
   - repo: https://github.com/rvben/rumdl-pre-commit
-    rev: v0.2.17
+    rev: v0.3.4
     hooks:
       - id: rumdl
         name: "📝 markdown · Lint/format with rumdl"
@@ -329,7 +329,7 @@ repos:
 {% if has_python %}
   # ----------------------------- ⚙️ Environment ------------------------------------- #
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.11.25
+    rev: 0.13.8
     hooks:
       - id: uv-lock
         name: "⚙️ uv · Keep uv.lock in sync with pyproject.toml"
@@ -338,7 +338,7 @@ repos:
   # Plain Conventional Commits (no gitmoji): release-please derives version bumps from
   # commit types and cannot parse a leading emoji, so commits must start with the bare type.
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.16.3
+    rev: v4.19.3
     hooks:
       - id: commitizen
         name: "✨ commit-msg · Enforce Conventional Commits"
