@@ -48,7 +48,10 @@ concurrency:
 jobs:
   ci:
     uses: $/.github/workflows/ci.yml
-    # release-please's bump commit was already validated as the Release PR, so skip the heavy
+{% endraw %}{% if has_ansible %}    # Lets ci.yml read private Galaxy dependencies (see its deps-token step).
+    secrets:
+      CI_APP_PRIVATE_KEY: ${{ '{{' }} secrets.CI_APP_PRIVATE_KEY {{ '}}' }}
+{% endif %}{% raw %}    # release-please's bump commit was already validated as the Release PR, so skip the heavy
     # gate when it lands on main — the ci job still succeeds, so `needs: ci` and the release
     # job are unaffected. Scope to `push` (head_commit is absent on workflow_dispatch, which
     # then runs the full gate) and anchor on release-please's exact bump-commit prefix

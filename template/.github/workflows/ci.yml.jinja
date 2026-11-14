@@ -24,7 +24,15 @@ on:
           `needs: ci` is unaffected because the job still succeeds.
         type: boolean
         default: false
-
+{% if has_ansible %}    secrets:
+      CI_APP_PRIVATE_KEY:
+        description: >-
+          The fleet CI App's private key. Used only to mint a read-only token so
+          `ansible-galaxy install` can fetch private collections and roles that requirements.yml
+          pulls from this owner's GitHub repos. Optional: without it, public content still
+          installs and a private dependency fails loudly.
+        required: false
+{% endif %}
 permissions:
   contents: read
 
@@ -153,6 +161,33 @@ jobs:
         if: inputs.skip-quality-gate != true
         uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
 {% endif %}{% if has_ansible %}
+      - name: Find this owner's GitHub repos that requirements.yml pulls
+        # The token below is scoped to exactly these repos, so it can't read anything else.
+        id: deps
+        if: inputs.skip-quality-gate != true
+        env:
+          OWNER: ${{ '{{' }} github.repository_owner {{ '}}' }}
+        run: |
+          set -euo pipefail
+          # Both URL forms: https://github.com/OWNER/REPO(.git) and git@github.com:OWNER/REPO(.git).
+          names="$(grep -oE "github\.com[:/]${OWNER}/[A-Za-z0-9._-]+" requirements.yml \
+            | sed -E "s#.*/##; s#\.git\$##" | sort -u | paste -sd, - || true)"
+          echo "names=${names}" >>"$GITHUB_OUTPUT"
+
+      - name: Mint a read-only token for those repos
+        # The default GITHUB_TOKEN is scoped to this repo, so it can't read a private dependency.
+        # The fleet CI App can: this mints a contents:read token for exactly the repos found
+        # above, used by the next step alone. Skipped when there are none or the App isn't
+        # configured (public content still installs; a private dependency then fails loudly).
+        id: deps-token
+        if: inputs.skip-quality-gate != true && steps.deps.outputs.names != '' && vars.CI_CLIENT_ID != ''
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ '{{' }} vars.CI_CLIENT_ID {{ '}}' }}
+          private-key: ${{ '{{' }} secrets.CI_APP_PRIVATE_KEY {{ '}}' }}
+          repositories: ${{ '{{' }} steps.deps.outputs.names {{ '}}' }}
+          permission-contents: read
+
       - name: Install Galaxy content (so ansible-lint resolves collections in the prek gate)
         if: inputs.skip-quality-gate != true
         # ansible-lint (a prek hook) resolves Galaxy collections from Ansible's default path;
@@ -161,7 +196,19 @@ jobs:
         env:
           # renovate: datasource=pypi depName=ansible-core
           ANSIBLE_CORE_VERSION: "2.22.0"
-        run: uvx --from "ansible-core==${ANSIBLE_CORE_VERSION}" ansible-galaxy install -r requirements.yml
+          DEPS_TOKEN: ${{ '{{' }} steps.deps-token.outputs.token {{ '}}' }}
+        run: |
+          set -euo pipefail
+          if [ -n "${DEPS_TOKEN}" ]; then
+            # Rewrite GitHub git URLs (https and ssh forms) to carry the read-only token, through
+            # GIT_CONFIG_* so it lives in this step's environment only, never in a config file.
+            export GIT_CONFIG_COUNT=2
+            export GIT_CONFIG_KEY_0="url.https://x-access-token:${DEPS_TOKEN}@github.com/.insteadOf"
+            export GIT_CONFIG_VALUE_0="https://github.com/"
+            export GIT_CONFIG_KEY_1="url.https://x-access-token:${DEPS_TOKEN}@github.com/.insteadOf"
+            export GIT_CONFIG_VALUE_1="git@github.com:"
+          fi
+          uvx --from "ansible-core==${ANSIBLE_CORE_VERSION}" ansible-galaxy install -r requirements.yml
 {% endif %}
       - name: Run prek hooks (same as local)
         if: inputs.skip-quality-gate != true
