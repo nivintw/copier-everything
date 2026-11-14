@@ -22,9 +22,12 @@ import yaml
 if TYPE_CHECKING:
     from pathlib import Path
 
-PRESET = re.compile(r"^github>nivintw/repo-management//renovate/(?P<name>[\w-]+)\.json5#(?P<tag>v\d+\.\d+\.\d+)$")
+PRESET = re.compile(
+    r"^github>nivintw/repo-management//renovate/(?P<name>[\w-]+)\.json5#(?P<tag>v\d+\.\d+\.\d+)$"
+)
 CALLER_USES = re.compile(
-    r"uses: nivintw/repo-management/\.github/workflows/reusable-renovate\.yml@(?P<sha>[0-9a-f]{40}) # (?P<tag>v\d+\.\d+\.\d+)$",
+    r"uses: nivintw/repo-management/\.github/workflows/reusable-renovate\.yml"
+    r"@(?P<sha>[0-9a-f]{40}) # (?P<tag>v\d+\.\d+\.\d+)$",
     re.MULTILINE,
 )
 
@@ -32,7 +35,11 @@ CALLER_USES = re.compile(
 def _render_shim(template_dir: Path) -> str:
     """The template shim with its two header placeholders filled, as copier would."""
     text = (template_dir / "template/.github/renovate.json5.jinja").read_text()
-    return text.replace("{{ year }}", "2026").replace("{{ author_name }}", "x").replace("{{ license }}", "MIT")
+    return (
+        text.replace("{{ year }}", "2026")
+        .replace("{{ author_name }}", "x")
+        .replace("{{ license }}", "MIT")
+    )
 
 
 def _preset_tags(config: dict) -> dict[str, str]:
@@ -64,13 +71,17 @@ def test_root_shim_adds_only_the_copier_template_preset(template_dir: Path) -> N
 def test_shims_and_caller_pin_the_same_release(template_dir: Path) -> None:
     """Template shim, root shim, template caller and root caller all name one release."""
     tags = set(_preset_tags(pyjson5.decode(_render_shim(template_dir))).values())
-    tags |= set(_preset_tags(pyjson5.decode((template_dir / ".github/renovate.json5").read_text())).values())
+    tags |= set(
+        _preset_tags(pyjson5.decode((template_dir / ".github/renovate.json5").read_text())).values()
+    )
     for caller in (
         template_dir / "template/.github/workflows/renovate.yml.jinja",
         template_dir / ".github/workflows/renovate.yml",
     ):
         match = CALLER_USES.search(caller.read_text())
-        assert match, f"{caller} doesn't call reusable-renovate.yml pinned by SHA with a tag comment"
+        assert match, (
+            f"{caller} doesn't call reusable-renovate.yml pinned by SHA with a tag comment"
+        )
         tags.add(match["tag"])
     assert len(tags) == 1, f"repo-management pins disagree: {sorted(tags)}"
 
