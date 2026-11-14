@@ -151,7 +151,7 @@ jobs:
 {% endif %}{% if include_helm %}
       - name: Set up Helm (backs the helm-lint prek hook + the kubeconform step below)
         if: inputs.skip-quality-gate != true
-        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+        uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
 {% endif %}{% if has_ansible %}
       - name: Install Galaxy content (so ansible-lint resolves collections in the prek gate)
         if: inputs.skip-quality-gate != true

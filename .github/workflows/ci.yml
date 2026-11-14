@@ -79,7 +79,7 @@ jobs:
           sudo apt-get install -y -qq bats
 
       - name: Install helm (for the full-modules shape's helm-lint hook)
-        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+        uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
 
       - name: Install terraform + tflint (for the full-modules shape's terraform hooks)
         uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
