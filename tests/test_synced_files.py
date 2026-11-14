@@ -47,6 +47,7 @@ TRIVIALLY_EQUAL = {
     ".config/yamllint.yaml",
     ".github/workflows/approve-bot-prs.yml",
     ".github/workflows/dependabot-auto-merge.yml",
+    ".github/workflows/renovate.yml",
     ".github/workflows/label-hygiene.yml",
     "LICENSE",
     "LICENSES/MIT.txt",
@@ -96,7 +97,9 @@ NOT_SYNCED = {
     "REUSE.toml",
     ".config/release-please-config.json",
     ".config/.release-please-manifest.json",
-    ".github/renovate.json",  # root uses renovate.json5 (json5 comments)
+    # Root also extends copier-template.json5 (the pins inside template/**/*.jinja); the pins
+    # themselves are kept in lockstep by tests/test_renovate_config.py.
+    ".github/renovate.json5",
     # Prose — repo-specific or release-generated.
     "README.md",
     "AGENTS.md",

@@ -1,108 +1,14 @@
 // SPDX-FileCopyrightText: © 2026 Tyler Nivin
 // SPDX-License-Identifier: MIT
 //
-// Renovate config for the TEMPLATE repo itself (dogfood). Renovate's native managers can't
-// see the pins INSIDE template/**/*.jinja (they aren't .yaml/.pre-commit-config), so those
-// are picked up by the customManagers below. The repo's OWN .github/workflows/*.yml is
-// handled natively by the github-actions manager. Generated projects get their own config
-// from template/.github/renovate.json.
+// Shim. The fleet's rules live in nivintw/repo-management's renovate/default.json5; this repo
+// also extends copier-template.json5, which teaches Renovate the pins inside template/**/*.jinja.
+// Both are pinned to the same release tag, which Renovate bumps (together with the reusable
+// workflow's pin in .github/workflows/renovate.yml) when repo-management releases.
 {
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended",
-    ":semanticCommits",
-    "helpers:pinGitHubActionDigests",
-  ],
-  "labels": ["dependencies"],
-  "packageRules": [
-    {
-      "description": "Group Ruff bumps so a new rule under extend-select=ALL lands as one reviewable PR.",
-      "matchPackageNames": ["astral-sh/ruff-pre-commit"],
-      "groupName": "ruff",
-    },
-    {
-      // Refresh the pin next to each bumped *_VERSION in Renovate's own commit — the *_SHA256
-      // for asset-bearing tools, the *_COMMIT for asset-less bats. The central self-hosted
-      // runner executes this (its allowedCommands authorizes the script). fileFilters also
-      // covers template/.github/workflows/** because this repo's script refreshes the pins
-      // inside the generated workflow .jinja files too. Scoped to these packages (matching the
-      // customManager below) so an unrelated update — a ruff-pre-commit bump, an
-      // actions/checkout digest bump, etc. — doesn't also shell out to external release hosts.
-      //
-      // The command is the bare script on purpose. The central runner allowlists exactly that
-      // string, and it sets BASE_REF itself (customEnvVariables, not overridable by a repo),
-      // which arms the script's tamper gate fleet-wide. Setting BASE_REF here would both fail
-      // that allowlist and bypass the central setting.
-      "description": "Only re-run the checksum refresh when one of the pinned tools (SHA256 or COMMIT class) actually changed.",
-      "matchPackageNames": ["aquasecurity/trivy", "google/osv-scanner", "korandoru/hawkeye", "tamasfe/taplo", "yannh/kubeconform", "bats-core/bats-core", "gitleaks/gitleaks"],
-      "postUpgradeTasks": {
-        "commands": ["scripts/refresh-binary-checksums.sh"],
-        "fileFilters": [".github/workflows/**", "template/.github/workflows/**"],
-        "executionMode": "branch",
-      },
-    },
-  ],
-  "customManagers": [
-    {
-      "customType": "regex",
-      "description": "pre-commit hook revs pinned inside the generated .pre-commit-config.yaml.jinja",
-      "managerFilePatterns": ["/^template/\\.pre-commit-config\\.yaml\\.jinja$/"],
-      "matchStrings": [
-        "repo:\\s+https://github\\.com/(?<depName>[^\\s/]+/[^\\s/]+)\\s+rev:\\s+(?<currentValue>\\S+)",
-      ],
-      "datasourceTemplate": "github-tags",
-    },
-    {
-      "customType": "regex",
-      "description": "SHA-pinned actions inside the generated workflow .jinja files",
-      "managerFilePatterns": ["/^template/\\.github/workflows/.+\\.jinja$/"],
-      "matchStrings": [
-        "uses:\\s+(?<depName>[\\w.-]+/[\\w.-]+)@(?<currentDigest>[a-f0-9]{40})\\s+#\\s+(?<currentValue>v\\S+)",
-      ],
-      "datasourceTemplate": "github-tags",
-    },
-    {
-      "customType": "regex",
-      "description": "Release binaries pinned by a `# renovate:`-annotated *_VERSION env var (trivy, osv-scanner, hawkeye, taplo, kubeconform, and bats) — own + generated workflows. Renovate bumps the version; the adjacent pin (*_SHA256 for asset-bearing tools, *_COMMIT for asset-less bats) is refreshed by scripts/refresh-binary-checksums.sh, run as a postUpgradeTask (below) so the fix lands in Renovate's own commit, since github-releases has no asset-digest datasource.",
-      "managerFilePatterns": [
-        "/^\\.github/workflows/.+\\.ya?ml$/",
-        "/^template/\\.github/workflows/.+\\.jinja$/",
-      ],
-      "matchStrings": [
-        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s+\\w+: \"(?<currentValue>[^\"]+)\"",
-      ],
-    },
-    {
-      "customType": "regex",
-      "description": "uv image pinned in the generated Dockerfile.jinja (Renovate's docker manager can't parse .jinja)",
-      "managerFilePatterns": ["/Dockerfile.*\\.jinja$/"],
-      "matchStrings": [
-        "COPY --from=(?<depName>ghcr\\.io/astral-sh/uv):(?<currentValue>\\S+) ",
-      ],
-      "datasourceTemplate": "docker",
-    },
-    {
-      "customType": "regex",
-      "description": "prek pinned identically everywhere it's invoked — own CI/docs (including the published docs/*.md site content, so it doesn't go stale again between generate-docs runs) and the generated equivalents — so a contributor's local run always matches CI. No `# renovate:` annotation needed: the visible `uvx prek@X.Y.Z` text itself is the tracked value; matching depName/datasource across every occurrence means Renovate bumps them all together in one PR.",
-      "managerFilePatterns": [
-        "/^\\.github/workflows/.+\\.ya?ml$/",
-        "/^AGENTS\\.md$/",
-        "/^README\\.md$/",
-        "/^\\.pre-commit-config\\.yaml$/",
-        "/^copier\\.yml$/",
-        "/^docs/baseline\\.md$/",
-        "/^docs/questions\\.md$/",
-        "/^docs/usage\\.md$/",
-        "/^template/\\.github/workflows/.+\\.jinja$/",
-        "/^template/AGENTS\\.md\\.jinja$/",
-        "/^template/README\\.md\\.jinja$/",
-        "/^template/CONTRIBUTING\\.md\\.jinja$/",
-        "/^template/\\.github/PULL_REQUEST_TEMPLATE\\.md\\.jinja$/",
-        "/^template/\\.pre-commit-config\\.yaml\\.jinja$/",
-      ],
-      "matchStrings": ["uvx prek@(?<currentValue>[0-9]+\\.[0-9]+\\.[0-9]+)"],
-      "datasourceTemplate": "pypi",
-      "depNameTemplate": "prek",
-    },
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: [
+    "github>nivintw/repo-management//renovate/default.json5#v2.1.0",
+    "github>nivintw/repo-management//renovate/copier-template.json5#v2.1.0",
   ],
 }

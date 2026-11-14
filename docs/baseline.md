@@ -265,16 +265,16 @@ moved tag, the same supply-chain signal as a swapped asset.
     `scripts/refresh-binary-checksums.sh` recomputes each SHA256 from its pinned version —
     reading the upstream-published checksum file for trivy, osv-scanner, hawkeye, kubeconform,
     and gitleaks; hashing the asset directly for taplo (which publishes none), and resolving the
-    tag's commit id for the asset-less `*_COMMIT` pin (bats). `renovate.json`
-    wires the script as a `postUpgradeTask` (`executionMode: branch`), so the central
-    self-hosted Renovate runner runs it during the upgrade and folds the refreshed hash into
-    Renovate's **own** commit — no separate bot pushing onto the Renovate branch.
+    tag's commit id for the asset-less `*_COMMIT` pin (bats). The shared Renovate config wires
+    the script as a `postUpgradeTask` (`executionMode: branch`), so Renovate runs it during the
+    upgrade and folds the refreshed hash into its **own** commit — no separate bot pushing onto
+    the Renovate branch.
 
-    The runner must authorize the script in its `allowedCommands`; absent that, the hash
-    stays stale and the fail-closed mismatch stands — re-pin by hand with the script, then
-    commit.
+    repo-management's `reusable-renovate.yml` authorizes the script in its `allowedCommands`;
+    absent that, the hash stays stale and the fail-closed mismatch stands — re-pin by hand with
+    the script, then commit.
 
-    The central runner also sets `BASE_REF=origin/HEAD` for every repo, activating a tamper
+    The same workflow also sets `BASE_REF=origin/HEAD`, activating a tamper
     gate: the script refuses to re-pin a SHA whose
     adjacent `*_VERSION` is unchanged versus that ref — an upstream asset swapped on an
     already-published tag — and exits with a `TAMPER ALERT` instead. A human re-pinning
@@ -283,15 +283,32 @@ moved tag, the same supply-chain signal as a swapped asset.
 
 ## Renovate
 
-Every generated project ships `.github/renovate.json` to keep actions digests, pre-commit
-hook revisions, and pinned binary versions current in automated PRs.
+Every generated project runs Renovate itself, with every rule kept in
+[nivintw/repo-management](https://github.com/nivintw/repo-management) and two small files here:
+
+- `.github/renovate.json5` — a shim that extends repo-management's `renovate/default.json5` at a
+  release tag. It carries no rules of its own.
+- `.github/workflows/renovate.yml` — only the triggers (nightly, a push to `main`, a Dependency
+  Dashboard checkbox, manual). It calls repo-management's `reusable-renovate.yml` at that same
+  release, pinned by SHA. That workflow mints a token from the Renovate GitHub App scoped to this
+  repo and holds the admin-only settings (allowed commands, the tamper-gate `BASE_REF`, the
+  pinned Renovate version). It needs the `RENOVATE_CLIENT_ID` variable and
+  `RENOVATE_APP_PRIVATE_KEY` secret, which repo-management provisions fleet-wide; without them
+  the job is skipped.
+
+When repo-management releases, Renovate opens one PR here that moves both pins together, and it
+merges like any other update. Renovate merges its own PRs through GitHub's native auto-merge
+once the required checks pass. The shared config's highlights:
 
 | What Renovate manages | Mechanism |
 | --- | --- |
 | GitHub Actions digests | `helpers:pinGitHubActionDigests` preset — keeps `uses:` SHA digests current while preserving the human-readable `# vX.Y.Z` comment. |
 | Pre-commit hook revisions | Built-in pre-commit manager (`"pre-commit": {"enabled": true}`) — bumps `rev:` values in `.pre-commit-config.yaml`. |
 | Pinned binary versions | Custom regex manager that reads `# renovate: datasource=... depName=...` annotations on `*_VERSION` env vars in workflow files. Covers all six SHA256-pinned binaries plus the bats `*_COMMIT` pin. |
-| Ruff | Grouped into a single PR so a new lint rule landing under `extend-select = ALL` is one reviewable change rather than a surprise red gate. |
+| Ruff | Its own group, so a new lint rule landing under `extend-select = ALL` doesn't hold up every other pre-commit hook. |
+| Grouping | One non-major PR per ecosystem (Actions, pre-commit, Python, Docker, Ansible, Terraform); each major gets its own PR. |
+| Release-age wait | 1 day; 3 days for GitHub Actions; 14 days for the two actions that receive the release App's key. No branch exists until the wait passes. |
+| Held updates | Bare commit-hash pins (`@<sha> # main`) get a `hash-pin` label and wait for a person. |
 
 After Renovate bumps a binary version, a `postUpgradeTask` automatically updates the adjacent
 SHA256 in the same commit so CI stays green — see
@@ -305,16 +322,15 @@ work deliberately and don't overlap: the template ships **no `dependabot.yml`**,
 opens only *security* PRs (once you enable *"Dependabot security updates"* in repo settings),
 never version-update PRs that would collide with Renovate.
 
-`dependabot-auto-merge.yml` (see the [CI architecture](#ci-architecture) table) makes a
-critical/high security fix *land* fast, not just open fast: it reads the advisory's CVSS via
-`dependabot/fetch-metadata` and enables GitHub-native auto-merge for **CVSS ≥ 7.0** once required
-checks pass. Lower-severity security PRs open and wait for review.
+`dependabot-auto-merge.yml` (see the [CI architecture](#ci-architecture) table) makes a security
+fix *land* fast, not just open fast: it enables GitHub-native auto-merge on **every** Dependabot
+PR, which merges once the required checks pass. There's no severity gate and no release-age
+wait, since these updates are CVE-driven; CI is the gate.
 
 !!! tip "Inert until you opt in"
     Like the release App, this floor self-disables until it's configured: it does nothing until
-    you enable Dependabot security updates *and* grant the release App (`CI_CLIENT_ID` +
-    `CI_APP_PRIVATE_KEY`) the *Dependabot alerts: read* permission it needs to read advisory
-    severity. Until then it's a clean no-op — the workflow ships to every project but merges
+    you enable Dependabot security updates *and* configure the release App (`CI_CLIENT_ID` +
+    `CI_APP_PRIVATE_KEY`), which it uses to enable auto-merge. Until then it's a clean no-op — the workflow ships to every project but merges
     nothing.
 
 ## Claude Code guard hooks
