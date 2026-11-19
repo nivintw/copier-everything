@@ -253,13 +253,25 @@ adjacent `BATS_COMMIT`, a `*_COMMIT` pin) — closing the previous unpinned, mut
 `apt-get install bats` gap; CI verifies the pinned commit really is `v${BATS_VERSION}`'s tag
 before installing.
 
+### Hook tools moved to mise
+
+Later, the binaries that back prek hooks — hawkeye, taplo, osv-scanner, and trivy's `config`
+scans, plus helm — moved off this scheme onto prek's `language: mise`. As `language: system`
+hooks they needed every contributor to install each tool by hand, and the local versions
+drifted from CI's pins: hawkeye 7 broke the 6.x config for anyone who installed it, while CI
+stayed green on 6.5.1. A mise hook pins its tool at an exact version in
+`additional_dependencies` and prek installs it, so local and CI run the same binary with no
+setup. The trade-off is integrity: these tools are verified by mise's backend (aqua registry
+checksums, plus cosign/SLSA where upstream publishes it) instead of a repo-held SHA256 behind
+the tamper gate below. That gate still covers what CI installs for steps outside prek:
+kubeconform, gitleaks, bats, and trivy for `trivy image`.
+
 ### Keeping hashes fresh
 
 Renovate's `github-releases` datasource has no concept of asset digests, so it can bump
 `*_VERSION` but cannot update `*_SHA256`. A version bump with a stale hash would fail CI on
 the mismatch. `scripts/refresh-binary-checksums.sh` recomputes each SHA from its pinned
-version — reading the upstream checksum file for trivy, osv-scanner, hawkeye, kubeconform, and
-gitleaks; hashing the asset directly for taplo, which publishes no checksum file; and resolving
+version — reading the upstream checksum file for trivy, kubeconform, and gitleaks, and resolving
 the tag's commit id for the asset-less `*_COMMIT` pin (bats). Renovate
 runs the script as a `postUpgradeTask` (`executionMode: branch`), so the refreshed hash folds
 into Renovate's **own** commit — no separate bot pushing onto the Renovate branch, which is
@@ -276,14 +288,6 @@ unchanged versus that ref — it exits with a `TAMPER ALERT` instead of silently
 new hash. Run without `BASE_REF` (a human re-pinning locally after a deliberate bump), the
 gate is off by design, since there's no reliable base to diff against outside the automated
 branch structure.
-
-!!! warning "taplo's pin is weaker — by necessity"
-    The other four binaries read an upstream-published checksum file, providing an
-    independent attestation at pin time. taplo publishes no checksum file, so the script
-    hashes whatever it downloads — trust-on-first-use. It still detects tampering *after* the
-    pin is set (every CI run re-verifies), but it cannot give an independent guarantee at the
-    moment of pinning. There is no fix until taplo ships checksums upstream. The asymmetry is
-    explicit here so it is not silent.
 
 ## Open follow-ups
 

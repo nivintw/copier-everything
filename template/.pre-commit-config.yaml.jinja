@@ -2,9 +2,12 @@
 # SPDX-License-Identifier: {{ license }}
 
 # Pre-commit hooks, run by prek (https://github.com/j178/prek). Designed to run
-# identically in CI — most hooks self-bootstrap a pinned env.
-#   Run on demand:  uvx prek@0.4.8 run --all-files
-#   Install hooks:  uvx prek@0.4.8 install
+# identically in CI — every hook self-bootstraps a pinned env. Release-binary tools
+# (hawkeye, taplo, osv-scanner, trivy, helm) use prek's `language: mise`, which installs the
+# pinned tool into prek's own cache (downloading mise itself if needed): nothing to install
+# by hand, and local runs the same version CI does.
+#   Run on demand:  uvx prek@0.5.11 run --all-files
+#   Install hooks:  uvx prek@0.5.11 install
 
 default_install_hook_types: [pre-commit, commit-msg]
 default_stages: [pre-commit, manual]
@@ -118,9 +121,8 @@ repos:
   # ----------------------- 🔒 Dependency CVEs (supply chain) ------------------------ #
   # ruff `ALL` lints the *code*, not the dependency tree. `uv audit` checks the resolved
   # deps against PyPA advisories; osv-scanner cross-checks uv.lock against the OSV database
-  # (and also handles non-Python lockfiles). Both are system tools — uv ships `audit`, and
-  # osv-scanner is a release binary, like hawkeye/taplo — so CI and local match (see the
-  # SYSTEM TOOLS note under Licensing for where these binaries come from).
+  # (and also handles non-Python lockfiles). uv ships `audit` (uv is already the project's
+  # toolchain); osv-scanner is a release binary installed through mise.
   - repo: local
     hooks:
       - id: uv-audit
@@ -135,23 +137,21 @@ repos:
       - id: osv-scanner
         name: "🔒 deps · Scan uv.lock for CVEs (osv-scanner)"
         entry: osv-scanner scan source --lockfile uv.lock
-        language: system
+        language: mise
+        additional_dependencies: ["aqua:google/osv-scanner@2.7.1"]
         files: '^uv\.lock$'
         pass_filenames: false
 {% endif %}
   # --------------------------- ⚖️ Licensing & Compliance ---------------------------- #
   # hawkeye maintains the SPDX headers (config: .config/licenserc.toml); reuse verifies overall
-  # REUSE compliance. hawkeye is a system release binary (like taplo/osv-scanner/trivy).
-  # SYSTEM TOOLS: this template emits NO Brewfile — CI installs these binaries per run, but
-  # install them locally too so `prek run --all-files` matches CI (the README "Quality gate"
-  # section lists them). The canonical nivintw setup provides them via the Brewfile in the
-  # https://github.com/nivintw/dotfiles repo; a generic adopter supplies their own equivalent.
+  # REUSE compliance.
   - repo: local
     hooks:
       - id: hawkeye-format
         name: "⚖️ license · Add/format SPDX headers with hawkeye"
         entry: hawkeye format --config .config/licenserc.toml
-        language: system
+        language: mise
+        additional_dependencies: ["github:fast/hawkeye@7.3.0"]
         pass_filenames: false
         require_serial: true
 
@@ -185,8 +185,7 @@ repos:
 
   # trivy config applies misconfiguration policies hadolint doesn't (missing HEALTHCHECK,
   # running as root, …). Image-layer CVE scanning needs a *built* image, so `trivy image`
-  # runs in CI (build-then-scan) — see .github/workflows. trivy is a system release binary,
-  # like hawkeye/taplo (see the SYSTEM TOOLS note under Licensing).
+  # runs in CI (build-then-scan) — see .github/workflows.
   - repo: local
     hooks:
       - id: trivy-dockerfile
@@ -197,7 +196,8 @@ repos:
         # --skip-check-update uses trivy's bundled checks instead of fetching the policy bundle,
         # so this gate hook stays offline/deterministic (the online image scan lives in CI).
         entry: trivy config --exit-code 1 --skip-check-update --severity HIGH,CRITICAL Dockerfile
-        language: system
+        language: mise
+        additional_dependencies: ["aqua:aquasecurity/trivy@0.71.2"]
         pass_filenames: false
         files: '^Dockerfile$'
 {% endif %}{% if include_terraform %}
@@ -239,19 +239,21 @@ repos:
         # --skip-check-update uses trivy's bundled checks (no policy-bundle fetch) so the gate
         # stays offline/deterministic.
         entry: trivy config --exit-code 1 --skip-check-update terraform
-        language: system
+        language: mise
+        additional_dependencies: ["aqua:aquasecurity/trivy@0.71.2"]
         pass_filenames: false
         files: '\.tf$'
 {% endif %}{% if include_helm %}
   # --------------------------------- ⎈ Helm ---------------------------------------- #
-  # `helm lint` runs the local helm binary (offline). Schema validation (kubeconform) needs
+  # `helm lint` runs offline. Schema validation (kubeconform) needs
   # to fetch upstream Kubernetes schemas, so it runs in CI — see .github/workflows.
   - repo: local
     hooks:
       - id: helm-lint
         name: "⎈ helm · Lint chart (helm lint)"
         entry: helm lint helm/{{ project_slug }}
-        language: system
+        language: mise
+        additional_dependencies: ["aqua:helm/helm@4.3.2"]
         pass_filenames: false
         files: '^helm/'
 {% endif %}{% if include_sql %}
@@ -344,7 +346,7 @@ repos:
         name: "✨ commit-msg · Enforce Conventional Commits"
         stages: [commit-msg]
 
-  # --------------------- 🛠️ Local Tools (prek can't bootstrap) ---------------------- #
+  # ---------------------------------- 🛠️ Local Tools ------------------------------- #
   - repo: local
     hooks:
       - id: prek-validate-config
@@ -370,6 +372,7 @@ repos:
       - id: taplo
         name: "📝 toml · Format with taplo"
         entry: taplo format
-        language: system
+        language: mise
+        additional_dependencies: ["aqua:tamasfe/taplo@0.10.0"]
         types: [toml]
         pass_filenames: false

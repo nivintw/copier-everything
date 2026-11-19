@@ -111,12 +111,10 @@ uvx prek@0.5.11 install            # wire up the pre-commit + commit-msg hooks
 uvx prek@0.5.11 run --all-files    # run the gate on demand (version pinned to match CI)
 ```
 
-> **Two system tools:** the `taplo` and `hawkeye` hooks are `language: system`, so install
-> both locally before running the gate — those hooks fail without them. `taplo`
-> (`brew install taplo` / `cargo install taplo-cli`) and `hawkeye`
-> (`brew install korandoru/tap/hawkeye` / [release binary](https://github.com/korandoru/hawkeye/releases)).
-> Every other hook self-bootstraps. (CI installs both as their own steps — pinned and
-> SHA256-verified.)
+> **Nothing to install by hand:** every hook self-bootstraps. The release-binary tools
+> (`taplo`, `hawkeye`) are prek [`language: mise`](https://prek.j178.dev/languages/#mise)
+> hooks: prek installs the pinned version into its own cache, downloading mise itself if
+> needed, so local runs match CI.
 
 Commits use plain Conventional Commits (no gitmoji — release-please can't parse a leading
 emoji). The template repo itself is versioned by `main.yml` (release-please): push to `main`

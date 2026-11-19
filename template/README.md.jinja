@@ -33,8 +33,9 @@ identically locally and in CI. Conventional Commits are enforced at commit-msg t
 uvx prek@0.5.11 run --all-files   # run every hook on demand (version pinned to match CI)
 ```
 
-A few hooks shell out to **system tools** prek can't bootstrap — CI installs them for
-you, but install them locally too (most are in Homebrew): `hawkeye`, `taplo`{% if include_terraform or include_docker %}, `trivy`{% endif %}{% if has_python %}, `osv-scanner`{% endif %}{% if include_terraform %}, `terraform`, `tflint`{% endif %}{% if include_helm %}, `helm`{% endif %}.
+Every hook bootstraps its own pinned tool — the release binaries (`hawkeye`, `taplo`{% if include_terraform or include_docker %}, `trivy`{% endif %}{% if has_python %}, `osv-scanner`{% endif %}{% if include_helm %}, `helm`{% endif %}) through prek's
+`language: mise`, which downloads mise itself if needed.{% if include_terraform %} The Terraform hooks
+are the exception: install `terraform` and `tflint` locally.{% endif %}
 {% if include_terraform %}
 ## Terraform
 

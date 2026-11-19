@@ -15,8 +15,9 @@
 # in single-shape mode (`--one`) as its own process — no bash-4 job control needed (macOS
 # ships bash 3.2). Per-shape output is buffered to a log and printed grouped at the end.
 #
-# Requires: copier, uv (provides uvx), reuse, hawkeye, taplo, bats, git, trivy, osv-scanner,
-# terraform, tflint, helm (the last five back module hooks the full-modules shape exercises).
+# Requires: copier, uv (provides uvx), reuse, bats, git, rsync, terraform, tflint (the last
+# two back the full-modules shape's terraform hooks). The release-binary hook tools (hawkeye,
+# taplo, osv-scanner, trivy, helm) are `language: mise` hooks that prek installs itself.
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -74,7 +75,7 @@ if [ "${1:-}" = "--one" ]; then
   (cd "$out" && git init -q && git add -A) >"$rlog" 2>&1 ||
     fail_exit "git init/add FAILED" "$rlog"
   rm -f "$rlog"
-  # Guard against a vacuous pass: the gate (prek/reuse/hawkeye) runs on tracked files, so
+  # Guard against a vacuous pass: the gate (prek/reuse) runs on tracked files, so
   # an empty index would let every check "pass" having inspected nothing.
   [ -n "$(cd "$out" && git diff --cached --name-only)" ] ||
     fail_exit "nothing staged — render/staging produced no files"
@@ -87,15 +88,14 @@ if [ "${1:-}" = "--one" ]; then
     run "stage uv.lock" git add -A
   fi
 
-  # Always: licensing + TOML formatting (system tools; prek skips them so they run here).
+  # Always: licensing. (hawkeye + taplo run inside prek below: a fixer hook that changes a
+  # file fails the run, so the rendered tree must already be headered and formatted.)
   run "reuse lint" reuse lint
-  run "hawkeye check" hawkeye check --config .config/licenserc.toml
-  run "taplo fmt --check" taplo fmt --check
   # check-copier-src-path is SKIP'd here: the matrix renders each shape from a LOCAL template
   # checkout, so the generated .copier-answers.yml legitimately records a local `_src_path` —
   # exactly what that hook exists to reject in a REAL project. Its own unit tests
   # (tests/test_check_copier_src_path.py) cover its behavior directly.
-  run "prek (all hooks)" env SKIP=taplo,hawkeye-format,no-commit-to-branch,check-copier-src-path uvx prek run --all-files
+  run "prek (all hooks)" env SKIP=no-commit-to-branch,check-copier-src-path uvx prek run --all-files
 
   # Python checks, only if the render produced a pyproject.
   if [ -f "$out/pyproject.toml" ]; then
@@ -112,16 +112,6 @@ if [ "${1:-}" = "--one" ]; then
   # bats, only if the render produced shell tests.
   if compgen -G "$out/tests/*.bats" >/dev/null; then
     run "bats tests/" bats tests/
-  fi
-
-  # helm lint, only if the render produced a chart and helm is available. The orchestrator's
-  # hard prerequisite check below already guarantees helm exists on the documented invocation
-  # path; this guard exists purely so a `--one` worker invoked directly (bypassing the
-  # orchestrator, e.g. for a manual out-of-band render) degrades gracefully instead of erroring.
-  if command -v helm >/dev/null 2>&1; then
-    for chart in "$out"/helm/*/; do
-      [ -f "$chart/Chart.yaml" ] && run "helm lint $(basename "$chart")" helm lint "$chart"
-    done
   fi
 
   done_mark # reached the end cleanly (failures, if any, are recorded as fail-markers)
@@ -141,7 +131,7 @@ SRC="$WORK/src"
 rsync -a --exclude '.git' --exclude '.venv' "$REPO_ROOT/" "$SRC/"
 
 missing=()
-for tool in copier uv uvx reuse hawkeye taplo bats git rsync trivy osv-scanner terraform tflint helm; do
+for tool in copier uv uvx reuse bats git rsync terraform tflint; do
   command -v "$tool" >/dev/null 2>&1 || missing+=("$tool")
 done
 if [ "${#missing[@]}" -gt 0 ]; then

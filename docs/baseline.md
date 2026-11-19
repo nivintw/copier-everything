@@ -101,31 +101,29 @@ Full hook inventory:
 | GitHub Actions | `actionlint` | [actionlint-py](https://github.com/Mateusz-Grzelinski/actionlint-py) | Lint workflow YAML and shellcheck every `run:` block. pip-backed, self-bootstraps. No system install needed. |
 | GitHub Actions | `zizmor` | [zizmor-pre-commit](https://github.com/woodruffw/zizmor-pre-commit) | Security-audit workflows **offline** — covers template injection, excessive permissions, artipacked. The full online audit (known-vulnerable-actions, ref-confusion) runs as a dedicated CI step. See [CI architecture](#ci-architecture). |
 | Security | `gitleaks` | [gitleaks/gitleaks](https://github.com/gitleaks/gitleaks) | Detect secrets (API keys, tokens, credentials) in staged changes. |
-| Licensing | `hawkeye-format` | local (`language: system`) | Add or update SPDX headers via hawkeye. Config: `.config/licenserc.toml`. Requires a local hawkeye binary — see [system tools](#language-system-tools). |
+| Licensing | `hawkeye-format` | local (`language: mise`) | Add or update SPDX headers via [hawkeye](https://github.com/fast/hawkeye). Config: `.config/licenserc.toml`. prek installs the pinned hawkeye itself — see [mise-installed tools](#mise-installed-tools). |
 | Licensing | `reuse` | [fsfe/reuse-tool](https://github.com/fsfe/reuse-tool) | Verify full REUSE compliance (`reuse lint`). Pip-backed, self-bootstraps. |
 | Spelling | `typos` | [crate-ci/typos](https://github.com/crate-ci/typos) | Check-only spell check (no auto-write). Config: `.config/typos.toml`. Scans `.` and `.config/` explicitly — hidden directories are skipped by typos by default. |
 | YAML | `yamllint` | [adrienverge/yamllint](https://github.com/adrienverge/yamllint) | Enforce YAML style beyond parse-validity: indentation, duplicate keys, truthy values. Config: `.config/yamllint.yaml`. Runs without `--strict` — error-level rules block; warnings are advisory. |
 | Markdown | `rumdl` | [rvben/rumdl-pre-commit](https://github.com/rvben/rumdl-pre-commit) | Lint and auto-fix Markdown style. Config: `.config/rumdl.toml`. |
-| TOML | `taplo` | local (`language: system`) | Format TOML files with taplo. Requires a local taplo binary — see [system tools](#language-system-tools). |
+| TOML | `taplo` | local (`language: mise`) | Format TOML files with taplo. prek installs the pinned taplo itself — see [mise-installed tools](#mise-installed-tools). |
 | Commit message | `commitizen` | [commitizen-tools/commitizen](https://github.com/commitizen-tools/commitizen) | Enforce Conventional Commit format. Runs on the `commit-msg` stage, not `pre-commit`. |
 
-### `language: system` tools
+### mise-installed tools
 
-Two always-on hooks — `taplo` (TOML formatter) and `hawkeye-format` (SPDX header
-enforcement) — use `language: system`. prek cannot auto-bootstrap system hooks; they expect a
-pre-installed binary on `PATH`.
+The release-binary tools — `taplo` and `hawkeye` always, plus `osv-scanner`, `trivy`, and
+`helm` when their module is on — have no pip or npm distribution to self-bootstrap from, so
+their hooks use prek's [`language: mise`](https://prek.j178.dev/languages/#mise) (prek 0.4.13+).
+Each hook lists its tool, at an exact version, in `additional_dependencies`
+(`aqua:tamasfe/taplo@0.10.0`, `github:fast/hawkeye@7.3.0`, …). prek installs it into an
+isolated env in its own cache, downloading mise itself when none is on `PATH`, and never
+touches the user's own mise setup.
 
-Install them locally so `uvx prek@0.5.11 run --all-files` produces the same result as CI. The
-template ships no Brewfile; a canonical setup provides them via the
-[nivintw/dotfiles](https://github.com/nivintw/dotfiles) Brewfile. Adopters supply their own
-equivalent. In CI, both are installed as version-pinned, SHA256-verified release archives —
-see [checksum-verified binaries](#checksum-verified-binaries).
-
-!!! tip "Why not pip-backed?"
-    taplo and hawkeye are native binaries (Rust) with no pip distribution. Unlike
-    shellcheck-py or actionlint-py, there is no PyPI wrapper to self-bootstrap. They follow
-    the same install pattern as trivy and osv-scanner — local via a package manager, CI via
-    a pinned curl download.
+Nothing needs installing by hand, and `uvx prek@0.5.11 run --all-files` runs the same tool
+versions locally as in CI. CI runs these hooks inside the ordinary prek step: a fixer hook
+(`taplo`, `hawkeye-format`) that changes a file fails the run, so there is no separate check
+step. Integrity comes from mise's backend — the aqua registry's checksums, plus cosign/SLSA
+provenance where upstream publishes it — rather than a repo-held SHA256 pin.
 
 ## REUSE licensing
 
@@ -205,7 +203,7 @@ exact same checks, defined once.
 
 | Workflow file | Trigger | Role |
 | --- | --- | --- |
-| `ci.yml` | `on: workflow_call` | The reusable quality gate. A dedicated `secret-scan` job checks out with `fetch-depth: 0` and runs a checksum-pinned `gitleaks git --redact` over the **full git history** (guarded to fail loudly on a shallow checkout, which would silently scan only a partial history) — distinct from the prek `gitleaks` hook, which scans only *staged* changes and is a no-op in CI's clean checkout. The `lint-and-test` job runs the prek hook set, plus dedicated steps for system-binary tools (hawkeye, taplo) and the full *online* zizmor workflow audit (with a GH token, for the advisory-database audits that the offline hook skips). Module-specific steps (Terraform setup, Docker image scan, Helm kubeconform) also live here, gated by module presence. |
+| `ci.yml` | `on: workflow_call` | The reusable quality gate. A dedicated `secret-scan` job checks out with `fetch-depth: 0` and runs a checksum-pinned `gitleaks git --redact` over the **full git history** (guarded to fail loudly on a shallow checkout, which would silently scan only a partial history) — distinct from the prek `gitleaks` hook, which scans only *staged* changes and is a no-op in CI's clean checkout. The `lint-and-test` job runs the prek hook set, plus the full *online* zizmor workflow audit (with a GH token, for the advisory-database audits that the offline hook skips). Module-specific steps (Terraform setup, Docker image scan, Helm kubeconform) also live here, gated by module presence. |
 | `pr.yml` | `on: pull_request` | Calls `ci.yml`. The open-PR pipeline: no releases, no write access. Require the `ci / lint-and-test` check in branch protection or a ruleset. |
 | `main.yml` | `on: push` to `main`, `workflow_dispatch` | Calls `ci.yml`, then — gated on `needs: ci` — runs release-please. Passes `skip-quality-gate: true` for release-please's own bump commit (it was already validated as the Release PR), avoiding doubled CI minutes without ever skipping a real change. |
 | `link-check.yml` | `on: pull_request` (Markdown paths only), `workflow_dispatch` | Runs [lychee](https://lychee.cli.rs/) on all `**/*.md` files to detect dead links. Kept separate from `ci.yml` because link checking is a network operation — inherently flaky and dependent on third-party uptime. Make `ci` required in branch protection; treat `link-check` as advisory. Excludes live in `.config/lychee.toml` (passed via `--config`), so a repo can add its own unverifiable hosts there without editing the workflow — which a `copier update` would otherwise overwrite. |
@@ -221,18 +219,16 @@ credential accessible to later steps).
 
 ## Checksum-verified binaries
 
-Six release binaries that CI installs by hand are each verified against a committed SHA256
-before use. They cannot self-bootstrap like pip-backed hooks, so a compromised or MITM'd
-download must fail closed rather than execute. A seventh tool with no downloadable asset (bats)
-is pinned by commit instead — see the pinning scheme below.
+The release binaries CI installs by hand — for steps that run outside prek — are each verified
+against a committed SHA256 before use, so a compromised or MITM'd download fails closed rather
+than executes. A tool with no downloadable asset (bats) is pinned by commit instead — see the
+pinning scheme below. (Tools that back prek hooks are installed by mise instead — see
+[mise-installed tools](#mise-installed-tools).)
 
 | Binary | Used for | Active when | Upstream checksum? |
 | --- | --- | --- | --- |
-| `hawkeye` | SPDX header enforcement (`hawkeye check`) | Always | Yes — reads upstream checksum file |
-| `taplo` | TOML formatting (`taplo fmt --check`) | Always | No — taplo publishes no checksum file. The SHA is computed from the downloaded asset at pin time (trust-on-first-use), then re-verified on every subsequent CI run. Tampering or MITM after the pin is set is still caught; the pin itself lacks independent attestation. |
 | `gitleaks` | Full-history secret scan (`gitleaks git --redact`) in the `secret-scan` CI job | Always | Yes — reads upstream checksum file |
-| `osv-scanner` | Dependency CVE scan against the OSV database (`uv.lock`) | Python shapes | Yes |
-| `trivy` | Dockerfile misconfig scan (`trivy config`) and image CVE scan (`trivy image`); IaC misconfig scan for Terraform | Docker or Terraform module | Yes |
+| `trivy` | Image CVE scan (`trivy image`) on the built image — the `trivy config` hooks bring their own | Docker module | Yes |
 | `kubeconform` | Kubernetes manifest validation against upstream schemas (`helm template \| kubeconform`) | Helm module | Yes |
 
 **Download → verify → extract.** The previous streaming pattern (`curl ... | tar xz`) was
@@ -243,9 +239,9 @@ byte never reaches `tar` or the shell.
 **Pinning scheme.** Each binary uses a pair of env vars annotated for Renovate:
 
 ```text
-# renovate: datasource=github-releases depName=korandoru/hawkeye
-HAWKEYE_VERSION: "6.5.1"
-HAWKEYE_SHA256: "d6eb0505..."
+# renovate: datasource=github-releases depName=aquasecurity/trivy
+TRIVY_VERSION: "0.71.2"
+TRIVY_SHA256: "0510e71e..."
 ```
 
 Renovate's custom regex manager reads the `# renovate:` annotation and bumps `*_VERSION`.
