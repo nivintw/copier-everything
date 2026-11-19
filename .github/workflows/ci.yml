@@ -71,6 +71,9 @@ jobs:
       - uses: terraform-linters/setup-tflint@6ffdbaa3be476b3431f7275c26966ef32ff60337 # v6.3.2
 
       - name: Render every shape + run the full gate
+        env:
+          # The rendered shapes' mise hooks resolve tool releases through the GitHub API.
+          GITHUB_TOKEN: ${{ github.token }}
         run: tests/render-matrix.sh
 
   # Lint the template repo's OWN files with the same prek hooks the generated projects use
@@ -119,6 +122,9 @@ jobs:
           # running them here is the check. zizmor runs online below (a superset of the hook's
           # offline pass); no-commit-to-branch is a local-only guard.
           SKIP: zizmor,no-commit-to-branch
+          # The mise hooks resolve tool releases through the GitHub API; authenticate so a cold
+          # cache doesn't hit the unauthenticated rate limit.
+          GITHUB_TOKEN: ${{ github.token }}
         run: uvx prek@0.5.11 run --all-files
 
       - name: Audit workflows (zizmor — online, full coverage)
@@ -128,6 +134,10 @@ jobs:
 
       - name: Install helm (tests/test_helm_chart.py runs `helm template`; it skips without it)
         uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
+        with:
+          # Same helm as the template's helm-lint hook pins through mise.
+          # renovate: datasource=github-releases depName=helm/helm
+          version: "v4.3.2"
 
       # This repo's own Python suite. `uv run` provisions the dev env (copier, pyjson5, pytest)
       # from uv.lock; ruff/ty/pytest use the locked versions. The sync tests render the template

@@ -7,9 +7,9 @@
 #   - main.yml  (on: push to main)  → this gate, THEN a release-please stage.
 # Defining the gate once means both pipelines run the exact same checks.
 #
-# Every prek hook self-bootstraps its pinned env — release-binary tools (taplo, hawkeye,
-# osv-scanner, trivy, helm) through prek's `language: mise` — so the gate here is the same
-# `prek run` as local. Tools installed below back only the steps that run outside prek.
+# Every prek hook self-bootstraps its pinned env (see .pre-commit-config.yaml), so the gate
+# here is the same `prek run` as local. Tools installed below back only the steps that run
+# outside prek.
 
 name: ci
 
@@ -143,6 +143,10 @@ jobs:
       - name: Set up Helm (backs the kubeconform step below; the helm-lint hook brings its own)
         if: inputs.skip-quality-gate != true
         uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
+        with:
+          # Same helm as the helm-lint hook's mise pin, so lint and `helm template` agree.
+          # renovate: datasource=github-releases depName=helm/helm
+          version: "v4.3.2"
 {% endif %}{% if has_ansible %}
       - name: Find this owner's GitHub repos that requirements.yml pulls
         # The token below is scoped to exactly these repos, so it can't read anything else.
@@ -202,6 +206,9 @@ jobs:
           # hook (token-free local gate) and is SKIP'd here so CI runs the FULL online audit
           # as the dedicated step below instead.
           SKIP: no-commit-to-branch,zizmor
+          # The mise hooks resolve tool releases through the GitHub API; authenticate so a cold
+          # cache doesn't hit the unauthenticated rate limit.
+          GITHUB_TOKEN: ${{ '{{' }} github.token {{ '}}' }}
         run: uvx prek@0.5.11 run --all-files
 
       - name: Audit workflows for security issues (zizmor, online)
