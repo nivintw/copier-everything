@@ -10,7 +10,10 @@
 #     REUSE.toml: the template/ tree's render-time `{{ ... }}` license placeholders are
 #     excluded (hawkeye) / overridden (reuse), and its rendered headers are verified
 #     per-shape by tests/render-matrix.sh.
-# Designed to run identically in CI (.github/workflows/ci.yml) — most hooks self-bootstrap.
+# Designed to run identically in CI (.github/workflows/ci.yml): every hook self-bootstraps.
+# Release-binary tools (hawkeye, taplo) use prek's `language: mise`, which installs the
+# pinned tool into prek's own cache (downloading mise itself if needed) — nothing to install
+# by hand, and local runs the same version CI does.
 #   Run on demand:  uvx prek@0.5.11 run --all-files
 #   Install hooks:  uvx prek@0.5.11 install
 
@@ -144,7 +147,7 @@ repos:
 
   # --------------------------- ⚖️ Licensing & Compliance ---------------------------- #
   # hawkeye maintains the SPDX headers (config: .config/licenserc.toml); reuse verifies overall
-  # REUSE compliance. hawkeye is system (release binary, like taplo) so CI/local match.
+  # REUSE compliance.
   # Both honor their own configs, which exclude/override the template/ tree — its headers
   # carry render-time `{{ license }}` placeholders and are verified per-shape by
   # render-matrix instead. (Files with a header + trailing doc block keep a blank line
@@ -154,7 +157,8 @@ repos:
       - id: hawkeye-format
         name: "⚖️ license · Add/format SPDX headers with hawkeye"
         entry: hawkeye format --config .config/licenserc.toml
-        language: system
+        language: mise
+        additional_dependencies: ["github:fast/hawkeye@7.3.0"]
         pass_filenames: false
         require_serial: true
 
@@ -174,7 +178,7 @@ repos:
         name: "✨ commit-msg · Enforce Conventional Commits"
         stages: [commit-msg]
 
-  # --------------------- 🛠️ Local Tools (prek can't bootstrap) ---------------------- #
+  # ---------------------------------- 🛠️ Local Tools ------------------------------- #
   - repo: local
     hooks:
       - id: prek-validate-config
@@ -186,6 +190,7 @@ repos:
       - id: taplo
         name: "📝 toml · Format with taplo"
         entry: taplo format
-        language: system
+        language: mise
+        additional_dependencies: ["aqua:tamasfe/taplo@0.10.0"]
         types: [toml]
         pass_filenames: false

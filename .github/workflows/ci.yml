@@ -27,21 +27,6 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  # hawkeye + taplo are installed via the composite actions below (.github/actions/) in both
-  # jobs; the version/checksum pins stay HERE (not in the composite actions) because
-  # Renovate's regex customManager only scans .github/workflows/*.yml and
-  # template/.github/workflows/*.jinja for the `# renovate:`-annotated pins — moving them into
-  # .github/actions/** would silently stop tracking them. SHAs are kept current with the
-  # versions by scripts/refresh-binary-checksums.sh.
-  # renovate: datasource=github-releases depName=korandoru/hawkeye
-  HAWKEYE_VERSION: "6.5.1"
-  HAWKEYE_SHA256: "d6eb0505a45a15244f4f789158aafe5e3f1a7dc86c9dc1d7651f3cb1e1b321e0"  # gitleaks:allow
-  # renovate: datasource=github-releases depName=tamasfe/taplo
-  TAPLO_VERSION: "0.10.0"
-  # taplo ships no upstream checksum file; this SHA is computed from the asset.
-  TAPLO_SHA256: "8fe196b894ccf9072f98d4e1013a180306e17d244830b03986ee5e8eabeb6156"  # gitleaks:allow
-
 jobs:
   render-matrix:
     runs-on: ubuntu-latest
@@ -78,47 +63,12 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq bats
 
-      - name: Install helm (for the full-modules shape's helm-lint hook)
-        uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
-
       - name: Install terraform + tflint (for the full-modules shape's terraform hooks)
         uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
           # The wrapper breaks the terraform_validate hook's output parsing — see ci.yml.jinja.
           terraform_wrapper: false
       - uses: terraform-linters/setup-tflint@6ffdbaa3be476b3431f7275c26966ef32ff60337 # v6.3.2
-
-      - name: Install hawkeye (pinned + checksum-verified, matching the template's CI)
-        uses: $/.github/actions/install-hawkeye
-        with:
-          version: ${{ env.HAWKEYE_VERSION }}
-          sha256: ${{ env.HAWKEYE_SHA256 }}
-
-      - name: Install taplo (pinned + checksum-verified, matching the template's CI)
-        uses: $/.github/actions/install-taplo
-        with:
-          version: ${{ env.TAPLO_VERSION }}
-          sha256: ${{ env.TAPLO_SHA256 }}
-
-      - name: Install trivy + osv-scanner (terraform IaC + dependency CVE scans)
-        env:
-          # renovate: datasource=github-releases depName=aquasecurity/trivy
-          TRIVY_VERSION: "0.71.2"
-          TRIVY_SHA256: "0510e71e2fd39bf863856d499c8dc19feb4e7336546394c502a8f5cc7ab27460"  # gitleaks:allow
-          # renovate: datasource=github-releases depName=google/osv-scanner
-          OSV_VERSION: "2.7.1"
-          # The published osv-scanner asset is the bare binary, so this checksums it directly.
-          OSV_SHA256: "fb7dab19a8bd9bbe5c3189f09d4b7ee1820c9553a23bac202648a56efd2f6ee8"  # gitleaks:allow
-        run: |
-          set -euo pipefail
-          curl -fsSL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" \
-            -o "$RUNNER_TEMP/trivy.tar.gz"
-          echo "${TRIVY_SHA256}  $RUNNER_TEMP/trivy.tar.gz" | sha256sum -c -
-          tar -xz -C "$HOME/.local/bin" -f "$RUNNER_TEMP/trivy.tar.gz" trivy
-          curl -fsSL "https://github.com/google/osv-scanner/releases/download/v${OSV_VERSION}/osv-scanner_linux_amd64" \
-            -o "$HOME/.local/bin/osv-scanner"
-          echo "${OSV_SHA256}  $HOME/.local/bin/osv-scanner" | sha256sum -c -
-          chmod +x "$HOME/.local/bin/trivy" "$HOME/.local/bin/osv-scanner"
 
       - name: Render every shape + run the full gate
         run: tests/render-matrix.sh
@@ -163,37 +113,21 @@ jobs:
           restore-keys: |
             prek-
 
-      - name: Install taplo (pinned + checksum-verified; the taplo hook is language:system)
-        uses: $/.github/actions/install-taplo
-        with:
-          version: ${{ env.TAPLO_VERSION }}
-          sha256: ${{ env.TAPLO_SHA256 }}
-
-      - name: Run prek hooks (same as local; taplo + hawkeye + zizmor run as their own steps below)
+      - name: Run prek hooks (same as local; zizmor runs as its own step below)
         env:
-          # taplo + hawkeye are system hooks (their own steps below); hawkeye-format mutates,
-          # so CI runs the non-mutating `hawkeye check` instead. zizmor runs online below (a
-          # superset of the hook's offline pass); no-commit-to-branch is a local-only guard.
-          # (reuse stays in the prek run — it's check-only.)
-          SKIP: taplo,hawkeye-format,zizmor,no-commit-to-branch
+          # The fixer hooks (taplo, hawkeye-format, …) fail the run if they change a file, so
+          # running them here is the check. zizmor runs online below (a superset of the hook's
+          # offline pass); no-commit-to-branch is a local-only guard.
+          SKIP: zizmor,no-commit-to-branch
         run: uvx prek@0.5.11 run --all-files
-
-      - name: Check TOML formatting (taplo)
-        run: taplo fmt --check --diff
-
-      - name: Install hawkeye (pinned + checksum-verified)
-        uses: $/.github/actions/install-hawkeye
-        with:
-          version: ${{ env.HAWKEYE_VERSION }}
-          sha256: ${{ env.HAWKEYE_SHA256 }}
-
-      - name: Check SPDX license headers (hawkeye)
-        run: hawkeye check --config .config/licenserc.toml
 
       - name: Audit workflows (zizmor — online, full coverage)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: uvx zizmor@1.32.0 --no-progress .github/workflows .github/actions
+        run: uvx zizmor@1.32.0 --no-progress .github/workflows
+
+      - name: Install helm (tests/test_helm_chart.py runs `helm template`; it skips without it)
+        uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
 
       # This repo's own Python suite. `uv run` provisions the dev env (copier, pyjson5, pytest)
       # from uv.lock; ruff/ty/pytest use the locked versions. The sync tests render the template

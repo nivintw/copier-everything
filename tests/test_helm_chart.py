@@ -46,9 +46,8 @@ def helm_chart_dir(
 def helm_manifests(helm_chart_dir: Path) -> list[dict]:
     """Run `helm template` once and return the parsed manifests, shared by both tests below.
 
-    Unlike taplo/hawkeye (README's two documented required local system tools), helm isn't a
-    contributor prerequisite — CI installs it to exercise these tests, but a local dev without
-    it shouldn't see the rest of the suite fail.
+    helm isn't a contributor prerequisite (the helm-lint hook installs its own through mise),
+    so a local dev without it on PATH shouldn't see the rest of the suite fail.
     """
     helm = shutil.which("helm")
     if helm is None:

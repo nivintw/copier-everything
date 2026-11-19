@@ -9,9 +9,8 @@
 # lands in Renovate's own commit); run it by hand after a manual version bump.
 #
 # Two pin classes, one refresh model:
-#   *_SHA256 — asset-bearing tools (trivy/osv/hawkeye/taplo/kubeconform). Pins the SHA256 of
-#     the published release asset (most publish a checksum file we read; taplo ships none, so
-#     we download the asset and hash it).
+#   *_SHA256 — asset-bearing tools (trivy/kubeconform/gitleaks). Pins the SHA256 of the
+#     published release asset, read from the checksum file each upstream publishes.
 #   *_COMMIT — asset-less tools (bats), installed from a git tag with NO downloadable release
 #     asset to hash. There's nothing to SHA256, so we pin the git commit id that v${VERSION}'s
 #     tag points at instead (resolved with `git ls-remote`, no clone). The BASE_REF tamper gate
@@ -41,7 +40,7 @@
 # `inherit_errexit` (bash 4.4+) for 3.2 portability is compensated everywhere a `$(...)` could
 # otherwise swallow an inner failure: `set -o pipefail` (inherited into command substitutions,
 # unlike errexit) makes the single-pipe fetches fail loudly, and every multi-statement path
-# checks its own exit status explicitly (see fetch_sha's taplo branch, cached_fetch, pinned_*).
+# checks its own exit status explicitly (see cached_fetch, pinned_*).
 set -euo pipefail
 
 BASE_REF="${BASE_REF:-}"
@@ -57,27 +56,17 @@ if [ -n "$BASE_REF" ] && ! git rev-parse --verify --quiet "${BASE_REF}^{commit}"
   exit 1
 fi
 
-WORKDIR="$(mktemp -d)"
-trap 'rm -rf "$WORKDIR"' EXIT
-
 # The asset-bearing release binaries CI installs by hand, each pinned by a SHA256 of its
-# published asset. trivy/osv-scanner/hawkeye/kubeconform/gitleaks publish a checksum file we
-# read; taplo publishes none, so we download the asset and hash it ourselves.
-SHA256_TOOLS=(TRIVY OSV HAWKEYE TAPLO KUBECONFORM GITLEAKS)
+# published asset, read from the checksum file each upstream publishes. (The tools that back
+# prek hooks — hawkeye, taplo, osv-scanner, helm — are installed by prek's `language: mise`
+# and verified by mise, so they carry no pin here.)
+SHA256_TOOLS=(TRIVY KUBECONFORM GITLEAKS)
 # Asset-less tools installed from a git tag, pinned by the commit id the tag points at (there's
 # no release asset to hash). See the *_COMMIT note in the header.
 COMMIT_TOOLS=(BATS)
 
 lower() { # <hex-ish string> -> lowercased (bash 3.2 has no ${var,,})
   printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
-}
-
-sha256_of() { # <file> -> bare hex digest
-  if command -v sha256sum >/dev/null 2>&1; then
-    sha256sum "$1" | awk '{print $1}'
-  else
-    shasum -a 256 "$1" | awk '{print $1}'
-  fi
 }
 
 fetch_sha() { # <TOOL> <version> -> bare hex digest on stdout
@@ -90,14 +79,6 @@ fetch_sha() { # <TOOL> <version> -> bare hex digest on stdout
     curl -fsSL "${retry[@]}" "https://github.com/aquasecurity/trivy/releases/download/v${version}/trivy_${version}_checksums.txt" |
       awk -v a="trivy_${version}_Linux-64bit.tar.gz" '$2 == a {print $1}'
     ;;
-  OSV)
-    curl -fsSL "${retry[@]}" "https://github.com/google/osv-scanner/releases/download/v${version}/osv-scanner_SHA256SUMS" |
-      awk '$2 == "osv-scanner_linux_amd64" {print $1}'
-    ;;
-  HAWKEYE)
-    curl -fsSL "${retry[@]}" "https://github.com/korandoru/hawkeye/releases/download/v${version}/hawkeye-x86_64-unknown-linux-gnu.tar.xz.sha256" |
-      awk '{print $1}'
-    ;;
   KUBECONFORM)
     curl -fsSL "${retry[@]}" "https://github.com/yannh/kubeconform/releases/download/v${version}/CHECKSUMS" |
       awk '$2 == "kubeconform-linux-amd64.tar.gz" {print $1}'
@@ -105,19 +86,6 @@ fetch_sha() { # <TOOL> <version> -> bare hex digest on stdout
   GITLEAKS)
     curl -fsSL "${retry[@]}" "https://github.com/gitleaks/gitleaks/releases/download/v${version}/gitleaks_${version}_checksums.txt" |
       awk -v a="gitleaks_${version}_linux_x64.tar.gz" '$2 == a {print $1}'
-    ;;
-  TAPLO)
-    # taplo ships no checksum file, so hash the asset (no `v` prefix on taplo tags).
-    # --remove-on-error so a half-written file is never left behind to be hashed. With
-    # inherit_errexit gone (bash 3.2), curl's failure in this multi-statement branch would
-    # otherwise fall through to sha256_of, so check it explicitly and fail loudly here.
-    if ! curl -fsSL "${retry[@]}" --remove-on-error \
-      "https://github.com/tamasfe/taplo/releases/download/${version}/taplo-linux-x86_64.gz" \
-      -o "$WORKDIR/taplo.gz"; then
-      echo "ERROR: fetch_sha: taplo ${version} asset download failed" >&2
-      return 1
-    fi
-    sha256_of "$WORKDIR/taplo.gz"
     ;;
   *)
     echo "unknown sha256 tool: $tool" >&2
@@ -147,8 +115,8 @@ fetch_commit() { # <TOOL> <version> -> bare hex commit id on stdout
       END { if (deref != "") print deref; else if (plain != "") print plain }'
 }
 
-# Memoize on class|tool|version so a version that appears in several workflow files is fetched —
-# or, for taplo, downloaded — at most once. bash 3.2 has no associative arrays, so the cache is
+# Memoize on class|tool|version so a version that appears in several workflow files is fetched
+# at most once. bash 3.2 has no associative arrays, so the cache is
 # two parallel indexed arrays scanned linearly (the tool set is tiny). Writes into the
 # caller-named variable ($4) so the cache lives in THIS shell (a `$(...)` return would run in a
 # subshell and lose it).

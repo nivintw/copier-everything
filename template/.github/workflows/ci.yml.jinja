@@ -7,9 +7,9 @@
 #   - main.yml  (on: push to main)  → this gate, THEN a release-please stage.
 # Defining the gate once means both pipelines run the exact same checks.
 #
-# Most prek hooks self-bootstrap their pinned env. taplo + hawkeye are `language:
-# system` (they expect local binaries), so prek skips them here and they run as their
-# own steps below, fetching the pinned upstream release — same check, no Docker.
+# Every prek hook self-bootstraps its pinned env — release-binary tools (taplo, hawkeye,
+# osv-scanner, trivy, helm) through prek's `language: mise` — so the gate here is the same
+# `prek run` as local. Tools installed below back only the steps that run outside prek.
 
 name: ci
 
@@ -111,8 +111,8 @@ jobs:
           # env (not all of them) — matters more now there are more, oftener-bumped hooks.
           restore-keys: |
             prek-
-{% if include_terraform or include_docker %}
-      - name: Install trivy (Dockerfile/IaC scan — runs inside the prek gate)
+{% if include_docker %}
+      - name: Install trivy (backs the trivy image scan below; the prek hooks bring their own)
         if: inputs.skip-quality-gate != true
         env:
           # renovate: datasource=github-releases depName=aquasecurity/trivy
@@ -128,23 +128,6 @@ jobs:
           echo "${TRIVY_SHA256}  $RUNNER_TEMP/trivy.tar.gz" | sha256sum -c -
           tar -xz -C "$RUNNER_TEMP" -f "$RUNNER_TEMP/trivy.tar.gz" trivy
           echo "$RUNNER_TEMP" >>"$GITHUB_PATH"
-{% endif %}{% if has_python %}
-      - name: Install osv-scanner (dependency CVE scan — runs inside the prek gate)
-        if: inputs.skip-quality-gate != true
-        env:
-          # renovate: datasource=github-releases depName=google/osv-scanner
-          OSV_VERSION: "2.7.1"
-          # SHA256 of osv-scanner_linux_amd64 (the published asset is the bare binary) —
-          # refreshed with the version by scripts/refresh-binary-checksums.sh.
-          OSV_SHA256: "fb7dab19a8bd9bbe5c3189f09d4b7ee1820c9553a23bac202648a56efd2f6ee8"  # gitleaks:allow
-        run: |
-          set -euo pipefail
-          curl -fsSL --retry 5 --retry-all-errors --retry-delay 2 --retry-max-time 60 \
-            "https://github.com/google/osv-scanner/releases/download/v${OSV_VERSION}/osv-scanner_linux_amd64" \
-            -o "$RUNNER_TEMP/osv-scanner"
-          echo "${OSV_SHA256}  $RUNNER_TEMP/osv-scanner" | sha256sum -c -
-          chmod +x "$RUNNER_TEMP/osv-scanner"
-          echo "$RUNNER_TEMP" >>"$GITHUB_PATH"
 {% endif %}{% if include_terraform %}
       - name: Set up Terraform (backs the terraform_fmt/validate prek hooks)
         if: inputs.skip-quality-gate != true
@@ -157,7 +140,7 @@ jobs:
         if: inputs.skip-quality-gate != true
         uses: terraform-linters/setup-tflint@6ffdbaa3be476b3431f7275c26966ef32ff60337 # v6.3.2
 {% endif %}{% if include_helm %}
-      - name: Set up Helm (backs the helm-lint prek hook + the kubeconform step below)
+      - name: Set up Helm (backs the kubeconform step below; the helm-lint hook brings its own)
         if: inputs.skip-quality-gate != true
         uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
 {% endif %}{% if has_ansible %}
@@ -213,11 +196,12 @@ jobs:
       - name: Run prek hooks (same as local)
         if: inputs.skip-quality-gate != true
         env:
-          # taplo/hawkeye run as dedicated steps below; no-commit-to-branch is a
-          # commit-time guard meaningless in CI (we're checked out on the branch). zizmor
-          # runs --offline in the hook (token-free local gate) and is SKIP'd here so CI
-          # runs the FULL online audit as the dedicated step below instead.
-          SKIP: taplo,hawkeye-format,no-commit-to-branch,zizmor
+          # The fixer hooks (taplo, hawkeye-format, …) fail the run if they change a file, so
+          # running them here is the check. no-commit-to-branch is a commit-time guard
+          # meaningless in CI (we're checked out on the branch). zizmor runs --offline in the
+          # hook (token-free local gate) and is SKIP'd here so CI runs the FULL online audit
+          # as the dedicated step below instead.
+          SKIP: no-commit-to-branch,zizmor
         run: uvx prek@0.5.11 run --all-files
 
       - name: Audit workflows for security issues (zizmor, online)
@@ -231,42 +215,6 @@ jobs:
           # renovate: datasource=pypi depName=zizmor
           ZIZMOR_VERSION: "1.32.0"
         run: uvx "zizmor@${ZIZMOR_VERSION}" --no-progress .github/workflows/
-
-      - name: Check SPDX license headers (hawkeye)
-        if: inputs.skip-quality-gate != true
-        env:
-          # renovate: datasource=github-releases depName=korandoru/hawkeye
-          HAWKEYE_VERSION: "6.5.1"
-          # SHA256 of hawkeye-x86_64-unknown-linux-gnu.tar.xz — refreshed with the version
-          # by scripts/refresh-binary-checksums.sh.
-          HAWKEYE_SHA256: "d6eb0505a45a15244f4f789158aafe5e3f1a7dc86c9dc1d7651f3cb1e1b321e0"  # gitleaks:allow
-        run: |
-          set -euo pipefail
-          curl -fsSL --retry 5 --retry-all-errors --retry-delay 2 --retry-max-time 60 \
-            "https://github.com/korandoru/hawkeye/releases/download/v${HAWKEYE_VERSION}/hawkeye-x86_64-unknown-linux-gnu.tar.xz" \
-            -o "$RUNNER_TEMP/hawkeye.tar.xz"
-          echo "${HAWKEYE_SHA256}  $RUNNER_TEMP/hawkeye.tar.xz" | sha256sum -c -
-          tar -xJ --strip-components=1 -C "$RUNNER_TEMP" -f "$RUNNER_TEMP/hawkeye.tar.xz" hawkeye-x86_64-unknown-linux-gnu/hawkeye
-          chmod +x "$RUNNER_TEMP/hawkeye"
-          "$RUNNER_TEMP/hawkeye" check --config .config/licenserc.toml
-
-      - name: Check TOML formatting (taplo)
-        if: inputs.skip-quality-gate != true
-        env:
-          # renovate: datasource=github-releases depName=tamasfe/taplo
-          TAPLO_VERSION: "0.10.0"
-          # SHA256 of taplo-linux-x86_64.gz. taplo ships no upstream checksum file, so this is
-          # computed from the asset by scripts/refresh-binary-checksums.sh.
-          TAPLO_SHA256: "8fe196b894ccf9072f98d4e1013a180306e17d244830b03986ee5e8eabeb6156"  # gitleaks:allow
-        run: |
-          set -euo pipefail
-          curl -fsSL --retry 5 --retry-all-errors --retry-delay 2 --retry-max-time 60 \
-            "https://github.com/tamasfe/taplo/releases/download/${TAPLO_VERSION}/taplo-linux-x86_64.gz" \
-            -o "$RUNNER_TEMP/taplo.gz"
-          echo "${TAPLO_SHA256}  $RUNNER_TEMP/taplo.gz" | sha256sum -c -
-          gunzip -c "$RUNNER_TEMP/taplo.gz" >"$RUNNER_TEMP/taplo"
-          chmod +x "$RUNNER_TEMP/taplo"
-          "$RUNNER_TEMP/taplo" fmt --check --diff
 {% if 'pytest' in test_frameworks %}
       - name: Tests (pytest)
         if: inputs.skip-quality-gate != true

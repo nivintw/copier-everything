@@ -139,10 +139,10 @@ contains_python ─────────────────────�
 | --- | --- | --- | --- |
 | `ruff-check` + `ruff-format` | `has_python` | prek gate | Lint (with `--fix`) and format Python. Ruff config lives in `pyproject.toml [tool.ruff]`, targeting `python_version`. |
 | `validate-pyproject` | `has_python` | prek gate | Validates `pyproject.toml` against the full schema store (including ruff, uv, hatchling sections). |
-| `ty` | `has_python` | prek gate | Type-checks with `uv run ty check .` (system hook). |
+| `ty` | `has_python` | prek gate | Type-checks with `uv run ty check .` (system hook, via the project's uv env). |
 | `uv-lock` | `has_python` | prek gate | Keeps `uv.lock` in sync with `pyproject.toml`. |
 | `uv-audit` | `has_python` | prek gate (system) | Scans resolved dependencies against PyPA advisory database. Runs on changes to `pyproject.toml` or `uv.lock`. |
-| `osv-scanner` | `has_python` | prek gate (system) + CI install | Cross-checks `uv.lock` against the OSV database. System binary; SHA256-checksum-pinned CI install (`osv-scanner_linux_amd64`). |
+| `osv-scanner` | `has_python` | prek gate (mise) | Cross-checks `uv.lock` against the OSV database. prek installs the pinned binary through `language: mise`. |
 | `pytest` with coverage gate | `python_source` + `pytest` in `test_frameworks` | prek gate + CI | Pytest runs with `--cov=<python_package> --cov-fail-under=80` (configured in `[tool.pytest.ini_options] addopts`). The coverage gate only applies to `python_source` shapes — a pytest-only-no-src repo has no package to measure. |
 
 !!! tip "The four canonical Python shapes"
@@ -185,8 +185,7 @@ top of `fmt`/`validate`.
 | `terraform_validate` | prek gate | Validates the configuration with `terraform validate`. Runs `terraform init -backend=false` automatically — offline while no providers are declared; add a provider and this becomes a network operation. |
 | `terraform_tflint` | prek gate | Lints with tflint's bundled rules (offline; `tflint --init` is only needed for cloud plugins, which the stub ships none of). |
 | `checkov` | prek gate (pip-backed) | Scans Terraform for IaC misconfigurations (e.g. a public bucket) that fmt/validate miss. Pip-backed — self-bootstraps, no system install. |
-| `trivy` (IaC) | prek gate (system) | Second IaC security scan layer via `trivy config --exit-code 1 --skip-check-update terraform`. No `--severity` filter (unlike the Dockerfile hook) — IaC misconfigs are the user's own resources where blocking even MEDIUM is worthwhile. |
-| Install trivy (CI) | CI | SHA256-checksum-pinned binary install (`trivy_VERSION_Linux-64bit.tar.gz`). Shared with the Docker module if both are enabled. |
+| `trivy` (IaC) | prek gate (mise) | Second IaC security scan layer via `trivy config --exit-code 1 --skip-check-update terraform`. No `--severity` filter (unlike the Dockerfile hook) — IaC misconfigs are the user's own resources where blocking even MEDIUM is worthwhile. |
 | Set up Terraform (CI) | CI | `hashicorp/setup-terraform` with `terraform_wrapper: false` — the default output wrapper breaks `terraform_validate`'s JSON parsing. |
 | Set up tflint (CI) | CI | `terraform-linters/setup-tflint` makes the tflint binary available to the prek gate. |
 
@@ -211,8 +210,8 @@ misconfigurations, and a CI step builds the real image and scans its layers for 
 | Hook / step | Where | What it does |
 | --- | --- | --- |
 | `hadolint` | prek gate (pip-backed) | The Dockerfile analog of shellcheck. `hadolint-py` is pip-backed so it self-bootstraps — no Docker or system install required. |
-| `trivy-dockerfile` | prek gate (system) | Scans the Dockerfile for misconfigurations: `trivy config --exit-code 1 --skip-check-update --severity HIGH,CRITICAL Dockerfile`. Runs offline (`--skip-check-update` uses bundled checks). LOW/MEDIUM advisories like "add a HEALTHCHECK" are app-specific and filtered out; remove `--severity` to surface them. |
-| Install trivy (CI) | CI | SHA256-checksum-pinned binary install. Shared with the Terraform module if both are enabled. |
+| `trivy-dockerfile` | prek gate (mise) | Scans the Dockerfile for misconfigurations: `trivy config --exit-code 1 --skip-check-update --severity HIGH,CRITICAL Dockerfile`. Runs offline (`--skip-check-update` uses bundled checks). LOW/MEDIUM advisories like "add a HEALTHCHECK" are app-specific and filtered out; remove `--severity` to surface them. |
+| Install trivy (CI) | CI | SHA256-checksum-pinned binary install for the image scan below (the `trivy-dockerfile` hook brings its own through mise). |
 | Build image + scan for CVEs | CI only | `docker build -t <project_slug>:ci .` then `trivy image --exit-code 1 --ignore-unfixed --severity HIGH,CRITICAL <project_slug>:ci`. Image-layer CVE scanning requires a built image, so it cannot be a local hook. `--ignore-unfixed` skips base-image CVEs with no available fix, keeping the gate actionable. |
 
 ## Helm
@@ -238,8 +237,8 @@ this module is on.
 
 | Hook / step | Where | What it does |
 | --- | --- | --- |
-| `helm-lint` | prek gate (system) | `helm lint helm/<project_slug>` — offline, triggers on any change under `helm/`. |
-| Set up Helm (CI) | CI | `azure/setup-helm` makes the Helm binary available to both the prek gate and the kubeconform step. |
+| `helm-lint` | prek gate (mise) | `helm lint helm/<project_slug>` — offline, triggers on any change under `helm/`. |
+| Set up Helm (CI) | CI | `azure/setup-helm` provides `helm template` for the kubeconform step (the `helm-lint` hook brings its own through mise). |
 | Validate rendered manifests | CI only | `helm template helm/<project_slug> \| kubeconform -strict -ignore-missing-schemas -summary`. Validates rendered manifests against upstream Kubernetes schemas (a network fetch, so CI-only). SHA256-checksum-pinned kubeconform binary install. `-ignore-missing-schemas` skips CRDs/Custom Resources that have no upstream schema; `-strict` still rejects unknown fields on built-in kinds. |
 
 ## SQL
