@@ -99,8 +99,8 @@ NOT_SYNCED = {
     "REUSE.toml",
     ".config/release-please-config.json",
     ".config/.release-please-manifest.json",
-    # Root also extends copier-template.json5 (the pins inside template/**/*.jinja); the pins
-    # themselves are kept in lockstep by tests/test_renovate_config.py.
+    # Root also carries this repo's own rules (the pins inside template/**/*.jinja); the
+    # repo-management pins are kept in lockstep by tests/test_renovate_config.py.
     ".github/renovate.json5",
     # Prose — repo-specific or release-generated.
     "README.md",

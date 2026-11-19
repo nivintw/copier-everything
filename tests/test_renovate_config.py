@@ -3,10 +3,10 @@
 
 """The Renovate shims and caller must pin repo-management to one consistent release.
 
-Every Renovate rule lives in nivintw/repo-management (renovate/default.json5, plus
-copier-template.json5 for this repo); the generated project's .github/renovate.json5 and this
-repo's own only extend those at a release tag, and .github/workflows/renovate.yml calls the
-reusable workflow at that release's commit. If the three pins drifted apart, a repo would run
+The fleet's rules live in nivintw/repo-management's renovate/default.json5. The generated
+project's .github/renovate.json5 only extends it at a release tag; this repo's extends it too and
+adds its own rules for the pins inside template/**/*.jinja. .github/workflows/renovate.yml calls
+the reusable workflow at that release's commit. If the three pins drifted apart, a repo would run
 one release's workflow (its allowedCommands, its Renovate version) against another release's
 rules. Renovate moves them together in one PR, so they must start out in lockstep.
 """
@@ -59,13 +59,10 @@ def test_template_shim_extends_only_the_shared_default(template_dir: Path) -> No
     assert not (template_dir / "template/.github/renovate.json").exists()
 
 
-def test_root_shim_adds_only_the_copier_template_preset(template_dir: Path) -> None:
-    """This repo extends default.json5 plus copier-template.json5, both at the same tag."""
+def test_root_config_extends_only_the_shared_default(template_dir: Path) -> None:
+    """This repo's own rules are inline; the only preset it extends is default.json5."""
     config = pyjson5.decode((template_dir / ".github/renovate.json5").read_text())
-    assert set(config) <= {"$schema", "extends"}
-    tags = _preset_tags(config)
-    assert list(tags) == ["default", "copier-template"]
-    assert len(set(tags.values())) == 1
+    assert list(_preset_tags(config)) == ["default"]
 
 
 def test_shims_and_caller_pin_the_same_release(template_dir: Path) -> None:
@@ -93,3 +90,24 @@ def test_caller_fails_closed_and_passes_only_the_renovate_credentials(template_d
     assert job["if"] == "vars.RENOVATE_CLIENT_ID != ''"
     assert job["secrets"] == {"RENOVATE_APP_PRIVATE_KEY": "${{ secrets.RENOVATE_APP_PRIVATE_KEY }}"}
     assert doc["permissions"] == {}
+
+
+def test_template_repo_management_pins_are_tracked(template_dir: Path) -> None:
+    """Some regex manager extracts nivintw/repo-management from both template pin sites."""
+    config = pyjson5.decode((template_dir / ".github/renovate.json5").read_text())
+    for rel in (
+        "template/.github/renovate.json5.jinja",
+        "template/.github/workflows/renovate.yml.jinja",
+    ):
+        text = (template_dir / rel).read_text()
+        found = set()
+        for manager in config["customManagers"]:
+            if not any(re.search(p.strip("/"), rel) for p in manager["managerFilePatterns"]):
+                continue
+            for pattern in manager["matchStrings"]:
+                # Renovate writes named groups as (?<name>); Python needs (?P<name>).
+                for m in re.finditer(pattern.replace("(?<", "(?P<"), text):
+                    found.add(m.groupdict().get("depName") or manager.get("depNameTemplate"))
+        assert "nivintw/repo-management" in found, (
+            f"no manager tracks the repo-management pin in {rel}"
+        )
