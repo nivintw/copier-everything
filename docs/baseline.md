@@ -259,9 +259,8 @@ moved tag, the same supply-chain signal as a swapped asset.
 
 !!! note "Keeping hashes current automatically"
     `scripts/refresh-binary-checksums.sh` recomputes each SHA256 from its pinned version —
-    reading the upstream-published checksum file for trivy, osv-scanner, hawkeye, kubeconform,
-    and gitleaks; hashing the asset directly for taplo (which publishes none), and resolving the
-    tag's commit id for the asset-less `*_COMMIT` pin (bats). The shared Renovate config wires
+    reading the upstream-published checksum file for trivy, kubeconform, and gitleaks, and
+    resolving the tag's commit id for the asset-less `*_COMMIT` pin (bats). The shared Renovate config wires
     the script as a `postUpgradeTask` (`executionMode: branch`), so Renovate runs it during the
     upgrade and folds the refreshed hash into its **own** commit — no separate bot pushing onto
     the Renovate branch.
