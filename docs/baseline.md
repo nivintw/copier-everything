@@ -113,7 +113,7 @@ Full hook inventory:
 
 The release-binary tools — `taplo` and `hawkeye` always, plus `osv-scanner`, `trivy`, and
 `helm` when their module is on — have no pip or npm distribution to self-bootstrap from, so
-their hooks use prek's [`language: mise`](https://prek.j178.dev/languages/#mise) (prek 0.4.13+).
+their hooks use prek's [`language: mise`](https://prek.j178.dev/reference/language-support/#mise) (prek 0.4.13+).
 Each hook lists its tool, at an exact version, in `additional_dependencies`
 (`aqua:tamasfe/taplo@0.10.0`, `github:fast/hawkeye@7.3.0`, …). prek installs it into an
 isolated env in its own cache, downloading mise itself when none is on `PATH`, and never
