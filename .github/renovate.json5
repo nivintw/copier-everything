@@ -8,7 +8,7 @@
 // reads, and they apply after default.json5's, so they win where both match.
 {
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
-  extends: ["github>nivintw/repo-management//renovate/default.json5#v2.2.0"],
+  extends: ["github>nivintw/repo-management//renovate/default.json5#v2.2.1"],
   packageRules: [
     // The pins inside template/**/*.jinja are found by the regex managers below, not by the
     // built-in managers default.json5 groups by, so put them in the same ecosystem groups and
