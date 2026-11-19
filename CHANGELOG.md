@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.16.1](https://github.com/nivintw/copier-everything/compare/v1.16.0...v1.16.1) (2026-11-19)
+
+
+### Bug Fixes
+
+* **docker:** Run the generated image as numeric UID 10001 ([80eff95](https://github.com/nivintw/copier-everything/commit/80eff9554edd2f18311a8a97c2aaf40d9b63283b))
+
 ## [1.16.0](https://github.com/nivintw/copier-everything/compare/v1.15.0...v1.16.0) (2026-11-19)
 
 
