@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.16.0](https://github.com/nivintw/copier-everything/compare/v1.15.0...v1.16.0) (2026-11-19)
+
+
+### Features
+
+* **prek:** Install release-binary hook tools through prek's mise language ([0f70e53](https://github.com/nivintw/copier-everything/commit/0f70e53ea5972d62983597e2757d896ff433d5de)), closes [#291](https://github.com/nivintw/copier-everything/issues/291) [#260](https://github.com/nivintw/copier-everything/issues/260)
+
+
+### Bug Fixes
+
+* **prek:** Pin the mise CLI and fail closed on missing toolchain checksums ([43cbd8a](https://github.com/nivintw/copier-everything/commit/43cbd8a9158afe78af2307ff578885ff7a23a817)), closes [#291](https://github.com/nivintw/copier-everything/issues/291)
+
 ## [1.15.0](https://github.com/nivintw/copier-everything/compare/v1.14.1...v1.15.0) (2026-11-14)
 
 
