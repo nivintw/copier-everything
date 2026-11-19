@@ -58,8 +58,8 @@ fi
 
 # The asset-bearing release binaries CI installs by hand, each pinned by a SHA256 of its
 # published asset, read from the checksum file each upstream publishes. (The tools that back
-# prek hooks — hawkeye, taplo, osv-scanner, helm — are installed by prek's `language: mise`
-# and verified by mise, so they carry no pin here.)
+# prek hooks — hawkeye, taplo, osv-scanner, helm — are installed by prek's `language: mise`,
+# so they carry no pin here.)
 SHA256_TOOLS=(TRIVY KUBECONFORM GITLEAKS)
 # Asset-less tools installed from a git tag, pinned by the commit id the tag points at (there's
 # no release asset to hash). See the *_COMMIT note in the header.

@@ -261,9 +261,10 @@ hooks they needed every contributor to install each tool by hand, and the local 
 drifted from CI's pins: hawkeye 7 broke the 6.x config for anyone who installed it, while CI
 stayed green on 6.5.1. A mise hook pins its tool at an exact version in
 `additional_dependencies` and prek installs it, so local and CI run the same binary with no
-setup. The trade-off is integrity: these tools are verified by mise's backend (aqua registry
-checksums, plus cosign/SLSA where upstream publishes it) instead of a repo-held SHA256 behind
-the tamper gate below. That gate still covers what CI installs for steps outside prek:
+setup. The trade-off is integrity: these tools are verified by mise's backend against checksum
+data from the same release (and taplo, which publishes none, by HTTPS alone) instead of a
+repo-held SHA256 behind the tamper gate below. The mise CLI is pinned as well, since it is the
+trust root for everything it installs. That gate still covers what CI installs for steps outside prek:
 kubeconform, gitleaks, bats, and trivy for `trivy image`.
 
 ### Keeping hashes fresh

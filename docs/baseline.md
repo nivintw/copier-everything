@@ -120,10 +120,24 @@ isolated env in its own cache, downloading mise itself when none is on `PATH`, a
 touches the user's own mise setup.
 
 Nothing needs installing by hand, and `uvx prek@0.5.11 run --all-files` runs the same tool
-versions locally as in CI. CI runs these hooks inside the ordinary prek step: a fixer hook
-(`taplo`, `hawkeye-format`) that changes a file fails the run, so there is no separate check
-step. Integrity comes from mise's backend — the aqua registry's checksums, plus cosign/SLSA
-provenance where upstream publishes it — rather than a repo-held SHA256 pin.
+versions locally as in CI. The mise CLI itself is pinned too, through
+`default_language_version: {mise: ...}`, since it is the trust root for every tool it installs.
+CI runs these hooks inside the ordinary prek step: a fixer hook (`taplo`, `hawkeye-format`) that
+changes a file fails the run, so there is no separate check step.
+
+Integrity comes from mise's backend rather than a repo-held SHA256 pin, and it varies by tool:
+
+| Tool | Backend | Verified against |
+| --- | --- | --- |
+| `trivy`, `osv-scanner` | aqua | The release's published checksum file (osv-scanner also carries SLSA provenance). |
+| `helm` | aqua | The `.sha256sum` published alongside each get.helm.sh download. |
+| `hawkeye` | `github:` | The release's `.sha256` file and GitHub's asset digest. |
+| `taplo` | aqua | **Nothing beyond HTTPS** — taplo publishes no checksum file or attestation, and its aqua entry declares none. |
+
+Every one of these checks reads integrity data from the same release as the asset, so unlike
+the old repo-held pins none of them would catch a release whose asset *and* checksum file were
+both swapped. That trade-off was taken deliberately for the hook tools. The binaries CI still
+installs by hand keep the pin — see [checksum-verified binaries](#checksum-verified-binaries).
 
 ## REUSE licensing
 
