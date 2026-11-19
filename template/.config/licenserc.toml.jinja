@@ -1,36 +1,36 @@
 # SPDX-FileCopyrightText: © {{ year }} {{ author_name }}
 # SPDX-License-Identifier: {{ license }}
 
-# hawkeye (https://github.com/korandoru/hawkeye) — inserts & maintains SPDX license
+# hawkeye (https://github.com/fast/hawkeye) — inserts & maintains SPDX license
 # headers for REUSE compliance. Run: `hawkeye format` (or `check`). Header text is
-# templated from [properties] so year/holder/license live in one place. Only files
+# templated from [props] so year/holder/license live in one place. Only files
 # with no usable comment syntax stay in REUSE.toml (strict JSON, lockfiles).
 
+[header]
 # REUSE-IgnoreStart — this template literally contains an SPDX-License-Identifier line;
 # without the guard, `reuse lint` tries to parse the placeholder as a license.
-inlineHeader = """
-SPDX-FileCopyrightText: © {{ '{{' }} props["inceptionYear"] {{ '}}' }} {{ '{{' }} props["copyrightHolder"] {{ '}}' }}
-SPDX-License-Identifier: {{ '{{' }} props["spdxLicenseIdentifier"] {{ '}}' }}
+text = """
+SPDX-FileCopyrightText: © {{ '{{' }} props.inception_year {{ '}}' }} {{ '{{' }} props.copyright_holder {{ '}}' }}
+SPDX-License-Identifier: {{ '{{' }} props.spdx_license_identifier {{ '}}' }}
 """
 # REUSE-IgnoreEnd
+keywords = ["SPDX-"]
 
-# Negations cancel hawkeye's built-in default excludes (which skip **/*.md) so those get
-# headered too.
-{%- if markdown_has_frontmatter %}
-# This project has frontmatter-first markdown (YAML on line 1 — Claude Code skills,
-# Jekyll/Hugo), so markdown stays in hawkeye's default excludes (a line-1 SPDX comment
-# would break the frontmatter) and is licensed via REUSE.toml instead. Note hawkeye
-# can't re-exclude a file once an include (`!`) matches it, so there's no `!**/*.md`.
-# For the same reason the markdown-header mapping (additionalHeaders + MARKDOWN_CUSTOM)
-# is omitted below — it would never fire — and markdown-header.toml isn't shipped.
-{%- endif %}
+[files]
+# Scan from where hawkeye is invoked (the repo root); the default would be this config's dir.
+root = "{{ '{{' }} cwd {{ '}}' }}"
 excludes = [
   "LICENSE",
   "LICENSES/**",
   "uv.lock",
   "**/*.json",
-{%- if not markdown_has_frontmatter %}
-  "!**/*.md",
+  # renovate.json5 carries its own `//` SPDX header (reuse-verified); hawkeye has no json5 rule.
+  "**/*.json5",
+{%- if markdown_has_frontmatter %}
+  # This project has frontmatter-first markdown (YAML on line 1 — Claude Code skills,
+  # Jekyll/Hugo): a line-1 SPDX comment would break the frontmatter, so markdown is
+  # licensed via REUSE.toml instead.
+  "**/*.md",
 {%- endif %}
   "**/.python-version",
   "**/.vscode/*",
@@ -43,8 +43,15 @@ excludes = [
   # The Claude Code guard hooks ship verbatim from the template (no per-file templating), so
   # they carry no inline header — excluded here and licensed via REUSE.toml instead.
   ".claude/hooks/**",
+  # Licensed via REUSE.toml instead of an inline header.
+  "**/.gitignore",
+{%- if include_docs_site %}
+  "docs/assets/favicon.svg",
+{%- endif %}
 {%- if include_helm %}
   "**/Chart.lock",
+  # Helm's _helpers.tpl carries its own `#` SPDX header (reuse-verified); hawkeye has no tpl rule.
+  "**/*.tpl",
 {%- endif %}
 {%- if include_sql %}
   # hawkeye doesn't map the `.sqlfluff` filename; it carries its own `#` header (verified
@@ -52,23 +59,25 @@ excludes = [
   "**/.sqlfluff",
 {%- endif %}
 ]
-{% if not markdown_has_frontmatter %}
-additionalHeaders = ["markdown-header.toml"]
 
-[mapping.MARKDOWN_CUSTOM]
+[git]
+ignore = "auto"
+
+[props]
+inception_year = {{ year }}
+spdx_license_identifier = "{{ license }}"
+copyright_holder = "{{ author_name }}"
+{% if not markdown_has_frontmatter %}
+[[rules]]
 extensions = ["md"]
+style_out = "xml"
 {% endif %}
-# '#'-comment files hawkeye doesn't map by default. (.gitignore stays in hawkeye's default
-# excludes and is licensed via REUSE.toml instead — see that file.)
-[mapping.SCRIPT_STYLE]
+# '#'-comment files hawkeye doesn't map by default.
+[[rules]]
 extensions = ["txt", "fish", "bats"{% if include_terraform %}, "tf"{% endif %}{% if has_ansible %}, "cfg"{% endif %}]
 {%- set script_style_filenames = [] %}
 {%- if has_python %}{% set _ = script_style_filenames.append('".envrc"') %}{% endif %}
 {%- if include_docker %}{% set _ = script_style_filenames.append('".dockerignore"') %}{% endif %}
 {%- if include_helm %}{% set _ = script_style_filenames.append('".helmignore"') %}{% endif %}
 filenames = [{{ script_style_filenames|join(", ") }}]
-
-[properties]
-inceptionYear = "{{ year }}"
-spdxLicenseIdentifier = "{{ license }}"
-copyrightHolder = "{{ author_name }}"
+style_out = "script"
