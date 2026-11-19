@@ -205,7 +205,7 @@ repos:
         # so this gate hook stays offline/deterministic (the online image scan lives in CI).
         entry: trivy config --exit-code 1 --skip-check-update --severity HIGH,CRITICAL Dockerfile
         language: mise
-        additional_dependencies: ["aqua:aquasecurity/trivy@0.71.2"]
+        additional_dependencies: ["aqua:aquasecurity/trivy@0.76.2"]
         pass_filenames: false
         files: '^Dockerfile$'
 {% endif %}{% if include_terraform %}
@@ -248,7 +248,7 @@ repos:
         # stays offline/deterministic.
         entry: trivy config --exit-code 1 --skip-check-update terraform
         language: mise
-        additional_dependencies: ["aqua:aquasecurity/trivy@0.71.2"]
+        additional_dependencies: ["aqua:aquasecurity/trivy@0.76.2"]
         pass_filenames: false
         files: '\.tf$'
 {% endif %}{% if include_helm %}
