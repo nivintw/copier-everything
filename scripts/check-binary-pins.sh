@@ -10,7 +10,8 @@
 # scripts/refresh-binary-checksums.sh re-pins in the same commit. A pin that changes while its
 # version does not is either a release asset swapped on an already-published tag, or a hand edit
 # that would hide one. Either way the change must not merge, so this runs inside the required CI
-# check, comparing the workflow files against the base commit.
+# check, comparing the workflow files (and, in the template repo, the template's workflow
+# sources) against the base commit.
 #
 # Usage: scripts/check-binary-pins.sh <base-commit>
 # Needs: bash, git (the base commit must be in the local history), grep, sed, sort.
@@ -44,7 +45,7 @@ while IFS= read -r file; do
       failed=1
     fi
   done < <(grep -oE "^[[:space:]]+[A-Z0-9_]+_(SHA256|COMMIT):" "$file" | tr -d " :" | sort -u)
-done < <(git diff --name-only "$base" HEAD -- ".github/workflows/*.yml" ".github/workflows/*.yaml")
+done < <(git diff --name-only "$base" HEAD -- ".github/workflows/*.yml" ".github/workflows/*.yaml" "template/.github/workflows/*.jinja")
 
 if [ "$failed" -eq 0 ]; then
   echo "Binary pins: every changed pin moved with its version."

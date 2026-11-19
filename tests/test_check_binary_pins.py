@@ -35,19 +35,26 @@ def _git(repo: Path, *args: str) -> str:
     ).stdout.strip()
 
 
-def _run(tmp_path: Path, head: str | None, extra: dict[str, str] | None = None) -> int:
+def _run(
+    tmp_path: Path,
+    head: str | None,
+    extra: dict[str, str] | None = None,
+    workflow: str = ".github/workflows/ci.yml",
+) -> int:
     repo = tmp_path / "repo"
-    workflows = repo / ".github" / "workflows"
+    path = repo / workflow
+    workflows = path.parent
     workflows.mkdir(parents=True)
     _git(repo, "init", "-q")
     _git(repo, "config", "user.email", "t@example.com")
     _git(repo, "config", "user.name", "t")
-    (workflows / "ci.yml").write_text(BASE)
+    _git(repo, "config", "commit.gpgsign", "false")  # don't depend on the developer's signing setup
+    path.write_text(BASE)
     _git(repo, "add", "-A")
     _git(repo, "commit", "-qm", "base")
     base = _git(repo, "rev-parse", "HEAD")
     if head is not None:
-        (workflows / "ci.yml").write_text(head)
+        path.write_text(head)
     for name, text in (extra or {}).items():
         (workflows / name).write_text(text)
     _git(repo, "add", "-A")
@@ -85,3 +92,9 @@ def test_a_pin_that_moves_alone_fails(tmp_path: Path, head: str) -> None:
 def test_a_new_workflow_file_has_nothing_to_compare(tmp_path: Path) -> None:
     """A workflow file that's new in the PR has no earlier pin, so it can't fail the check."""
     assert _run(tmp_path, None, {"new.yml": BASE.replace('"aaaa"', '"cccc"')}) == 0
+
+
+def test_template_workflow_sources_are_checked(tmp_path: Path) -> None:
+    """In the template repo the pins live in template/.github/workflows/*.jinja; those count too."""
+    head = BASE.replace('"aaaa"', '"bbbb"')
+    assert _run(tmp_path, head, workflow="template/.github/workflows/ci.yml.jinja") == 1
