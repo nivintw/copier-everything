@@ -75,6 +75,12 @@
       groupName: "nivintw/repo-management shared Renovate config",
       minimumReleaseAge: null,
     },
+    {
+      description: "trivy keeps default.json5's own group in the template too (the pre-commit rule above would otherwise claim its hook pins): a grouped branch runs postUpgradeTasks from its first update, so in a larger group the TRIVY_SHA256 refresh is skipped.",
+      matchDatasources: ["github-releases"],
+      matchPackageNames: ["aquasecurity/trivy"],
+      groupName: "trivy",
+    },
   ],
   customManagers: [
     {
