@@ -15,7 +15,7 @@ minimum_prek_version: "0.4.13"
 # newest jdx/mise release) because it is the trust root for every tool it installs, so it gets
 # the same deliberate, release-age-held bumps as the tools themselves.
 default_language_version:
-  mise: "=2026.11.12"
+  mise: "=2026.11.13"
 
 default_install_hook_types: [pre-commit, commit-msg]
 default_stages: [pre-commit, manual]
@@ -229,7 +229,7 @@ repos:
         name: "🏗️ terraform · Lint (tflint)"
 
   - repo: https://github.com/bridgecrewio/checkov
-    rev: 3.4.10
+    rev: 3.4.11
     hooks:
       - id: checkov
         name: "🏗️ terraform · Scan IaC for misconfig (checkov)"
@@ -293,7 +293,7 @@ repos:
   # via `ansible-galaxy install -r requirements.yml`. The hook is fully self-contained (no
   # pyproject/venv), which is what keeps an Ansible-only repo Python-free.
   - repo: https://github.com/ansible/ansible-lint
-    rev: v26.11.0
+    rev: v26.11.1
     hooks:
       - id: ansible-lint
         name: "🅰️ ansible · Lint playbooks/roles with ansible-lint"
@@ -339,7 +339,7 @@ repos:
 {% if has_python %}
   # ----------------------------- ⚙️ Environment ------------------------------------- #
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.13.9
+    rev: 0.13.10
     hooks:
       - id: uv-lock
         name: "⚙️ uv · Keep uv.lock in sync with pyproject.toml"
