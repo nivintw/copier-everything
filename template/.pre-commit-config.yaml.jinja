@@ -6,8 +6,8 @@
 # (hawkeye, taplo, osv-scanner, trivy, helm) use prek's `language: mise`, which installs the
 # pinned tool into prek's own cache (downloading mise itself if needed): nothing to install
 # by hand, and local runs the same version CI does.
-#   Run on demand:  uvx prek@0.5.11 run --all-files
-#   Install hooks:  uvx prek@0.5.11 install
+#   Run on demand:  uvx prek@0.5.12 run --all-files
+#   Install hooks:  uvx prek@0.5.12 install
 
 # `language: mise` needs prek 0.4.13+.
 minimum_prek_version: "0.4.13"
@@ -15,7 +15,7 @@ minimum_prek_version: "0.4.13"
 # newest jdx/mise release) because it is the trust root for every tool it installs, so it gets
 # the same deliberate, release-age-held bumps as the tools themselves.
 default_language_version:
-  mise: "=2026.11.13"
+  mise: "=2026.11.14"
 
 default_install_hook_types: [pre-commit, commit-msg]
 default_stages: [pre-commit, manual]
@@ -331,7 +331,7 @@ repos:
 
   # -------------------------------- 📝 Markdown ------------------------------------- #
   - repo: https://github.com/rvben/rumdl-pre-commit
-    rev: v0.3.6
+    rev: v0.3.7
     hooks:
       - id: rumdl
         name: "📝 markdown · Lint/format with rumdl"
