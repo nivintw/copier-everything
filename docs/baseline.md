@@ -70,7 +70,7 @@ releases, hardened CI with integrity-verified binaries, and continuous dependenc
 The local gate is implemented as a [prek](https://github.com/j178/prek) (pre-commit) hook
 set in `.pre-commit-config.yaml`. Most hooks are pip-backed and self-bootstrap a pinned
 virtual environment — no system install needed. They run identically locally
-(`uvx prek@0.5.11 run --all-files`) and in CI.
+(`uvx prek@0.5.12 run --all-files`) and in CI.
 
 !!! note "Local gate principle"
     The local gate is deterministic and offline. Checks that require network access — link
@@ -119,7 +119,7 @@ Each hook lists its tool, at an exact version, in `additional_dependencies`
 isolated env in its own cache, downloading mise itself when none is on `PATH`, and never
 touches the user's own mise setup.
 
-Nothing needs installing by hand, and `uvx prek@0.5.11 run --all-files` runs the same tool
+Nothing needs installing by hand, and `uvx prek@0.5.12 run --all-files` runs the same tool
 versions locally as in CI. The mise CLI itself is pinned too, through
 `default_language_version: {mise: ...}`, since it is the trust root for every tool it installs.
 CI runs these hooks inside the ordinary prek step: a fixer hook (`taplo`, `hawkeye-format`) that

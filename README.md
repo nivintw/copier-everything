@@ -107,8 +107,8 @@ releases, CI) is language-agnostic and ships with every shape. See
 This repo dogfoods its own baseline. Install the hooks once, then commit via a branch:
 
 ```bash
-uvx prek@0.5.11 install            # wire up the pre-commit + commit-msg hooks
-uvx prek@0.5.11 run --all-files    # run the gate on demand (version pinned to match CI)
+uvx prek@0.5.12 install            # wire up the pre-commit + commit-msg hooks
+uvx prek@0.5.12 run --all-files    # run the gate on demand (version pinned to match CI)
 ```
 
 > **Nothing to install by hand:** every hook self-bootstraps, including the release-binary
