@@ -14,8 +14,8 @@
 # Release-binary tools (hawkeye, taplo) use prek's `language: mise`, which installs the
 # pinned tool into prek's own cache (downloading mise itself if needed) — nothing to install
 # by hand, and local runs the same version CI does.
-#   Run on demand:  uvx prek@0.5.11 run --all-files
-#   Install hooks:  uvx prek@0.5.11 install
+#   Run on demand:  uvx prek@0.5.12 run --all-files
+#   Install hooks:  uvx prek@0.5.12 install
 
 # `language: mise` needs prek 0.4.13+.
 minimum_prek_version: "0.4.13"

@@ -211,7 +211,7 @@ jobs:
           GITHUB_TOKEN: ${{ '{{' }} github.token {{ '}}' }}
           # Fail closed when a toolchain prek downloads (mise itself, node, go) has no checksum.
           PREK_DOWNLOAD_CHECKSUM_POLICY: required
-        run: uvx prek@0.5.11 run --all-files
+        run: uvx prek@0.5.12 run --all-files
 
       - name: Audit workflows for security issues (zizmor, online)
         if: inputs.skip-quality-gate != true
